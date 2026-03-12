@@ -1,0 +1,65 @@
+{
+  "task_id": "task_repo_change_001",
+  "source": "n8n_ingestion",
+  "request_summary": "Update docs for campaign launch and commit changes.",
+  "intent": "repo_code_change",
+  "target_system": "git_repository",
+  "attachments": [
+    {
+      "name": "campaign-notes.md",
+      "media_type": "text/markdown",
+      "bytes": 4240
+    }
+  ],
+  "storage_links": ["s3://openclaw-inbox/tasks/ing_2026_03_12_001/campaign-notes.md"],
+  "execution_plan": [
+    {
+      "step": "Create MCP task record and set status to planning",
+      "route": "mcp",
+      "status": "completed"
+    },
+    {
+      "step": "Apply repository edit to docs/campaign/launch.md",
+      "route": "repo_edit",
+      "status": "completed"
+    },
+    {
+      "step": "Run local docs checks",
+      "route": "cli",
+      "status": "completed"
+    }
+  ],
+  "dependencies": ["task_audit_log_001"],
+  "approval_status": "not_required",
+  "status": "completed",
+  "owner": "codex-worker-1",
+  "retries": 0,
+  "blockers": [],
+  "outputs": {
+    "execution_path": ["mcp", "repo_edit", "cli"],
+    "browser_rejection_reason": "Direct repository edit and CLI validation were available and sufficient.",
+    "files_used": ["docs/campaign/launch.md", "examples/codex_task_item.json"],
+    "actions_taken": [
+      "Created MCP task record",
+      "Patched docs file",
+      "Ran docs validation command"
+    ],
+    "result": "Docs update committed and ready for review.",
+    "blockers": [],
+    "retry_or_escalation_state": "none"
+  },
+  "logs": [
+    {
+      "at": "2026-03-12T10:05:00Z",
+      "level": "info",
+      "message": "Task picked up by codex-worker-1"
+    },
+    {
+      "at": "2026-03-12T10:08:00Z",
+      "level": "info",
+      "message": "Repository edit completed without browser fallback"
+    }
+  ],
+  "created_at": "2026-03-12T10:04:00Z",
+  "updated_at": "2026-03-12T10:08:30Z"
+}
