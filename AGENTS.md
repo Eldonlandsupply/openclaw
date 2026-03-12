@@ -3,6 +3,23 @@
 - Repo: https://github.com/openclaw/openclaw
 - GitHub issues/comments/PR comments: use literal multiline strings or `-F - <<'EOF'` (or $'...') for real newlines; never embed "\\n".
 
+## Orchestration-First Task Routing
+
+OpenClaw must route execution layers in this strict order:
+
+1. API
+2. n8n
+3. MCP
+4. repo edit
+5. DB/storage
+6. CLI
+7. provider API
+8. browser
+
+Browser automation is last resort only. For every task, include a short `Browser Rejection` note in the execution log that explains why browser automation was not used. If browser automation is used, document why all higher-priority layers were unsuitable.
+
+Use n8n + S3-compatible object storage for attachment ingestion, and MCP-backed task items for Codex pickup. Apply escalation rules from `docs/architecture/task-routing-spec.md` when safety, missing credentials, or policy conflicts are detected.
+
 ## Project Structure & Module Organization
 
 - Source code: `src/` (CLI wiring in `src/cli`, commands in `src/commands`, web provider in `src/provider-web.ts`, infra in `src/infra`, media pipeline in `src/media`).
