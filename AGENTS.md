@@ -177,3 +177,124 @@
 - Publish: `npm publish --access public --otp="<otp>"` (run from the package dir).
 - Verify without local npmrc side effects: `npm view <pkg> version --userconfig "$(mktemp)"`.
 - Kill the tmux session after publish.
+
+## Orchestration-First Execution Model
+
+### Purpose
+
+This repository uses an orchestration-first execution model for OpenClaw and related agents.
+
+Agents must prefer direct system interfaces over browser automation.
+
+### Core Rule
+
+Before taking any action, ask:
+
+**Can this be completed through a direct interface instead of a browser?**
+
+If yes, do not use the browser.
+
+### Tool Priority
+
+Always prefer this order:
+
+1. Direct internal API or service call
+2. n8n workflow webhook or orchestrated flow
+3. MCP server action
+4. Direct repository edit through Codex
+5. Database or storage operation
+6. CLI or local script
+7. Provider API integration
+8. Browser automation only if no reliable direct path exists
+
+### Default Execution Pattern
+
+When OpenClaw receives a request:
+
+1. Parse the request into:
+   - intent
+   - target system
+   - required artifacts
+   - dependencies
+   - urgency
+   - approvals needed
+
+2. If attachments are present:
+   - send them to the n8n ingestion workflow
+   - store them in the S3-compatible inbox
+   - register metadata
+   - link them to the task record
+
+3. Create or update a task in the MCP-backed task system
+
+4. Let Codex poll and execute the task directly through:
+   - MCP servers
+   - repositories
+   - CMS APIs
+   - databases
+   - filesystem tools
+   - internal services
+
+5. Write back:
+   - status
+   - logs
+   - changed files
+   - outputs
+   - errors
+   - retry state
+   - human review flags
+
+### Browser Use Policy
+
+Browser automation is a last resort.
+
+Do not open a browser just to:
+
+- move files
+- submit content
+- send emails
+- create tasks
+- inspect logs
+- update systems with APIs or server interfaces
+- read content available through direct integrations
+
+If browser use is unavoidable, the agent must explicitly state:
+
+- why no direct interface exists
+- what direct options were rejected
+- what the browser step is doing
+- what risk or fragility this introduces
+
+### Output Requirements
+
+For every non-trivial task, return:
+
+- execution path chosen
+- why it was chosen
+- why browser automation was rejected
+- systems involved
+- files or attachments used
+- actions taken
+- result
+- blockers
+- retry or escalation state
+
+### Escalation Rules
+
+Escalate only when:
+
+- approval is required
+- credentials are missing
+- a policy block exists
+- confidence is below threshold
+- execution has failed after rational retry
+
+### Non-Negotiables
+
+- Prefer deterministic server-side actions
+- Prefer structured payloads over manual UI steps
+- Prefer reusable workflows over one-off hacks
+- Prefer low-token operations over verbose loops
+- Never invent integrations, endpoints, fields, or credentials
+- If an integration is missing, label it `MISSING INTEGRATION`
+- Every action must be logged with timestamp, source, target, result, and failure state
