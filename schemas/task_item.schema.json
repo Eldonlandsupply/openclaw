@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openclaw.ai/schemas/task_item.schema.json",
+  "title": "OpenClaw Task Item",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "task_id",
+    "source",
+    "request_summary",
+    "intent",
+    "target_system",
+    "attachments",
+    "storage_links",
+    "execution_plan",
+    "dependencies",
+    "approval_status",
+    "status",
+    "owner",
+    "retries",
+    "blockers",
+    "outputs",
+    "logs",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "task_id": { "type": "string", "minLength": 1 },
+    "source": { "type": "string", "minLength": 1 },
+    "request_summary": { "type": "string", "minLength": 1 },
+    "intent": { "type": "string", "minLength": 1 },
+    "target_system": { "type": "string", "minLength": 1 },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "mime_type", "ingested_via_n8n", "storage_key"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "mime_type": { "type": "string", "minLength": 1 },
+          "ingested_via_n8n": { "type": "boolean" },
+          "storage_key": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "storage_links": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "execution_plan": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["step", "route", "status"],
+        "properties": {
+          "step": { "type": "string", "minLength": 1 },
+          "route": {
+            "type": "string",
+            "enum": ["api", "n8n", "mcp", "repo_edit", "db_storage", "cli", "browser"]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "in_progress", "completed", "failed", "blocked"]
+          }
+        }
+      }
+    },
+    "dependencies": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "approval_status": {
+      "type": "string",
+      "enum": ["not_required", "pending", "approved", "rejected"]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["queued", "running", "completed", "failed", "blocked", "escalated"]
+    },
+    "owner": { "type": "string", "minLength": 1 },
+    "retries": { "type": "integer", "minimum": 0 },
+    "blockers": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "outputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "execution_path",
+        "browser_rejection_reason",
+        "files_used",
+        "actions_taken",
+        "result",
+        "retry_or_escalation_state"
+      ],
+      "properties": {
+        "execution_path": { "type": "string", "minLength": 1 },
+        "browser_rejection_reason": { "type": "string", "minLength": 1 },
+        "files_used": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "actions_taken": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "result": { "type": "string", "minLength": 1 },
+        "retry_or_escalation_state": { "type": "string", "minLength": 1 }
+      }
+    },
+    "logs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["timestamp", "level", "message"],
+        "properties": {
+          "timestamp": { "type": "string", "minLength": 1 },
+          "level": { "type": "string", "enum": ["info", "warn", "error"] },
+          "message": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "created_at": { "type": "string", "minLength": 1 },
+    "updated_at": { "type": "string", "minLength": 1 }
+  }
+}
