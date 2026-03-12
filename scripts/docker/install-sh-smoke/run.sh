@@ -7,6 +7,17 @@ SKIP_PREVIOUS="${OPENCLAW_INSTALL_SMOKE_SKIP_PREVIOUS:-0}"
 DEFAULT_PACKAGE="openclaw"
 PACKAGE_NAME="${OPENCLAW_INSTALL_PACKAGE:-$DEFAULT_PACKAGE}"
 
+extract_semver_version() {
+  local raw="$1"
+  local parsed
+  parsed="$(printf "%s" "$raw" | grep -Eo '[0-9]{4}\.[0-9]{1,2}\.[0-9]{1,2}' | head -n 1 || true)"
+  if [[ -z "$parsed" ]]; then
+    echo "ERROR: could not parse semver from version output: $raw" >&2
+    exit 1
+  fi
+  printf "%s" "$parsed"
+}
+
 echo "==> Resolve npm versions"
 LATEST_VERSION="$(npm view "$PACKAGE_NAME" version)"
 if [[ -n "$SMOKE_PREVIOUS_VERSION" ]]; then
@@ -59,11 +70,12 @@ fi
 if [[ -n "${OPENCLAW_INSTALL_LATEST_OUT:-}" ]]; then
   printf "%s" "$LATEST_VERSION" > "${OPENCLAW_INSTALL_LATEST_OUT:-}"
 fi
-INSTALLED_VERSION="$("$CLI_NAME" --version 2>/dev/null | head -n 1 | tr -d '\r')"
-echo "cli=$CLI_NAME installed=$INSTALLED_VERSION expected=$LATEST_VERSION"
+RAW_INSTALLED_VERSION="$("$CLI_NAME" --version 2>/dev/null | head -n 1 | tr -d '\r')"
+INSTALLED_VERSION="$(extract_semver_version "$RAW_INSTALLED_VERSION")"
+echo "cli=$CLI_NAME installed=$RAW_INSTALLED_VERSION parsed=$INSTALLED_VERSION expected=$LATEST_VERSION"
 
 if [[ "$INSTALLED_VERSION" != "$LATEST_VERSION" ]]; then
-  echo "ERROR: expected ${CLI_NAME}@${LATEST_VERSION}, got ${CLI_NAME}@${INSTALLED_VERSION}" >&2
+  echo "ERROR: expected ${CLI_NAME}@${LATEST_VERSION}, got ${CLI_NAME}@${RAW_INSTALLED_VERSION}" >&2
   exit 1
 fi
 
