@@ -40,6 +40,11 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
+        "required": ["name", "media_type", "bytes"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "media_type": { "type": "string", "minLength": 1 },
+          "bytes": { "type": "integer", "minimum": 0 }
         "required": ["name", "mime_type", "ingested_via_n8n", "storage_key"],
         "properties": {
           "name": { "type": "string", "minLength": 1 },
@@ -67,6 +72,7 @@
           },
           "status": {
             "type": "string",
+            "enum": ["pending", "running", "completed", "failed", "blocked"]
             "enum": ["pending", "in_progress", "completed", "failed", "blocked"]
           }
         }
@@ -82,6 +88,17 @@
     },
     "status": {
       "type": "string",
+      "enum": [
+        "queued",
+        "planning",
+        "running",
+        "blocked",
+        "awaiting_approval",
+        "retry_scheduled",
+        "completed",
+        "failed",
+        "escalated"
+      ]
       "enum": ["queued", "running", "completed", "failed", "blocked", "escalated"]
     },
     "owner": { "type": "string", "minLength": 1 },
@@ -99,6 +116,14 @@
         "files_used",
         "actions_taken",
         "result",
+        "blockers",
+        "retry_or_escalation_state"
+      ],
+      "properties": {
+        "execution_path": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
         "retry_or_escalation_state"
       ],
       "properties": {
@@ -113,6 +138,10 @@
           "items": { "type": "string", "minLength": 1 }
         },
         "result": { "type": "string", "minLength": 1 },
+        "blockers": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
         "retry_or_escalation_state": { "type": "string", "minLength": 1 }
       }
     },
@@ -150,6 +179,9 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
+        "required": ["at", "level", "message"],
+        "properties": {
+          "at": { "type": "string", "minLength": 1 },
         "required": ["timestamp", "level", "message"],
         "properties": {
           "timestamp": { "type": "string", "minLength": 1 },

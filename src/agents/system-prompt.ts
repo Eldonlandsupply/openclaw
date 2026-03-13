@@ -410,6 +410,8 @@ export function buildAgentSystemPrompt(params: {
     "Narrate only when it helps: multi-step work, complex/challenging problems, sensitive actions (e.g., deletions), or when the user explicitly asks.",
     "Keep narration brief and value-dense; avoid repeating obvious steps.",
     "Use plain human language for narration unless in a technical context.",
+    "Default routing order for task execution: API > n8n > MCP > repo edit > DB/storage > CLI > browser.",
+    "Treat browser automation as last resort only. If a direct system interface exists, do not use browser automation.",
     "",
     "## Task Routing Order",
     "Use orchestration-first routing by default: API > n8n > MCP > repo edit > DB/storage > CLI > browser.",

@@ -25,7 +25,11 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-latest
     steps:
+      - name: Warn when GH_APP_PRIVATE_KEY is missing
+        if: ${{ secrets.GH_APP_PRIVATE_KEY == '' }}
+        run: echo "::warning::GH_APP_PRIVATE_KEY is not configured. Falling back to GITHUB_TOKEN."
       - uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
+        if: ${{ secrets.GH_APP_PRIVATE_KEY != '' }}
         if: ${{ secrets.GH_APP_PRIVATE_KEY != "" }}
         id: app-token
         with:
@@ -203,7 +207,11 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-latest
     steps:
+      - name: Warn when GH_APP_PRIVATE_KEY is missing
+        if: ${{ secrets.GH_APP_PRIVATE_KEY == '' }}
+        run: echo "::warning::GH_APP_PRIVATE_KEY is not configured. Falling back to GITHUB_TOKEN."
       - uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
+        if: ${{ secrets.GH_APP_PRIVATE_KEY != '' }}
         if: ${{ secrets.GH_APP_PRIVATE_KEY != "" }}
         id: app-token
         with:
@@ -444,7 +452,11 @@ jobs:
       issues: write
     runs-on: ubuntu-latest
     steps:
+      - name: Warn when GH_APP_PRIVATE_KEY is missing
+        if: ${{ secrets.GH_APP_PRIVATE_KEY == '' }}
+        run: echo "::warning::GH_APP_PRIVATE_KEY is not configured. Falling back to GITHUB_TOKEN."
       - uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
+        if: ${{ secrets.GH_APP_PRIVATE_KEY != '' }}
         if: ${{ secrets.GH_APP_PRIVATE_KEY != "" }}
         id: app-token
         with:

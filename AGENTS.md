@@ -31,6 +31,16 @@ Use n8n + S3-compatible object storage for attachment ingestion, and MCP-backed 
 
 ## Project Structure & Module Organization
 
+## Orchestration-First Task Routing
+
+- Default execution order for every task: **API > n8n > MCP > repo edit > DB/storage > CLI > browser**.
+- Treat browser automation as last resort only. If a direct system interface exists (API, webhook, MCP tool, repo edit, storage API, or CLI), use that instead.
+- Route attachments to the n8n ingestion workflow and store canonical copies in the S3-compatible inbox.
+- Create/update a task record in the MCP-backed task system before execution and during status transitions.
+- Codex workers should poll task records and execute directly through server/API/repo/tool paths before considering browser actions.
+- Every completed task report must include: execution path, why browser automation was rejected, files used, actions taken, result, blockers, and retry or escalation state.
+- Escalate only for approvals, missing credentials, policy blocks, low confidence, or repeated failure.
+
 - Source code: `src/` (CLI wiring in `src/cli`, commands in `src/commands`, web provider in `src/provider-web.ts`, infra in `src/infra`, media pipeline in `src/media`).
 - Tests: colocated `*.test.ts`.
 - Docs: `docs/` (images, queue, Pi config). Built output lives in `dist/`.
