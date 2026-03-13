@@ -3,6 +3,16 @@
 - Repo: https://github.com/openclaw/openclaw
 - GitHub issues/comments/PR comments: use literal multiline strings or `-F - <<'EOF'` (or $'...') for real newlines; never embed "\\n".
 
+## Orchestration-First Execution Policy
+
+- Default routing order for task execution: `API > n8n > MCP > repo edit > DB/storage > CLI > browser`.
+- Do not use browser automation when a direct system interface exists.
+- Route attachments to the n8n ingestion workflow and persist artifacts in the S3-compatible inbox.
+- Create a task record in the MCP-backed task system before execution.
+- Codex should poll tasks and execute directly through server/API/repo/tool paths.
+- Every task output must include: execution path, why browser automation was rejected, files used, actions taken, result, blockers, and retry or escalation state.
+- Escalate only for: approvals, missing credentials, policy blocks, low confidence, or repeated failure.
+
 ## Project Structure & Module Organization
 
 - Source code: `src/` (CLI wiring in `src/cli`, commands in `src/commands`, web provider in `src/provider-web.ts`, infra in `src/infra`, media pipeline in `src/media`).

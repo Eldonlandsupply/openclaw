@@ -5,6 +5,17 @@ INSTALL_URL="${OPENCLAW_INSTALL_URL:-https://openclaw.bot/install.sh}"
 DEFAULT_PACKAGE="openclaw"
 PACKAGE_NAME="${OPENCLAW_INSTALL_PACKAGE:-$DEFAULT_PACKAGE}"
 
+extract_semver_version() {
+  local raw="$1"
+  local parsed
+  parsed="$(printf "%s" "$raw" | grep -Eo '[0-9]{4}\.[0-9]{1,2}\.[0-9]{1,2}' | head -n 1 || true)"
+  if [[ -z "$parsed" ]]; then
+    echo "ERROR: could not parse semver from version output: $raw" >&2
+    exit 1
+  fi
+  printf "%s" "$parsed"
+}
+
 echo "==> Pre-flight: ensure git absent"
 if command -v git >/dev/null; then
   echo "git is present unexpectedly" >&2
@@ -37,11 +48,12 @@ if [[ -z "$CMD_PATH" ]]; then
   exit 1
 fi
 echo "==> Verify CLI installed: $CLI_NAME"
-INSTALLED_VERSION="$("$CMD_PATH" --version 2>/dev/null | head -n 1 | tr -d '\r')"
+RAW_INSTALLED_VERSION="$("$CMD_PATH" --version 2>/dev/null | head -n 1 | tr -d '\r')"
+INSTALLED_VERSION="$(extract_semver_version "$RAW_INSTALLED_VERSION")"
 
-echo "cli=$CLI_NAME installed=$INSTALLED_VERSION expected=$LATEST_VERSION"
+echo "cli=$CLI_NAME installed=$RAW_INSTALLED_VERSION parsed=$INSTALLED_VERSION expected=$LATEST_VERSION"
 if [[ "$INSTALLED_VERSION" != "$LATEST_VERSION" ]]; then
-  echo "ERROR: expected ${CLI_NAME}@${LATEST_VERSION}, got ${CLI_NAME}@${INSTALLED_VERSION}" >&2
+  echo "ERROR: expected ${CLI_NAME}@${LATEST_VERSION}, got ${CLI_NAME}@${RAW_INSTALLED_VERSION}" >&2
   exit 1
 fi
 
