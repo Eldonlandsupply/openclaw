@@ -1224,7 +1224,12 @@
               },
               {
                 "group": "Technical reference",
-                "pages": ["reference/wizard", "reference/token-use", "channels/grammy"]
+                "pages": [
+                  "reference/wizard",
+                  "reference/token-use",
+                  "reference/codex-task-pickup-runbook",
+                  "channels/grammy"
+                ]
               },
               {
                 "group": "Concept internals",
