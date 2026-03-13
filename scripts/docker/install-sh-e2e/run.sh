@@ -68,10 +68,11 @@ else
 fi
 
 echo "==> Verify installed version"
-INSTALLED_VERSION="$(openclaw --version 2>/dev/null | head -n 1 | tr -d '\r')"
-echo "installed=$INSTALLED_VERSION expected=$EXPECTED_VERSION"
-if [[ "$INSTALLED_VERSION" != "$EXPECTED_VERSION" ]]; then
-  echo "ERROR: expected openclaw@$EXPECTED_VERSION, got openclaw@$INSTALLED_VERSION" >&2
+INSTALLED_VERSION_RAW="$(openclaw --version 2>/dev/null | head -n 1 | tr -d '\r')"
+INSTALLED_VERSION="$(printf '%s' "$INSTALLED_VERSION_RAW" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1 || true)"
+echo "installed=$INSTALLED_VERSION_RAW parsed=$INSTALLED_VERSION expected=$EXPECTED_VERSION"
+if [[ -z "$INSTALLED_VERSION" || "$INSTALLED_VERSION" != "$EXPECTED_VERSION" ]]; then
+  echo "ERROR: expected openclaw@$EXPECTED_VERSION, got openclaw@$INSTALLED_VERSION_RAW" >&2
   exit 1
 fi
 
