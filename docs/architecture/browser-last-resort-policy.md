@@ -1,3 +1,6 @@
+---
+title: "Browser Last Resort Policy"
+summary: "Policy for restricting browser automation to fallback-only scenarios"
 # Browser last resort policy
 
 ## Policy

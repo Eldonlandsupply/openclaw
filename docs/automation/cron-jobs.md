@@ -282,6 +282,77 @@ Recurring, isolated job with delivery:
 }
 ```
 
+### LOLA follow-through examples (executive cadence)
+
+Daily commitment sweep (main session):
+
+```json
+{
+  "name": "LOLA daily commitment sweep",
+  "schedule": { "kind": "cron", "expr": "30 6 * * 1-5", "tz": "America/Los_Angeles" },
+  "sessionTarget": "main",
+  "wakeMode": "now",
+  "payload": {
+    "kind": "systemEvent",
+    "text": "LOLA follow-through sweep: list open commitments due today, flag blocked owners, and draft 3 next actions."
+  }
+}
+```
+
+Post-meeting action capture (isolated + announce):
+
+```json
+{
+  "name": "LOLA post-meeting capture",
+  "schedule": { "kind": "every", "everyMs": 900000 },
+  "sessionTarget": "isolated",
+  "wakeMode": "next-heartbeat",
+  "payload": {
+    "kind": "agentTurn",
+    "message": "LOLA follow-through check: capture promised actions from recent meetings, assign owner/date, and post a concise follow-up summary."
+  },
+  "delivery": {
+    "mode": "announce",
+    "channel": "slack",
+    "to": "channel:C1234567890",
+    "bestEffort": true
+  }
+}
+```
+
+Weekly 1:1 prep (isolated):
+
+```json
+{
+  "name": "LOLA weekly 1:1 prep",
+  "schedule": { "kind": "cron", "expr": "0 16 * * 1", "tz": "America/Los_Angeles" },
+  "sessionTarget": "isolated",
+  "wakeMode": "next-heartbeat",
+  "payload": {
+    "kind": "agentTurn",
+    "message": "Prepare LOLA 1:1 prep with each direct report: commitments shipped, misses, blockers, and asks needed this week."
+  },
+  "delivery": {
+    "mode": "none"
+  }
+}
+```
+
+Friday promises audit (main session):
+
+```json
+{
+  "name": "LOLA Friday promises audit",
+  "schedule": { "kind": "cron", "expr": "0 16 * * 5", "tz": "America/Los_Angeles" },
+  "sessionTarget": "main",
+  "wakeMode": "now",
+  "payload": {
+    "kind": "systemEvent",
+    "text": "Run LOLA promises audit: compare this week's commitments vs outcomes, identify misses, and set owner/date recovery actions."
+  }
+}
+```
+
 Notes:
 
 - `schedule.kind`: `at` (`at`), `every` (`everyMs`), or `cron` (`expr`, optional `tz`).
@@ -343,6 +414,34 @@ Disable cron entirely:
 - `OPENCLAW_SKIP_CRON=1` (env)
 
 ## CLI quickstart
+
+### LOLA follow-through quick hits
+
+Daily commitment sweep:
+
+```bash
+openclaw cron add \
+  --name "LOLA daily commitment sweep" \
+  --cron "30 6 * * 1-5" \
+  --tz "America/Los_Angeles" \
+  --session main \
+  --system-event "LOLA follow-through sweep: list open commitments due today, blockers, and next actions." \
+  --wake now
+```
+
+Friday promises audit:
+
+```bash
+openclaw cron add \
+  --name "LOLA Friday promises audit" \
+  --cron "0 16 * * 5" \
+  --tz "America/Los_Angeles" \
+  --session isolated \
+  --message "Run LOLA promises audit, summarize misses, and propose owner/date recovery plan." \
+  --announce \
+  --channel slack \
+  --to "channel:C1234567890"
+```
 
 One-shot reminder (UTC ISO, auto-delete after success):
 
