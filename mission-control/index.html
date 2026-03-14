@@ -97,6 +97,23 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
             Nodes
           </button>
+          <button class="nav-item" data-view="approvals">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"/></svg>
+            Approvals
+            <span id="approval-badge" class="nav-badge hidden">0</span>
+          </button>
+          <button class="nav-item" data-view="skills">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Skills
+          </button>
+          <button class="nav-item" data-view="devices">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            Devices
+          </button>
+          <button class="nav-item" data-view="usage">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Usage
+          </button>
         </div>
         <div class="sidebar-footer">
           <div id="gateway-info" class="gateway-info"></div>
@@ -235,6 +252,61 @@
             <h2>Nodes</h2>
           </div>
           <div id="nodes-list" class="nodes-list"></div>
+        </div>
+
+        <!-- Exec Approvals -->
+        <div id="view-approvals" class="view hidden">
+          <div class="view-header">
+            <h2>Exec Approvals</h2>
+            <div class="header-actions">
+              <span id="approvals-pending-count" class="badge">0 pending</span>
+              <button id="btn-refresh-approvals" class="btn-ghost sm">Refresh</button>
+            </div>
+          </div>
+          <div id="approvals-queue" class="approvals-queue"></div>
+          <div class="view-subheader"><span>Allowlist Policy</span></div>
+          <div id="approvals-policy" class="approvals-policy"></div>
+        </div>
+
+        <!-- Skills -->
+        <div id="view-skills" class="view hidden">
+          <div class="view-header">
+            <h2>Skills</h2>
+            <div class="header-actions">
+              <input id="skills-search" type="text" class="search-input" placeholder="Filter skills…" />
+            </div>
+          </div>
+          <div id="skills-list" class="skills-list"></div>
+        </div>
+
+        <!-- Devices -->
+        <div id="view-devices" class="view hidden">
+          <div class="view-header">
+            <h2>Devices</h2>
+            <div class="header-actions">
+              <span id="device-pair-pending" class="badge hidden">0 pending</span>
+            </div>
+          </div>
+          <div id="device-pair-requests" class="device-pair-requests"></div>
+          <div class="view-subheader"><span>Paired Devices</span></div>
+          <div id="devices-list" class="devices-list"></div>
+        </div>
+
+        <!-- Usage -->
+        <div id="view-usage" class="view hidden">
+          <div class="view-header">
+            <h2>Usage &amp; Cost</h2>
+            <div class="header-actions">
+              <select id="usage-range" class="search-input" style="width:auto">
+                <option value="7">Last 7 days</option>
+                <option value="30" selected>Last 30 days</option>
+                <option value="90">Last 90 days</option>
+              </select>
+              <button id="btn-refresh-usage" class="btn-ghost sm">Refresh</button>
+            </div>
+          </div>
+          <div id="usage-summary" class="usage-summary"></div>
+          <div id="usage-sessions" class="usage-sessions"></div>
         </div>
       </main>
     </div>
