@@ -1,3 +1,6 @@
+---
+title: "Codex Task Pickup"
+summary: "Operator runbook for task ingestion and orchestration-first execution"
 # Codex task pickup runbook
 
 ## Purpose

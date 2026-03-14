@@ -35,6 +35,7 @@ jobs:
         if: ${{ secrets.GH_APP_PRIVATE_KEY != '' }}
         if: ${{ secrets.GH_APP_PRIVATE_KEY != "" }}
         id: app-token
+        if: ${{ secrets.GH_APP_PRIVATE_KEY != '' }}
         with:
           app-id: ${{ secrets.GH_APP_ID || '2729701' }}
           private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
@@ -231,6 +232,7 @@ jobs:
         if: ${{ secrets.GH_APP_PRIVATE_KEY != '' }}
         if: ${{ secrets.GH_APP_PRIVATE_KEY != "" }}
         id: app-token
+        if: ${{ secrets.GH_APP_PRIVATE_KEY != '' }}
         with:
           app-id: ${{ secrets.GH_APP_ID || '2729701' }}
           private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
@@ -488,6 +490,7 @@ jobs:
         if: ${{ secrets.GH_APP_PRIVATE_KEY != '' }}
         if: ${{ secrets.GH_APP_PRIVATE_KEY != "" }}
         id: app-token
+        if: ${{ secrets.GH_APP_PRIVATE_KEY != '' }}
         with:
           app-id: "2729701"
           private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
