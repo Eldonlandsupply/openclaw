@@ -1,3 +1,12 @@
+# Browser last resort policy
+
+## Policy
+
+Browser automation is not a default execution path. Use it only after direct orchestration paths are exhausted.
+
+## Required pre checks
+
+Before browser use, validate and log that these paths are unavailable or blocked:
 ---
 title: "Browser Last Resort Policy"
 summary: "Policy for restricting browser automation to fallback-only scenarios"
