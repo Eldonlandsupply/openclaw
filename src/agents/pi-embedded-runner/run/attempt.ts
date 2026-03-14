@@ -29,6 +29,7 @@ import {
 } from "../../channel-tools.js";
 import { resolveOpenClawDocsPath } from "../../docs-path.js";
 import { isTimeoutError } from "../../failover-error.js";
+import { applyMasterPromptShortcut } from "../../master-prompt.js";
 import { resolveModelAuthMode } from "../../model-auth.js";
 import { resolveDefaultModelForAgent } from "../../model-selection.js";
 import {
@@ -733,7 +734,7 @@ export async function runEmbeddedAttempt(
         const promptStartedAt = Date.now();
 
         // Run before_agent_start hooks to allow plugins to inject context
-        let effectivePrompt = params.prompt;
+        let effectivePrompt = applyMasterPromptShortcut(params.prompt);
         if (hookRunner?.hasHooks("before_agent_start")) {
           try {
             const hookResult = await hookRunner.runBeforeAgentStart(

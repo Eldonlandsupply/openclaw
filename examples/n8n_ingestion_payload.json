@@ -1,5 +1,51 @@
 {
   "ingestion_id": "ing_2026_03_12_001",
+  "received_at": "2026-03-12T10:00:00Z",
+  "source": "operator_upload",
+  "attachments": [
+    {
+      "name": "homepage-copy.docx",
+      "media_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "bytes": 128392,
+      "s3_inbox_url": "s3://openclaw-inbox/tasks/ing_2026_03_12_001/homepage-copy.docx"
+    },
+    {
+      "name": "hero-image.png",
+      "media_type": "image/png",
+      "bytes": 893221,
+      "s3_inbox_url": "s3://openclaw-inbox/tasks/ing_2026_03_12_001/hero-image.png"
+    }
+  ],
+  "tasks": [
+    {
+      "task_id": "task_cms_update_001",
+      "request_summary": "Update website homepage content and hero image from attached files.",
+      "intent": "website_cms_update",
+      "target_system": "content_api",
+      "routing_order": ["api", "n8n", "mcp", "repo_edit", "db_storage", "cli", "browser"]
+    },
+    {
+      "task_id": "task_email_trigger_001",
+      "request_summary": "Trigger outbound email campaign for updated homepage launch.",
+      "intent": "outbound_email_trigger",
+      "target_system": "n8n_workflow_email_send",
+      "routing_order": ["api", "n8n", "mcp", "repo_edit", "db_storage", "cli", "browser"]
+    },
+    {
+      "task_id": "task_audit_log_001",
+      "request_summary": "Write ingestion and execution audit event.",
+      "intent": "logging_audit_event",
+      "target_system": "audit_api",
+      "routing_order": ["api", "n8n", "mcp", "repo_edit", "db_storage", "cli", "browser"]
+    },
+    {
+      "task_id": "task_repo_change_001",
+      "request_summary": "Apply docs update in repository for campaign announcement.",
+      "intent": "repo_code_change",
+      "target_system": "git_repository",
+      "routing_order": ["api", "n8n", "mcp", "repo_edit", "db_storage", "cli", "browser"]
+    }
+  ]
   "source": "email_attachment",
   "received_at": "2026-03-12T10:00:00Z",
   "request_summary": "Ingest campaign assets and create orchestration tasks",
@@ -47,4 +93,34 @@
       "notes": "Apply landing-page component copy updates in source repo"
     }
   ]
+  "event": "task.ingest",
+  "source": "email-router",
+  "submitted_at": "2026-03-12T10:05:00Z",
+  "task": {
+    "task_id": "task_01HZXA1P8M2T",
+    "priority": "high",
+    "status": "queued",
+    "requested_capabilities": ["api", "n8n", "mcp"],
+    "browser_rejection_reason": "Rejected: API and workflow automation are expected to satisfy this task without UI control.",
+    "created_at": "2026-03-12T10:05:00Z"
+  },
+  "attachments": [
+    {
+      "attachment_id": "att_001",
+      "filename": "invoice-2026-03.pdf",
+      "content_type": "application/pdf",
+      "size_bytes": 284112,
+      "checksum_sha256": "0a1b2c3d4e5f6a7b8c9d00112233445566778899aabbccddeeff001122334455",
+      "storage": {
+        "provider": "s3_compatible",
+        "bucket": "openclaw-ingestion",
+        "object_key": "incoming/2026/03/task_01HZXA1P8M2T/invoice-2026-03.pdf",
+        "signed_url": "https://storage.example.com/openclaw-ingestion/incoming/2026/03/task_01HZXA1P8M2T/invoice-2026-03.pdf?X-Amz-Signature=example"
+      }
+    }
+  ],
+  "metadata": {
+    "workflow": "ingestion-v2",
+    "trace_id": "trace_a95ce112"
+  }
 }

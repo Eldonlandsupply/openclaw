@@ -31,6 +31,19 @@ Beginner view:
 This browser is **not** your daily driver. It is a safe, isolated surface for
 agent automation and verification.
 
+Use this tool only after higher-priority interfaces are ruled out, for example API, n8n, MCP, repo edit, DB/storage, CLI, and provider APIs.
+## When to use this tool
+
+Use browser automation only when there is no reliable direct interface.
+
+- Prefer direct APIs, MCP servers, CLI commands, storage operations, or n8n
+  workflows first.
+- Use the managed browser for tasks that genuinely require visual interaction,
+  such as manual login handoffs, rendering validation, or sites without usable
+  APIs.
+- If a direct interface exists, use that path for deterministic execution,
+  lower latency, and simpler audit trails.
+
 ## Quick start
 
 ```bash

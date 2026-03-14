@@ -423,6 +423,59 @@ If you need images/files in **channels** or want to fetch **message history**, y
 3. Bump the Teams app **manifest version**, re-upload, and **reinstall the app in Teams**.
 4. **Fully quit and relaunch Teams** to clear cached app metadata.
 
+## LOLA meeting-intelligence integration (post-meeting only)
+
+If your goal is post-meeting intelligence (summary, follow-ups, attendance, call quality artifacts), use Graph meeting APIs after the meeting has ended. This is not a real-time bot webhook flow.
+
+Practical flow:
+
+1. Capture `joinWebUrl`, organizer AAD object ID, and tenant ID from the scheduled meeting context.
+2. Resolve the online meeting:
+   - `GET /users/{organizerId}/onlineMeetings?$filter=JoinWebUrl eq '{encodedJoinWebUrl}'`
+3. Extract `id` (onlineMeetingId).
+4. Read post-meeting artifacts as available:
+   - transcript metadata/content
+   - recording metadata
+   - attendance reports
+   - meeting call events
+5. Normalize artifacts into your LOLA pipeline, then produce structured output (action items, risks, decisions, follow-ups).
+
+Feature-scoped Graph application permissions checklist:
+
+- Transcript and recording metadata: `OnlineMeetingArtifact.Read.All`
+- Meeting metadata and participants: `OnlineMeetings.Read.All`
+- Attendance reports: `OnlineMeetingArtifact.Read.All`
+- Meeting call events: `CallRecords.Read.All`
+- Optional chat backfill linked to meeting chats: `Chat.Read.All` or `ChatMessage.Read.All`
+
+Grant only the scopes required by enabled LOLA features. Do not request broad chat or channel history permissions unless needed.
+
+Application access policy is required for many meeting artifact APIs:
+
+```powershell
+Connect-MicrosoftTeams
+
+New-CsApplicationAccessPolicy \
+  -Identity "OpenClawLolaPolicy" \
+  -AppIds "<APP_ID>" \
+  -Description "Allow OpenClaw LOLA meeting-intelligence access"
+
+Grant-CsApplicationAccessPolicy \
+  -PolicyName "OpenClawLolaPolicy" \
+  -Identity "<ORGANIZER_UPN_OR_OBJECT_ID>"
+```
+
+Caveats you should assume up front:
+
+- Post-meeting only. These APIs are not a substitute for low-latency in-meeting automation.
+- Copilot AI Insights fields are not consistently exposed via public Graph endpoints.
+- Transcript availability depends on meeting policy, tenant settings, and whether transcription was enabled.
+- Recording availability depends on recording policy and processing delays.
+- Attendance can be absent or delayed for some meeting types and policy combinations.
+- `meetingCallEvents` coverage is uneven, and fields vary by tenant and call topology.
+- Channel meetings still have edge-case gaps compared to scheduled meetings with stable organizer context.
+- As of today, there is no separate Microsoft billing meter specifically for these Teams meeting artifact APIs, but standard Graph service limits and licensing prerequisites still apply.
+
 ## Known Limitations
 
 ### Webhook timeouts
