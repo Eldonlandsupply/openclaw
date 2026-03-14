@@ -93,6 +93,51 @@ describe("parseMessageWithAttachments", () => {
     ).rejects.toThrow(/base64/i);
   });
 
+  it("keeps non-image files as text references", async () => {
+    const pdf = Buffer.from("%PDF-1.4\n").toString("base64");
+    const parsed = await parseMessageWithAttachments(
+      "Please update website copy and replace hero image",
+      [
+        {
+          type: "file",
+          mimeType: "application/pdf",
+          fileName: "homepage-markup.pdf",
+          content: pdf,
+        },
+        {
+          type: "image",
+          mimeType: "image/png",
+          fileName: "dot.png",
+          content: PNG_1x1,
+        },
+      ],
+      { log: { warn: () => {} } },
+    );
+
+    expect(parsed.images).toHaveLength(1);
+    expect(parsed.message).toContain("Attached files:");
+    expect(parsed.message).toContain("homepage-markup.pdf (application/pdf, file)");
+  });
+
+  it("treats non-string attachment content as a file reference", async () => {
+    const parsed = await parseMessageWithAttachments(
+      "Task payload",
+      [
+        {
+          type: "file",
+          mimeType: "application/pdf",
+          fileName: "homepage-markup.pdf",
+          content: { opaque: true },
+        },
+      ],
+      { log: { warn: () => {} } },
+    );
+
+    expect(parsed.images).toHaveLength(0);
+    expect(parsed.message).toContain("Attached files:");
+    expect(parsed.message).toContain("homepage-markup.pdf (application/pdf, file)");
+  });
+
   it("rejects images over limit", async () => {
     const big = Buffer.alloc(6_000_000, 0).toString("base64");
     await expect(

@@ -62,6 +62,74 @@
   ],
   "created_at": "2026-03-12T10:04:00Z",
   "updated_at": "2026-03-12T10:08:30Z"
+  "task_id": "task_cms_2026_03_12_001",
+  "source": "n8n_ingestion",
+  "request_summary": "Update homepage hero content from approved attachment bundle",
+  "intent": "website_cms_update",
+  "target_system": "contentful",
+  "attachments": [
+    {
+      "name": "homepage-update-copy.docx",
+      "mime_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "ingested_via_n8n": true,
+      "storage_key": "inbox/2026/03/12/homepage-update-copy.docx"
+    }
+  ],
+  "storage_links": ["s3://openclaw-inbox/inbox/2026/03/12/homepage-update-copy.docx"],
+  "execution_plan": [
+    {
+      "step": "Read approved copy from storage",
+      "route": "db_storage",
+      "status": "completed"
+    },
+    {
+      "step": "Apply CMS changes via API",
+      "route": "api",
+      "status": "completed"
+    },
+    {
+      "step": "Log completion in task system",
+      "route": "mcp",
+      "status": "completed"
+    }
+  ],
+  "dependencies": ["task_ingestion_2026_03_12_001"],
+  "approval_status": "approved",
+  "status": "completed",
+  "owner": "codex",
+  "retries": 0,
+  "blockers": [],
+  "outputs": {
+    "execution_path": "db_storage -> api -> mcp",
+    "browser_rejection_reason": "Direct CMS API and MCP logging were available; browser automation was unnecessary",
+    "files_used": ["examples/n8n_ingestion_payload.json", "docs/architecture/task-routing-spec.md"],
+    "actions_taken": [
+      "Fetched attachment metadata from S3-compatible inbox",
+      "Updated target CMS entry via API",
+      "Recorded task completion and audit trail in MCP-backed task system"
+    ],
+    "result": "Homepage hero content updated successfully and audit trail persisted",
+    "retry_or_escalation_state": "not_required"
+  },
+  "logs": [
+    {
+      "timestamp": "2026-03-12T10:01:12Z",
+      "level": "info",
+      "message": "Task accepted by Codex worker"
+    },
+    {
+      "timestamp": "2026-03-12T10:02:18Z",
+      "level": "info",
+      "message": "CMS API update succeeded"
+    },
+    {
+      "timestamp": "2026-03-12T10:02:49Z",
+      "level": "info",
+      "message": "Completion record written to MCP task system"
+    }
+  ],
+  "created_at": "2026-03-12T10:00:10Z",
+  "updated_at": "2026-03-12T10:02:49Z"
   "task_id": "task_01HZXA1P8M2T",
   "source": "mcp.queue",
   "status": "queued",

@@ -45,6 +45,12 @@
           "name": { "type": "string", "minLength": 1 },
           "media_type": { "type": "string", "minLength": 1 },
           "bytes": { "type": "integer", "minimum": 0 }
+        "required": ["name", "mime_type", "ingested_via_n8n", "storage_key"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "mime_type": { "type": "string", "minLength": 1 },
+          "ingested_via_n8n": { "type": "boolean" },
+          "storage_key": { "type": "string", "minLength": 1 }
         }
       }
     },
@@ -67,6 +73,7 @@
           "status": {
             "type": "string",
             "enum": ["pending", "running", "completed", "failed", "blocked"]
+            "enum": ["pending", "in_progress", "completed", "failed", "blocked"]
           }
         }
       }
@@ -92,6 +99,7 @@
         "failed",
         "escalated"
       ]
+      "enum": ["queued", "running", "completed", "failed", "blocked", "escalated"]
     },
     "owner": { "type": "string", "minLength": 1 },
     "retries": { "type": "integer", "minimum": 0 },
@@ -116,6 +124,10 @@
           "type": "array",
           "items": { "type": "string", "minLength": 1 }
         },
+        "retry_or_escalation_state"
+      ],
+      "properties": {
+        "execution_path": { "type": "string", "minLength": 1 },
         "browser_rejection_reason": { "type": "string", "minLength": 1 },
         "files_used": {
           "type": "array",
@@ -170,6 +182,9 @@
         "required": ["at", "level", "message"],
         "properties": {
           "at": { "type": "string", "minLength": 1 },
+        "required": ["timestamp", "level", "message"],
+        "properties": {
+          "timestamp": { "type": "string", "minLength": 1 },
           "level": { "type": "string", "enum": ["info", "warn", "error"] },
           "message": { "type": "string", "minLength": 1 }
         }

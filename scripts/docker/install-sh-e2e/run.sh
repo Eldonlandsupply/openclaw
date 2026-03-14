@@ -10,6 +10,17 @@ OPENAI_API_KEY="${OPENAI_API_KEY:-}"
 ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
 ANTHROPIC_API_TOKEN="${ANTHROPIC_API_TOKEN:-}"
 
+extract_semver_version() {
+  local raw="$1"
+  local parsed
+  parsed="$(printf "%s" "$raw" | grep -Eo '[0-9]{4}\.[0-9]{1,2}\.[0-9]{1,2}' | head -n 1 || true)"
+  if [[ -z "$parsed" ]]; then
+    echo "ERROR: could not parse semver from version output: $raw" >&2
+    exit 1
+  fi
+  printf "%s" "$parsed"
+}
+
 if [[ "$MODELS_MODE" != "both" && "$MODELS_MODE" != "openai" && "$MODELS_MODE" != "anthropic" ]]; then
   echo "ERROR: OPENCLAW_E2E_MODELS must be one of: both|openai|anthropic" >&2
   exit 2
@@ -73,6 +84,11 @@ INSTALLED_VERSION="$(printf '%s' "$INSTALLED_VERSION_RAW" | grep -Eo '[0-9]+\.[0
 echo "installed=$INSTALLED_VERSION_RAW parsed=$INSTALLED_VERSION expected=$EXPECTED_VERSION"
 if [[ -z "$INSTALLED_VERSION" || "$INSTALLED_VERSION" != "$EXPECTED_VERSION" ]]; then
   echo "ERROR: expected openclaw@$EXPECTED_VERSION, got openclaw@$INSTALLED_VERSION_RAW" >&2
+RAW_INSTALLED_VERSION="$(openclaw --version 2>/dev/null | head -n 1 | tr -d '\r')"
+INSTALLED_VERSION="$(extract_semver_version "$RAW_INSTALLED_VERSION")"
+echo "installed=$RAW_INSTALLED_VERSION parsed=$INSTALLED_VERSION expected=$EXPECTED_VERSION"
+if [[ "$INSTALLED_VERSION" != "$EXPECTED_VERSION" ]]; then
+  echo "ERROR: expected openclaw@$EXPECTED_VERSION, got openclaw@$RAW_INSTALLED_VERSION" >&2
   exit 1
 fi
 

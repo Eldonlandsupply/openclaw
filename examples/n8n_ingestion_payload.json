@@ -46,6 +46,53 @@
       "routing_order": ["api", "n8n", "mcp", "repo_edit", "db_storage", "cli", "browser"]
     }
   ]
+  "source": "email_attachment",
+  "received_at": "2026-03-12T10:00:00Z",
+  "request_summary": "Ingest campaign assets and create orchestration tasks",
+  "attachments": [
+    {
+      "name": "homepage-update-copy.docx",
+      "mime_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "size_bytes": 45123,
+      "storage_key": "inbox/2026/03/12/homepage-update-copy.docx"
+    },
+    {
+      "name": "hero-image.png",
+      "mime_type": "image/png",
+      "size_bytes": 582219,
+      "storage_key": "inbox/2026/03/12/hero-image.png"
+    }
+  ],
+  "storage_links": [
+    "s3://openclaw-inbox/inbox/2026/03/12/homepage-update-copy.docx",
+    "s3://openclaw-inbox/inbox/2026/03/12/hero-image.png"
+  ],
+  "tasks_to_create": [
+    {
+      "intent": "website_cms_update",
+      "target_system": "contentful",
+      "routing_preference": "api",
+      "notes": "Update homepage hero copy and image from attachments"
+    },
+    {
+      "intent": "outbound_email_trigger",
+      "target_system": "n8n",
+      "routing_preference": "n8n",
+      "notes": "Trigger campaign email after CMS publish confirmation"
+    },
+    {
+      "intent": "logging_audit_event",
+      "target_system": "audit_log",
+      "routing_preference": "mcp",
+      "notes": "Persist ingestion event and downstream task linkage"
+    },
+    {
+      "intent": "repo_code_change",
+      "target_system": "github_repo",
+      "routing_preference": "repo_edit",
+      "notes": "Apply landing-page component copy updates in source repo"
+    }
+  ]
   "event": "task.ingest",
   "source": "email-router",
   "submitted_at": "2026-03-12T10:05:00Z",
