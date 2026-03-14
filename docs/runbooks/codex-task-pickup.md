@@ -21,9 +21,12 @@ Provide a short operator flow for orchestration first task pickup and execution.
 - Task transitions are visible in MCP logs.
 - Browser fallback has explicit rejection evidence for all direct routes.
 - Final status is `completed`, `blocked`, `retry_scheduled`, or `escalated`.
+
 ---
+
 title: "Codex Task Pickup"
 summary: "Operator runbook for task ingestion and orchestration-first execution"
+
 ---
 
 # Codex Task Pickup
@@ -68,8 +71,9 @@ Escalate only when:
 - Actions taken are listed.
 - Result and blockers are recorded.
 - Retry or escalation state is set.
-title: "Codex Task Pickup Runbook"
-summary: "Operational runbook for polling MCP tasks and executing by priority"
+  title: "Codex Task Pickup Runbook"
+  summary: "Operational runbook for polling MCP tasks and executing by priority"
+
 ---
 
 # Codex Task Pickup Runbook
@@ -118,3 +122,26 @@ If escalation is required:
 - [ ] Highest eligible layer selected.
 - [ ] Browser rejection rationale captured.
 - [ ] Result or escalation written to MCP.
+
+## Execution log template
+
+Use this exact envelope for every completed task report:
+
+```text
+Execution Path: <chosen layer chain, for example MCP -> repo edit -> CLI>
+Browser Rejection: <why browser was not used, or why it was required after higher layers failed>
+Systems Involved: <APIs, MCP servers, repos, storage, CLIs>
+Files Used: <explicit file paths, attachment keys, or NONE>
+Actions Taken:
+- [<ISO8601 timestamp>] source=<actor or system> target=<system or file> action=<verb> result=<success|failure> failure_state=<none|retryable|terminal>
+- ...
+Result: <final outcome>
+Blockers: <none or explicit blockers>
+Retry or Escalation State: <none|retry_scheduled|escalated + reason>
+```
+
+Rules:
+
+- `Actions Taken` entries must include timestamp, source, target, result, and failure state.
+- Do not leave unknown fields implied. Use explicit `UNKNOWN` where evidence is missing.
+- Keep browser usage as last resort and document rejected higher-priority layers.
