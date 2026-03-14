@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OpenClaw · Mission Control</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="mc.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Connection overlay -->
+    <div id="connect-overlay" class="overlay active">
+      <div class="connect-card">
+        <div class="connect-logo">
+          <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+            <rect width="40" height="40" rx="8" fill="#00FF88" fill-opacity="0.12"/>
+            <path d="M8 20 L16 12 L24 20 L32 12" stroke="#00FF88" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M8 28 L16 20 L24 28 L32 20" stroke="#00FF88" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
+          </svg>
+          <span>MISSION CONTROL</span>
+        </div>
+        <h1>Connect to Gateway</h1>
+        <p class="connect-sub">OpenClaw operational control plane</p>
+        <div class="form-group">
+          <label>Gateway URL</label>
+          <input id="inp-url" type="text" value="ws://127.0.0.1:18789" placeholder="ws://host:port" spellcheck="false"/>
+        </div>
+        <div class="form-group">
+          <label>Token <span class="opt">(optional)</span></label>
+          <input id="inp-token" type="password" placeholder="gateway token" spellcheck="false"/>
+        </div>
+        <div class="form-group">
+          <label>Password <span class="opt">(optional)</span></label>
+          <input id="inp-password" type="password" placeholder="gateway password" spellcheck="false"/>
+        </div>
+        <button id="btn-connect" class="btn-primary">Connect</button>
+        <div id="connect-error" class="connect-error hidden"></div>
+      </div>
+    </div>
+
+    <!-- Main shell -->
+    <div id="shell" class="hidden">
+      <!-- Sidebar -->
+      <nav id="sidebar">
+        <div class="sidebar-brand">
+          <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
+            <rect width="40" height="40" rx="8" fill="#00FF88" fill-opacity="0.12"/>
+            <path d="M8 20 L16 12 L24 20 L32 12" stroke="#00FF88" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M8 28 L16 20 L24 28 L32 20" stroke="#00FF88" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.4"/>
+          </svg>
+          <div class="brand-text">
+            <span class="brand-name">OPENCLAW</span>
+            <span class="brand-sub">MISSION CONTROL</span>
+          </div>
+        </div>
+        <div class="sidebar-status">
+          <div id="status-dot" class="status-dot connecting"></div>
+          <span id="status-label">Connecting…</span>
+          <button id="btn-disconnect" class="btn-link" title="Disconnect">✕</button>
+        </div>
+        <div class="sidebar-nav">
+          <button class="nav-item active" data-view="overview">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            Overview
+          </button>
+          <button class="nav-item" data-view="agents">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            Agents
+          </button>
+          <button class="nav-item" data-view="sessions">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            Sessions
+          </button>
+          <button class="nav-item" data-view="channels">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10a19.79 19.79 0 01-3-8.57A2 2 0 012.18 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.72 6.72l1.28-1.32a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+            Channels
+          </button>
+          <button class="nav-item" data-view="cron">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Cron
+          </button>
+          <button class="nav-item" data-view="models">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+            Models
+          </button>
+          <button class="nav-item" data-view="config">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M2 12h2M20 12h2M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41"/></svg>
+            Config
+          </button>
+          <button class="nav-item" data-view="logs">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+            Logs
+          </button>
+          <button class="nav-item" data-view="nodes">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            Nodes
+          </button>
+        </div>
+        <div class="sidebar-footer">
+          <div id="gateway-info" class="gateway-info"></div>
+        </div>
+      </nav>
+
+      <!-- Main content -->
+      <main id="main">
+        <!-- Overview -->
+        <div id="view-overview" class="view active">
+          <div class="view-header">
+            <h2>Overview</h2>
+            <div class="header-actions">
+              <span id="uptime-badge" class="badge">—</span>
+            </div>
+          </div>
+          <div id="overview-grid" class="overview-grid">
+            <div class="stat-card" id="stat-agents">
+              <div class="stat-label">AGENTS</div>
+              <div class="stat-value">—</div>
+            </div>
+            <div class="stat-card" id="stat-sessions">
+              <div class="stat-label">SESSIONS</div>
+              <div class="stat-value">—</div>
+            </div>
+            <div class="stat-card" id="stat-clients">
+              <div class="stat-label">CLIENTS</div>
+              <div class="stat-value">—</div>
+            </div>
+            <div class="stat-card" id="stat-uptime">
+              <div class="stat-label">UPTIME</div>
+              <div class="stat-value">—</div>
+            </div>
+          </div>
+          <div class="overview-panels">
+            <div class="panel" id="panel-presence">
+              <div class="panel-header">Connected Clients</div>
+              <div id="presence-list" class="presence-list"></div>
+            </div>
+            <div class="panel" id="panel-agents-overview">
+              <div class="panel-header">Agents</div>
+              <div id="agents-overview-list"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Agents -->
+        <div id="view-agents" class="view hidden">
+          <div class="view-header">
+            <h2>Agents</h2>
+            <div class="header-actions">
+              <button id="btn-create-agent" class="btn-primary sm">+ New Agent</button>
+            </div>
+          </div>
+          <div id="agents-list" class="agents-list"></div>
+        </div>
+
+        <!-- Sessions -->
+        <div id="view-sessions" class="view hidden">
+          <div class="view-header">
+            <h2>Sessions</h2>
+            <div class="header-actions">
+              <input id="sessions-search" type="text" class="search-input" placeholder="Search sessions…" />
+            </div>
+          </div>
+          <div id="sessions-list" class="sessions-list"></div>
+        </div>
+
+        <!-- Channels -->
+        <div id="view-channels" class="view hidden">
+          <div class="view-header">
+            <h2>Channels</h2>
+          </div>
+          <div id="channels-list" class="channels-list"></div>
+        </div>
+
+        <!-- Cron -->
+        <div id="view-cron" class="view hidden">
+          <div class="view-header">
+            <h2>Cron Jobs</h2>
+            <div class="header-actions">
+              <button id="btn-add-cron" class="btn-primary sm">+ Add Job</button>
+            </div>
+          </div>
+          <div id="cron-list" class="cron-list"></div>
+        </div>
+
+        <!-- Models -->
+        <div id="view-models" class="view hidden">
+          <div class="view-header">
+            <h2>Available Models</h2>
+            <div class="header-actions">
+              <input id="models-search" type="text" class="search-input" placeholder="Filter models…" />
+            </div>
+          </div>
+          <div id="models-list" class="models-list"></div>
+        </div>
+
+        <!-- Config -->
+        <div id="view-config" class="view hidden">
+          <div class="view-header">
+            <h2>Configuration</h2>
+            <div class="header-actions">
+              <button id="btn-save-config" class="btn-primary sm">Save</button>
+            </div>
+          </div>
+          <div class="config-layout">
+            <div id="config-editor-wrap" class="config-editor-wrap">
+              <textarea id="config-editor" class="config-editor" spellcheck="false"></textarea>
+            </div>
+            <div id="config-meta" class="config-meta">
+              <div class="meta-item"><span class="meta-k">PATH</span><span id="cfg-path" class="meta-v">—</span></div>
+              <div class="meta-item"><span class="meta-k">STATE DIR</span><span id="cfg-state" class="meta-v">—</span></div>
+              <div class="meta-item"><span class="meta-k">VERSION</span><span id="cfg-version" class="meta-v">—</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Logs -->
+        <div id="view-logs" class="view hidden">
+          <div class="view-header">
+            <h2>Gateway Logs</h2>
+            <div class="header-actions">
+              <label class="toggle-label">
+                <input type="checkbox" id="logs-follow" checked /> Follow
+              </label>
+              <button id="btn-clear-logs" class="btn-ghost sm">Clear</button>
+            </div>
+          </div>
+          <div id="logs-output" class="logs-output"></div>
+        </div>
+
+        <!-- Nodes -->
+        <div id="view-nodes" class="view hidden">
+          <div class="view-header">
+            <h2>Nodes</h2>
+          </div>
+          <div id="nodes-list" class="nodes-list"></div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-backdrop" class="modal-backdrop hidden">
+      <div id="modal" class="modal">
+        <div class="modal-header">
+          <h3 id="modal-title"></h3>
+          <button class="modal-close" id="modal-close">✕</button>
+        </div>
+        <div id="modal-body" class="modal-body"></div>
+        <div id="modal-footer" class="modal-footer"></div>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast-container"></div>
+  </div>
+
+  <script src="mc.js"></script>
+</body>
+</html>
