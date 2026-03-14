@@ -48,6 +48,8 @@ describe("lola-jobs", () => {
       schedule: { kind: "cron", expr: "0 * * * *" },
       payload: { kind: "agentTurn", message: "check in" },
     });
+  });
+});
 
 type LolaJobCandidate = {
   id?: string;
