@@ -1,0 +1,42 @@
+# ============================================================
+# EldonOpenClaw — config.yaml.example
+# Copy to config.yaml. Non-secrets only — secrets go in .env.
+# Supports ${VAR} and ${VAR:default} env substitution.
+# ============================================================
+
+llm:
+  # openai | openrouter | anthropic | none
+  provider: ${LLM_PROVIDER:none}
+  chat_model: ${LLM_CHAT_MODEL:openai/gpt-4o-mini}
+  embedding_model: ${LLM_EMBED_MODEL:}
+
+runtime:
+  tick_seconds: ${TICK_SECONDS:10}
+  log_level: ${LOG_LEVEL:INFO}
+  data_dir: ${DATA_DIR:./data}
+  # IMPORTANT: set to false when ready for live operation
+  dry_run: ${DRY_RUN:true}
+
+connectors:
+  cli:
+    enabled: ${CONNECTOR_CLI:true}
+  telegram:
+    enabled: ${CONNECTOR_TELEGRAM:false}
+
+actions:
+  require_confirm: ${ACTION_CONFIRM:false}
+  allowlist:
+    - echo
+    - memory_write
+    - memory_read
+    # ── Attio CRM (requires ATTIO_API_KEY in .env) ──
+    - attio_search   # attio_search <companies|people> <query>
+    - attio_note     # attio_note <object> <record_id> <title> | <body>
+    - attio_task     # attio_task <content> [linked:<obj>:<id>] [due:<ISO>]
+    - attio_tasks    # attio_tasks [open|done]
+    - attio_upsert   # attio_upsert <companies|people> <value> <json>
+
+health:
+  enabled: true
+  host: ${HEALTH_HOST:0.0.0.0}
+  port: ${HEALTH_PORT:8080}

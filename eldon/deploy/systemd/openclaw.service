@@ -1,0 +1,39 @@
+[Unit]
+Description=OpenClaw Agent Runtime
+Documentation=https://github.com/Eldonlandsupply/EldonOpenClaw
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+
+WorkingDirectory=/home/pi/EldonOpenClaw
+
+# Secrets — chmod 600, owned by pi
+# Created by: scripts/pi/install.sh
+EnvironmentFile=/home/pi/EldonOpenClaw/.env
+
+ExecStart=/home/pi/EldonOpenClaw/.venv/bin/python -m openclaw.main /home/pi/EldonOpenClaw/config.yaml
+
+# 24/7 restart policy
+Restart=always
+RestartSec=5
+TimeoutStopSec=20
+
+# Logs via journald — view with: journalctl -u openclaw -f
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=openclaw
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/home/pi/EldonOpenClaw/data
+ReadWritePaths=/home/pi/EldonOpenClaw/logs
+ReadWritePaths=/home/pi/EldonOpenClaw/.data
+
+[Install]
+WantedBy=multi-user.target

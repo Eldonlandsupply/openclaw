@@ -1,0 +1,26 @@
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+# Ensure src/ is on the path when run as `python scripts/doctor.py`
+# from the repo root, with or without PYTHONPATH=src set.
+_repo_src = Path(__file__).resolve().parent.parent / "src"
+if str(_repo_src) not in sys.path:
+    sys.path.insert(0, str(_repo_src))
+
+from config.loader import load_settings  # noqa: E402
+
+
+def main() -> None:
+    s = load_settings()
+    print("OK config loaded")
+    print(f"chat_model={s.llm.chat_model}")
+    print(f"embedding_model={s.llm.embedding_model or '(none)'}")
+    print(f"memory_enabled={s.memory.enabled}")
+    print(f"vector_store={s.memory.vector_store}")
+    print(f"vector_store_path={s.memory.vector_store_path}")
+
+
+if __name__ == "__main__":
+    main()
