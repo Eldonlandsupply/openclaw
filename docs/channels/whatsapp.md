@@ -413,6 +413,51 @@ Behavior notes:
   </Accordion>
 </AccordionGroup>
 
+## Raspberry Pi Connect remote operations
+
+Use this flow when OpenClaw WhatsApp runs on a Raspberry Pi that you access through Raspberry Pi Connect.
+
+### Baseline host profile (Bookworm + Pi 4/5)
+
+- Raspberry Pi OS Bookworm (64-bit)
+- Raspberry Pi 4 or Raspberry Pi 5
+- Node 22+
+- OpenClaw installed and configured on the Pi
+
+If the host drifts from that baseline, reconnect behavior and WhatsApp listener stability can vary.
+
+### Pair once, run continuously
+
+1. Use Raspberry Pi Connect to open a terminal session on the Pi.
+2. Pair WhatsApp from the Pi:
+
+```bash
+openclaw channels login --channel whatsapp
+```
+
+3. Start a persistent gateway process:
+
+```bash
+pkill -9 -f openclaw-gateway || true
+nohup openclaw gateway run --bind loopback --port 18789 --force > /tmp/openclaw-gateway.log 2>&1 &
+```
+
+4. Verify listener and process health:
+
+```bash
+openclaw channels status --probe
+ss -ltnp | rg 18789
+tail -n 120 /tmp/openclaw-gateway.log
+```
+
+### 24/7 operations and reliability caveats
+
+- WhatsApp Web sessions can expire unexpectedly. Keep a QR-capable recovery path.
+- Network instability can trigger reconnect loops or delayed inbound processing.
+- A dedicated WhatsApp number remains the most reliable long-running setup.
+- Keep Pi OS, Node runtime, and OpenClaw versions current to reduce reconnect and auth drift issues.
+- Treat Raspberry Pi Connect as remote access, not as your process supervisor. Keep gateway runtime detached from the browser session.
+
 ## Configuration reference pointers
 
 Primary reference:
