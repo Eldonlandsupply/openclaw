@@ -1,0 +1,44 @@
+# OpenClaw Project Registry
+# ─────────────────────────────────────────────────────────────────
+# This file is the single discoverable entry point for all projects
+# bound inside this repository. Future Mission Control UI layers,
+# agents, and automation tooling should read this file to enumerate
+# projects and their canonical directories.
+#
+# Schema: see projects/_schema.yaml
+
+projects:
+
+  - slug: mission-control
+    name: "OpenClaw Mission Control"
+    path: projects/mission-control
+    status: active
+    priority: high
+    description: >
+      Web-based operational control plane for the OpenClaw agent ecosystem.
+      Single-page HTML/CSS/JS app connecting directly to the OpenClaw gateway
+      via WebSocket. Canonical operator interface for agent creation, editing,
+      policy management, deployment, monitoring, and lifecycle governance.
+    owner: Eldonlandsupply
+    tags: [dashboard, control-plane, web, websocket, gateway]
+    operating_mode: always-on
+    related_source: mission-control/
+    created: "2026-03-15"
+    updated: "2026-03-15"
+
+  - slug: eldon-runtime
+    name: "Eldon Land Supply OpenClaw Runtime"
+    path: projects/eldon-runtime
+    status: active
+    priority: high
+    description: >
+      Bespoke Python agent runtime deployed 24/7 on a Raspberry Pi at
+      Eldon Land Supply. Handles Telegram, Gmail, and Outlook channels,
+      routes through risk-gated action pipeline, integrates Attio CRM,
+      and maintains semantic memory (ChromaDB/FAISS).
+    owner: Eldonlandsupply
+    tags: [python, raspberry-pi, automation, crm, memory, production]
+    operating_mode: always-on
+    related_source: eldon/
+    created: "2026-03-15"
+    updated: "2026-03-15"
