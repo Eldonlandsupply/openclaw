@@ -58,6 +58,49 @@ Be concise; concise review > grammar. Omit any non-applicable sections.
 - [ ] No secrets/private data
 - [ ] Evidence-based
 
+## PR creation troubleshooting
+
+If PR creation fails, run these checks in order before retrying:
+
+```bash
+git remote -v
+git branch -vv
+gh auth status
+git ls-remote origin
+```
+
+Expected results:
+
+- `git remote -v` shows an `origin` URL that points to your GitHub repository.
+- `git branch -vv` shows your current branch tracking a remote branch.
+- `gh auth status` reports an authenticated GitHub CLI session.
+- `git ls-remote origin` returns remote refs without auth or network errors.
+
+Common root causes and fixes:
+
+- Missing `origin` remote:
+
+  ```bash
+  git remote add origin git@github.com:<owner>/<repo>.git
+  ```
+
+- Branch has no upstream:
+
+  ```bash
+  git push -u origin <branch>
+  ```
+
+- GitHub CLI missing or not authenticated:
+
+  ```bash
+  gh --version
+  gh auth login
+  ```
+
+- Remote access blocked by credentials or network policy:
+  - verify SSH key or HTTPS token access
+  - retry from an environment with outbound GitHub access
+
 ## General PR Template
 
 ```md
