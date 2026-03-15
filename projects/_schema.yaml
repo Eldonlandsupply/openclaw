@@ -1,0 +1,49 @@
+# OpenClaw Project Binding Schema
+# ─────────────────────────────────────────────────────────────────
+# Every project.yaml inside projects/<slug>/ must conform to this schema.
+# Fields marked [required] must be present. Others are recommended.
+
+# [required] Unique machine-friendly identifier. Lowercase, hyphens only.
+slug: string
+
+# [required] Human-readable project name.
+name: string
+
+# [required] one-paragraph description of what the project does and why.
+description: string
+
+# [required] "active" | "paused" | "archived" | "planning"
+status: string
+
+# [required] "high" | "medium" | "low"
+priority: string
+
+# [required] GitHub username or team name responsible for the project.
+owner: string
+
+# [required] ISO 8601 date of project creation.
+created: string
+
+# [required] ISO 8601 date of last meaningful update.
+updated: string
+
+# Searchable tags for Mission Control discovery and filtering.
+tags: [string]
+
+# "always-on" | "scheduled" | "on-demand" | "manual"
+operating_mode: string
+
+# Canonical source directory inside the repo (relative to root).
+related_source: string
+
+# List of agent IDs that belong to this project.
+related_agents: [string]
+
+# List of workflow slugs or paths that belong to this project.
+related_workflows: [string]
+
+# External systems this project touches.
+external_systems: [string]
+
+# Brief notes on current status or blockers.
+status_note: string
