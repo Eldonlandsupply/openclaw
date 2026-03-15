@@ -1,0 +1,50 @@
+# OpenClaw Mission Control — Project Manifest
+# ─────────────────────────────────────────────────────────────────
+slug: mission-control
+name: "OpenClaw Mission Control"
+status: active
+priority: high
+owner: Eldonlandsupply
+created: "2026-03-15"
+updated: "2026-03-15"
+operating_mode: always-on
+
+description: >
+  Web-based operational control plane for the OpenClaw agent ecosystem.
+  Single-page HTML/CSS/JS application that connects directly to the OpenClaw
+  gateway via WebSocket and speaks the native gateway protocol (request/response
+  frames, real-time events). This is the canonical operator interface for agent
+  creation, editing, policy management, siloing, collaboration, deployment,
+  monitoring, governance, and lifecycle management.
+
+tags:
+  - dashboard
+  - control-plane
+  - web
+  - websocket
+  - gateway
+  - operator-interface
+  - production
+
+related_source: mission-control/
+
+related_agents: []  # Mission Control itself is not an agent; it governs agents.
+
+related_workflows:
+  - connect-to-gateway
+  - create-agent
+  - edit-agent-policy
+  - manage-cron
+  - monitor-sessions
+  - exec-approvals
+  - live-log-tail
+
+external_systems:
+  - openclaw-gateway (WebSocket, port 18789)
+  - openclaw-gateway-tls (wss://, port 18789)
+
+status_note: >
+  Fully operational. Current views: Overview, Agents, Sessions, Channels,
+  Cron, Models, Config, Logs, Nodes, Exec Approvals, Skills, Devices, Usage.
+  Next phase: Project Management view, agent collaboration graph, policy editor,
+  live agent event stream with filtering.
