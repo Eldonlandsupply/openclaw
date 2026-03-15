@@ -28,6 +28,22 @@ Be concise; concise review > grammar. Omit any non-applicable sections.
 - `pnpm test`
 - Protocol changes: `pnpm protocol:check`
 
+## Automated PR creation prerequisites
+
+If PR creation is failing in local agent environments, verify the prerequisites below before retrying.
+
+- [ ] `git remote -v` shows an `origin` remote pointing to your GitHub fork or upstream repo.
+- [ ] Your branch is pushed to GitHub: `git push -u origin <branch>`.
+- [ ] GitHub CLI is installed and authenticated: `gh auth status`.
+- [ ] Your token/account can create pull requests in the target repo.
+
+### Important note about `make_pr`
+
+`make_pr` stores the PR title and body payload for handoff, but it does not call GitHub APIs to open a pull request. If you need a live GitHub PR, run one of the commands below after `make_pr`:
+
+- `gh pr create --base main --head <branch> --title "<title>" --body-file <file>`
+- `gh pr create --fill`
+
 ## Progressive disclosure
 
 - Top: summary/intent
