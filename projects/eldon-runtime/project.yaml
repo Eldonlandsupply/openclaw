@@ -1,0 +1,57 @@
+# Eldon Land Supply Runtime — Project Manifest
+# ─────────────────────────────────────────────────────────────────
+slug: eldon-runtime
+name: "Eldon Land Supply OpenClaw Runtime"
+status: active
+priority: high
+owner: Eldonlandsupply
+created: "2026-03-15"
+updated: "2026-03-15"
+operating_mode: always-on
+
+description: >
+  Bespoke Python agent runtime deployed 24/7 on a Raspberry Pi at
+  Eldon Land Supply. Connects via Telegram, Gmail, and Outlook to receive
+  and route business requests. Runs the Top 100 Action Allowlist through a
+  risk-gated execution pipeline. Integrates with Attio CRM. Maintains a
+  semantic memory system (ChromaDB/FAISS). Consolidation date: 2026-03-15
+  (merged from Eldonlandsupply/EldonOpenClaw).
+
+tags:
+  - python
+  - raspberry-pi
+  - automation
+  - crm
+  - memory
+  - production
+  - telegram
+  - gmail
+  - outlook
+  - attio
+
+related_source: eldon/
+
+related_agents:
+  - eldon-main  # Primary business automation agent running on the Pi
+
+related_workflows:
+  - ingest-telegram-message
+  - ingest-gmail-message
+  - ingest-outlook-message
+  - risk-gate-action
+  - execute-allowlisted-action
+  - sync-attio-crm
+  - run-memory-embedding
+  - serve-memory-query
+
+external_systems:
+  - Telegram Bot API
+  - Gmail (via connector)
+  - Outlook (via connector)
+  - Attio CRM (REST API)
+  - Raspberry Pi systemd (openclaw.service)
+
+status_note: >
+  Running in production. Service managed by systemd on Raspberry Pi.
+  Config at /opt/openclaw/config/config.yaml. Secrets in /opt/openclaw/.env.
+  Memory store at /opt/openclaw/data/. Logs at /opt/openclaw/logs/.
