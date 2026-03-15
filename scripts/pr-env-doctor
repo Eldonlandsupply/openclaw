@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+failures=0
+
+pass() {
+  printf 'PASS: %s\n' "$1"
+}
+
+fail() {
+  printf 'FAIL: %s\n' "$1"
+  failures=$((failures + 1))
+}
+
+check_cmd() {
+  local cmd="$1"
+  if command -v "$cmd" >/dev/null 2>&1; then
+    pass "command available: $cmd"
+  else
+    fail "missing command: $cmd"
+  fi
+}
+
+printf '== PR environment doctor ==\n'
+printf 'Timestamp: %s\n' "$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+printf 'Working directory: %s\n\n' "$(pwd)"
+
+check_cmd git
+check_cmd curl
+
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  pass 'inside a git repository'
+else
+  fail 'not inside a git repository'
+fi
+
+if git remote -v | grep -q '.'; then
+  pass 'git remote configured'
+  printf 'Configured remotes:\n'
+  git remote -v
+else
+  fail 'no git remotes configured'
+fi
+
+printf '\n'
+if curl -I --max-time 10 https://github.com >/dev/null 2>&1; then
+  pass 'github.com reachable over HTTPS'
+else
+  fail 'cannot reach github.com over HTTPS'
+fi
+
+if command -v gh >/dev/null 2>&1; then
+  pass 'command available: gh'
+  if gh auth status >/dev/null 2>&1; then
+    pass 'gh is authenticated'
+  else
+    fail 'gh is not authenticated'
+  fi
+else
+  fail 'missing command: gh'
+fi
+
+printf '\n== Result ==\n'
+if [[ "$failures" -eq 0 ]]; then
+  printf 'Environment is ready for PR creation.\n'
+  exit 0
+fi
+
+printf 'Environment is NOT ready for PR creation (%d failure(s)).\n' "$failures"
+printf '\nSuggested fixes:\n'
+printf '1) Add a remote, for example:\n'
+printf "   git remote add origin https://github.com/<owner>/<repo>.git\n"
+printf '2) Verify network path to GitHub:\n'
+printf '   curl -I https://github.com\n'
+printf '3) Install and authenticate gh:\n'
+printf '   gh auth login\n'
+exit 1
