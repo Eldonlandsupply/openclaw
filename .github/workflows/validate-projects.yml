@@ -1,0 +1,27 @@
+name: Validate Project Bindings
+
+on:
+  push:
+    paths:
+      - 'projects/**'
+  pull_request:
+    paths:
+      - 'projects/**'
+
+jobs:
+  validate:
+    name: Validate project.yaml files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install pyyaml jsonschema
+
+      - name: Validate all project.yaml files
+        run: python3 .github/scripts/validate_projects.py
