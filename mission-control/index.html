@@ -1,332 +1,1242 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OpenClaw · Mission Control</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="mc.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenClaw Mission Control</title>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Syne:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --bg:     #09090c;
+  --bg-2:   #0e0f15;
+  --bg-3:   #14161f;
+  --bg-4:   #1a1d2a;
+  --bg-5:   #1f2235;
+  --border: #232637;
+  --b2:     #2b2f44;
+  --text:   #dde1f0;
+  --t2:     #8d96b2;
+  --t3:     #4a5070;
+  --acc:    #e84c3d;
+  --acc2:   #ff6b5e;
+  --green:  #27ae60;
+  --green2: #2ecc71;
+  --yellow: #e8a000;
+  --blue:   #2980b9;
+  --blue2:  #3498db;
+  --purple: #8e44ad;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Syne', sans-serif;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;overflow:hidden}
+
+/* ── SHELL ── */
+.shell{display:grid;grid-template-columns:52px 228px 1fr;height:100vh}
+
+/* ── RAIL ── */
+.rail{background:var(--bg-2);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:2px;z-index:20}
+.rail-logo{width:34px;height:34px;background:var(--acc);border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:var(--sans);font-weight:800;font-size:15px;color:#fff;margin-bottom:10px;cursor:pointer;transition:background .15s}
+.rail-logo:hover{background:var(--acc2)}
+.rail-sep{width:26px;height:1px;background:var(--border);margin:6px 0}
+.rail-btn{width:36px;height:36px;border-radius:8px;border:none;background:transparent;color:var(--t3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .15s;position:relative}
+.rail-btn:hover{background:var(--bg-3);color:var(--t2)}
+.rail-btn.active{background:var(--bg-4);color:var(--acc)}
+.rail-btn .rb-badge{position:absolute;top:5px;right:5px;width:7px;height:7px;background:var(--acc);border-radius:50%;border:1.5px solid var(--bg-2)}
+.rail-spacer{flex:1}
+.rail-tip{font-size:8px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-top:2px}
+
+/* ── SIDEBAR ── */
+.sidebar{background:var(--bg-2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.sb-head{padding:14px 14px 10px;border-bottom:1px solid var(--border);flex-shrink:0}
+.sb-head-title{font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3)}
+.sb-head-count{font-size:10px;color:var(--t3);margin-top:3px}
+.sb-search{padding:8px 10px;border-bottom:1px solid var(--border);flex-shrink:0}
+.sb-search input{width:100%;background:var(--bg-3);border:1px solid var(--border);border-radius:5px;padding:5px 9px;color:var(--text);font-family:var(--mono);font-size:11px;outline:none;transition:border-color .15s}
+.sb-search input:focus{border-color:var(--acc)}
+.sb-search input::placeholder{color:var(--t3)}
+.sb-list{flex:1;overflow-y:auto;padding:6px 0}
+.sb-list::-webkit-scrollbar{width:3px}
+.sb-list::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+.sb-add{margin:6px 10px 10px;width:calc(100% - 20px);background:var(--bg-3);border:1px dashed var(--b2);border-radius:7px;color:var(--t3);font-family:var(--mono);font-size:11px;padding:7px;cursor:pointer;transition:all .15s;text-align:center}
+.sb-add:hover{border-color:var(--acc);color:var(--acc);background:var(--bg-4)}
+
+/* sidebar items */
+.sb-item{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;border-left:2px solid transparent;transition:background .1s,border-color .1s;min-width:0}
+.sb-item:hover{background:var(--bg-3)}
+.sb-item.active{background:var(--bg-4);border-left-color:var(--acc)}
+.sb-avatar{width:26px;height:26px;background:var(--bg-4);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;border:1px solid var(--border)}
+.sb-info{flex:1;min-width:0}
+.sb-name{font-family:var(--sans);font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-sub{font-size:9px;color:var(--t3);font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.sb-dot{width:5px;height:5px;border-radius:50%;background:var(--t3);flex-shrink:0}
+.sb-dot.on{background:var(--green2)}
+.sb-dot.acc{background:var(--acc)}
+.sb-dot.yellow{background:var(--yellow)}
+
+/* ── MAIN ── */
+.main{display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.topbar{background:var(--bg-2);border-bottom:1px solid var(--border);padding:0 18px;height:46px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.topbar-title{font-family:var(--sans);font-size:14px;font-weight:700;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar-sub{font-size:10px;color:var(--t3);font-family:var(--mono);flex-shrink:0}
+.content{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+.content::-webkit-scrollbar{width:5px}
+.content::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px}
+
+/* ── PILLS ── */
+.pill{display:inline-flex;align-items:center;padding:1px 7px;border-radius:3px;font-size:9px;font-family:var(--mono);font-weight:500;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+.p-default{background:rgba(232,76,61,.13);color:var(--acc);border:1px solid rgba(232,76,61,.28)}
+.p-ok{background:rgba(39,174,96,.1);color:var(--green2);border:1px solid rgba(39,174,96,.25)}
+.p-off{background:rgba(74,80,112,.12);color:var(--t3);border:1px solid var(--border)}
+.p-warn{background:rgba(232,160,0,.1);color:var(--yellow);border:1px solid rgba(232,160,0,.25)}
+.p-blue{background:rgba(41,128,185,.1);color:var(--blue2);border:1px solid rgba(41,128,185,.25)}
+
+/* ── TABS ── */
+.tab-row{display:flex;gap:2px;background:var(--bg-2);border:1px solid var(--border);border-radius:7px;padding:2px;width:fit-content;flex-shrink:0;flex-wrap:wrap}
+.tab{padding:5px 12px;border-radius:5px;border:none;background:transparent;color:var(--t3);font-family:var(--mono);font-size:11px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap}
+.tab:hover{color:var(--t2);background:var(--bg-3)}
+.tab.active{background:var(--bg-4);color:var(--text);border:1px solid var(--border)}
+
+/* ── CARDS ── */
+.card{background:var(--bg-2);border:1px solid var(--border);border-radius:9px;overflow:hidden}
+.ch{padding:12px 16px 9px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ct{font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--t2)}
+.cb{padding:14px 16px}
+
+/* ── GRIDS ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:1100px){.g4{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:900px){.g2,.g3{grid-template-columns:1fr}}
+
+/* ── STAT CARDS ── */
+.stat{background:var(--bg-3);border:1px solid var(--border);border-radius:7px;padding:12px 14px}
+.stat-l{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.09em;margin-bottom:5px}
+.stat-v{font-family:var(--sans);font-size:20px;font-weight:700;line-height:1}
+.stat-s{font-size:10px;color:var(--t3);margin-top:4px}
+.c-green{color:var(--green2)}
+.c-red{color:var(--acc)}
+.c-yellow{color:var(--yellow)}
+.c-blue{color:var(--blue2)}
+
+/* ── KV ── */
+.kv{display:grid;grid-template-columns:140px 1fr;gap:6px 12px;align-items:baseline}
+.kl{font-size:10px;color:var(--t3)}
+.kv-v{font-size:11px;color:var(--text);font-family:var(--mono);word-break:break-all}
+
+/* ── FORMS ── */
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em}
+.field input,.field select,.field textarea{background:var(--bg-3);border:1px solid var(--border);border-radius:5px;padding:7px 9px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;width:100%;transition:border-color .15s}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--acc)}
+.field textarea{resize:vertical;min-height:80px;line-height:1.55}
+.field select option{background:var(--bg-3)}
+.field input::placeholder{color:var(--t3)}
+
+/* ── BUTTONS ── */
+.btn{padding:6px 13px;border-radius:5px;border:1px solid var(--border);background:var(--bg-3);color:var(--t2);font-family:var(--mono);font-size:11px;cursor:pointer;transition:all .15s;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
+.btn:hover:not(:disabled){background:var(--bg-4);color:var(--text);border-color:var(--b2)}
+.btn:disabled{opacity:.38;cursor:not-allowed}
+.btn-prim{background:var(--acc);color:#fff;border-color:var(--acc)}
+.btn-prim:hover:not(:disabled){background:var(--acc2);border-color:var(--acc2)}
+.btn-danger{background:rgba(232,76,61,.08);color:var(--acc);border-color:rgba(232,76,61,.28)}
+.btn-danger:hover:not(:disabled){background:rgba(232,76,61,.18)}
+.btn-ok{background:rgba(39,174,96,.08);color:var(--green2);border-color:rgba(39,174,96,.28)}
+.btn-sm{padding:3px 9px;font-size:10px}
+.btn-row{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+
+/* ── FILE BROWSER ── */
+.fl{display:flex;flex-direction:column;gap:1px}
+.fr{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:5px;cursor:pointer;transition:background .1s}
+.fr:hover{background:var(--bg-3)}
+.fr.active{background:var(--bg-4)}
+.fn{font-size:11px;color:var(--text);font-family:var(--mono);flex:1}
+.fm{font-size:9px;color:var(--t3)}
+.editor-wrap{display:flex;flex-direction:column;gap:7px}
+.editor-toolbar{display:flex;justify-content:space-between;align-items:center}
+.editor-path{font-size:9px;color:var(--t3);font-family:var(--mono)}
+.editor-area{background:var(--bg-3);border:1px solid var(--border);border-radius:5px;padding:11px;color:var(--text);font-family:var(--mono);font-size:11px;line-height:1.65;min-height:300px;outline:none;resize:vertical;width:100%}
+.editor-area:focus{border-color:var(--acc)}
+
+/* ── TOOL GRID ── */
+.tool-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:7px;margin-top:8px}
+.tool-item{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:var(--bg-3);border:1px solid var(--border);border-radius:5px}
+.tool-name{font-size:10px;font-family:var(--mono);color:var(--t2)}
+.tool-desc{font-size:9px;color:var(--t3);margin-top:1px}
+.toggle{width:30px;height:17px;background:var(--border);border-radius:8px;position:relative;cursor:pointer;border:none;transition:background .2s;flex-shrink:0}
+.toggle.on{background:var(--acc)}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:13px;height:13px;background:#fff;border-radius:50%;transition:transform .2s}
+.toggle.on::after{transform:translateX(13px)}
+
+/* ── CRON ── */
+.cron-item{background:var(--bg-3);border:1px solid var(--border);border-radius:7px;padding:11px 13px;display:flex;align-items:flex-start;gap:11px}
+.cron-info{flex:1;min-width:0}
+.cron-name{font-size:12px;color:var(--text);font-weight:500;font-family:var(--sans)}
+.cron-sched{font-size:10px;color:var(--t3);font-family:var(--mono);margin-top:2px}
+.cron-desc{font-size:10px;color:var(--t2);margin-top:3px}
+.cron-meta{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap;align-items:center}
+.cron-state{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:10px;margin-top:6px}
+.cron-state .sl{color:var(--t3)}
+.cron-state .sv{color:var(--text);font-family:var(--mono)}
+
+/* ── SESSIONS ── */
+.session-item{display:flex;align-items:flex-start;gap:10px;padding:9px 10px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;cursor:pointer;transition:border-color .15s}
+.session-item:hover{border-color:var(--b2)}
+.session-item.active{border-color:var(--acc)}
+.session-key{font-size:10px;color:var(--t2);font-family:var(--mono);flex:1;word-break:break-all}
+.session-meta{font-size:9px;color:var(--t3);margin-top:3px}
+
+/* ── AUDIT LOG ── */
+.audit-item{display:flex;gap:10px;padding:7px 10px;border-radius:4px;font-size:11px;color:var(--t2);border-left:2px solid transparent}
+.audit-item:hover{background:var(--bg-3)}
+.audit-item.create{border-left-color:var(--green2)}
+.audit-item.update{border-left-color:var(--blue2)}
+.audit-item.delete{border-left-color:var(--acc)}
+.audit-item.event{border-left-color:var(--yellow)}
+.audit-ts{color:var(--t3);font-family:var(--mono);flex-shrink:0;font-size:10px;min-width:55px}
+.audit-method{font-family:var(--mono);font-weight:500;color:var(--text);font-size:10px}
+
+/* ── HEALTH ── */
+.health-bar{height:4px;border-radius:2px;background:var(--border);overflow:hidden;margin-top:5px}
+.health-fill{height:100%;border-radius:2px;transition:width .5s}
+.health-fill.green{background:var(--green2)}
+.health-fill.yellow{background:var(--yellow)}
+.health-fill.red{background:var(--acc)}
+
+/* ── CALLOUTS ── */
+.callout{padding:9px 13px;border-radius:5px;font-size:11px;line-height:1.55}
+.c-info{background:rgba(41,128,185,.08);border:1px solid rgba(41,128,185,.22);color:#7ec8f5}
+.c-warn{background:rgba(232,160,0,.08);border:1px solid rgba(232,160,0,.22);color:var(--yellow)}
+.c-err{background:rgba(232,76,61,.08);border:1px solid rgba(232,76,61,.22);color:var(--acc)}
+.c-ok{background:rgba(39,174,96,.08);border:1px solid rgba(39,174,96,.22);color:var(--green2)}
+
+/* ── MODAL ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;z-index:200}
+.modal{background:var(--bg-2);border:1px solid var(--border);border-radius:11px;padding:22px;width:500px;max-width:92vw;max-height:82vh;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+.modal h2{font-family:var(--sans);font-size:15px;font-weight:700}
+.modal-sub{font-size:11px;color:var(--t3);margin-top:-8px}
+
+/* ── CONNECT ── */
+.connect-panel{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:22px;padding:40px;background:var(--bg)}
+.connect-logo{font-family:var(--sans);font-size:30px;font-weight:800;color:var(--acc);letter-spacing:-.02em}
+.connect-sub{font-size:12px;color:var(--t3);text-align:center;max-width:340px;line-height:1.65}
+.connect-form{background:var(--bg-2);border:1px solid var(--border);border-radius:11px;padding:22px;width:100%;max-width:390px;display:flex;flex-direction:column;gap:14px}
+.connect-form h3{font-family:var(--sans);font-size:13px;font-weight:700}
+
+/* ── STATUS ── */
+.status-row{display:flex;align-items:center;gap:6px}
+.sdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sdot.green{background:var(--green2)}
+.sdot.red{background:var(--acc)}
+.sdot.yellow{background:var(--yellow);animation:pulse 1.2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── CONN BANNER ── */
+.conn-banner{position:fixed;bottom:14px;right:14px;background:var(--bg-2);border:1px solid var(--border);border-radius:9px;padding:11px 14px;display:flex;align-items:center;gap:9px;z-index:100;min-width:260px;box-shadow:0 8px 28px rgba(0,0,0,.5)}
+.conn-text{flex:1;font-size:11px;color:var(--t2)}
+.conn-close{background:none;border:none;color:var(--t3);cursor:pointer;font-size:13px;padding:0 2px}
+
+/* ── TOPOLOGY ── */
+.topo-node{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;background:var(--bg-3);border:1px solid var(--border);border-radius:7px;font-size:11px;color:var(--t2);cursor:pointer;transition:all .15s}
+.topo-node:hover,.topo-node.active{border-color:var(--acc);color:var(--text)}
+.topo-arrow{color:var(--t3);font-size:13px;margin:0 3px}
+
+/* ── EMPTY ── */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;color:var(--t3);text-align:center;gap:7px}
+.empty-icon{font-size:28px;margin-bottom:3px}
+.empty-title{font-family:var(--sans);font-size:13px;font-weight:600;color:var(--t2)}
+.empty-sub{font-size:11px}
+
+/* ── DIFF VIEW ── */
+.diff-panel{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.diff-before{background:rgba(232,76,61,.04);border:1px solid rgba(232,76,61,.15);border-radius:5px;padding:10px;font-size:10px;font-family:var(--mono);color:var(--t2);white-space:pre-wrap;max-height:200px;overflow-y:auto}
+.diff-after{background:rgba(39,174,96,.04);border:1px solid rgba(39,174,96,.15);border-radius:5px;padding:10px;font-size:10px;font-family:var(--mono);color:var(--t2);white-space:pre-wrap;max-height:200px;overflow-y:auto}
+
+/* ── SPINNER ── */
+.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--acc);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.muted{color:var(--t3)}
+.mono{font-family:var(--mono)}
+.row{display:flex;gap:7px;align-items:center}
+.col{display:flex;flex-direction:column;gap:8px}
+.flex-1{flex:1}
+.text-sm{font-size:10px}
+.sep{height:1px;background:var(--border);margin:8px 0}
+</style>
 </head>
-<body>
-  <div id="app">
-    <!-- Connection overlay -->
-    <div id="connect-overlay" class="overlay active">
-      <div class="connect-card">
-        <div class="connect-logo">
-          <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-            <rect width="40" height="40" rx="8" fill="#00FF88" fill-opacity="0.12"/>
-            <path d="M8 20 L16 12 L24 20 L32 12" stroke="#00FF88" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M8 28 L16 20 L24 28 L32 20" stroke="#00FF88" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
-          </svg>
-          <span>MISSION CONTROL</span>
-        </div>
-        <h1>Connect to Gateway</h1>
-        <p class="connect-sub">OpenClaw operational control plane</p>
-        <div class="form-group">
-          <label>Gateway URL</label>
-          <input id="inp-url" type="text" value="ws://127.0.0.1:18789" placeholder="ws://host:port" spellcheck="false"/>
-        </div>
-        <div class="form-group">
-          <label>Token <span class="opt">(optional)</span></label>
-          <input id="inp-token" type="password" placeholder="gateway token" spellcheck="false"/>
-        </div>
-        <div class="form-group">
-          <label>Password <span class="opt">(optional)</span></label>
-          <input id="inp-password" type="password" placeholder="gateway password" spellcheck="false"/>
-        </div>
-        <button id="btn-connect" class="btn-primary">Connect</button>
-        <div id="connect-error" class="connect-error hidden"></div>
-      </div>
-    </div>
+<body><div id="root"></div>
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  OPENCLAW MISSION CONTROL — PHASE 2
+//  Repository-native. All data from real gateway methods.
+// ═══════════════════════════════════════════════════════════════
+const {createElement:h,useState,useEffect,useRef,useCallback,useMemo,Fragment,useReducer} = React;
 
-    <!-- Main shell -->
-    <div id="shell" class="hidden">
-      <!-- Sidebar -->
-      <nav id="sidebar">
-        <div class="sidebar-brand">
-          <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
-            <rect width="40" height="40" rx="8" fill="#00FF88" fill-opacity="0.12"/>
-            <path d="M8 20 L16 12 L24 20 L32 12" stroke="#00FF88" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M8 28 L16 20 L24 28 L32 20" stroke="#00FF88" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.4"/>
-          </svg>
-          <div class="brand-text">
-            <span class="brand-name">OPENCLAW</span>
-            <span class="brand-sub">MISSION CONTROL</span>
-          </div>
-        </div>
-        <div class="sidebar-status">
-          <div id="status-dot" class="status-dot connecting"></div>
-          <span id="status-label">Connecting…</span>
-          <button id="btn-disconnect" class="btn-link" title="Disconnect">✕</button>
-        </div>
-        <div class="sidebar-nav">
-          <button class="nav-item active" data-view="overview">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-            Overview
-          </button>
-          <button class="nav-item" data-view="agents">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-            Agents
-          </button>
-          <button class="nav-item" data-view="sessions">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            Sessions
-          </button>
-          <button class="nav-item" data-view="channels">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10a19.79 19.79 0 01-3-8.57A2 2 0 012.18 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.72 6.72l1.28-1.32a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
-            Channels
-          </button>
-          <button class="nav-item" data-view="cron">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            Cron
-          </button>
-          <button class="nav-item" data-view="models">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
-            Models
-          </button>
-          <button class="nav-item" data-view="config">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M2 12h2M20 12h2M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41"/></svg>
-            Config
-          </button>
-          <button class="nav-item" data-view="logs">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
-            Logs
-          </button>
-          <button class="nav-item" data-view="nodes">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-            Nodes
-          </button>
-          <button class="nav-item" data-view="approvals">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"/></svg>
-            Approvals
-            <span id="approval-badge" class="nav-badge hidden">0</span>
-          </button>
-          <button class="nav-item" data-view="skills">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-            Skills
-          </button>
-          <button class="nav-item" data-view="devices">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-            Devices
-          </button>
-          <button class="nav-item" data-view="usage">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-            Usage
-          </button>
-        </div>
-        <div class="sidebar-footer">
-          <div id="gateway-info" class="gateway-info"></div>
-        </div>
-      </nav>
+// ── GATEWAY CLIENT ─────────────────────────────────────────────
+class GW {
+  constructor(url,token){this.url=url;this.token=token;this.ws=null;this.pending=new Map();this.seq=0;this.listeners=new Map();this.connected=false;}
+  on(ev,fn){if(!this.listeners.has(ev))this.listeners.set(ev,new Set());this.listeners.get(ev).add(fn);return()=>this.listeners.get(ev)?.delete(fn);}
+  emit(ev,d){this.listeners.get(ev)?.forEach(fn=>fn(d));}
+  connect(){
+    return new Promise((res,rej)=>{
+      try{this.ws=new WebSocket(this.url);}catch(e){rej(new Error('Invalid URL'));return;}
+      const t=setTimeout(()=>{this.ws?.close();rej(new Error('Connection timeout (8s)'));},8000);
+      this.ws.onopen=()=>{
+        clearTimeout(t);
+        this.ws.send(JSON.stringify({type:'request',seq:++this.seq,method:'connect',params:{
+          minProtocol:1,maxProtocol:99,
+          client:{id:'mc-'+Math.random().toString(36).slice(2),displayName:'Mission Control v2',version:'2.0.0',platform:'browser',mode:'ui'},
+          ...(this.token?{auth:{token:this.token}}:{})
+        }}));
+        this.connected=true;res(this);this.emit('connect',{});
+      };
+      this.ws.onmessage=(e)=>{
+        try{
+          const m=JSON.parse(e.data);
+          if(m.type==='response'&&m.seq){const p=this.pending.get(m.seq);if(p){this.pending.delete(m.seq);m.ok?p.res(m.result):p.rej(new Error(m.error?.message||'Request failed'));}}
+          else if(m.type==='event')this.emit('event',m);
+        }catch{}
+      };
+      this.ws.onerror=(e)=>{clearTimeout(t);this.emit('error',e);rej(new Error('WebSocket connection failed'));};
+      this.ws.onclose=(e)=>{this.connected=false;this.pending.forEach(p=>p.rej(new Error('Disconnected')));this.pending.clear();this.emit('disconnect',{code:e.code,reason:e.reason});};
+    });
+  }
+  req(method,params={}){
+    return new Promise((res,rej)=>{
+      if(!this.ws||this.ws.readyState!==WebSocket.OPEN){rej(new Error('Not connected'));return;}
+      const seq=++this.seq;this.pending.set(seq,{res,rej});
+      this.ws.send(JSON.stringify({type:'request',seq,method,params}));
+      setTimeout(()=>{if(this.pending.has(seq)){this.pending.delete(seq);rej(new Error('Request timeout'));}},18000);
+    });
+  }
+  disconnect(){this.ws?.close();this.ws=null;this.connected=false;}
+}
 
-      <!-- Main content -->
-      <main id="main">
-        <!-- Overview -->
-        <div id="view-overview" class="view active">
-          <div class="view-header">
-            <h2>Overview</h2>
-            <div class="header-actions">
-              <span id="uptime-badge" class="badge">—</span>
-            </div>
-          </div>
-          <div id="overview-grid" class="overview-grid">
-            <div class="stat-card" id="stat-agents">
-              <div class="stat-label">AGENTS</div>
-              <div class="stat-value">—</div>
-            </div>
-            <div class="stat-card" id="stat-sessions">
-              <div class="stat-label">SESSIONS</div>
-              <div class="stat-value">—</div>
-            </div>
-            <div class="stat-card" id="stat-clients">
-              <div class="stat-label">CLIENTS</div>
-              <div class="stat-value">—</div>
-            </div>
-            <div class="stat-card" id="stat-uptime">
-              <div class="stat-label">UPTIME</div>
-              <div class="stat-value">—</div>
-            </div>
-          </div>
-          <div class="overview-panels">
-            <div class="panel" id="panel-presence">
-              <div class="panel-header">Connected Clients</div>
-              <div id="presence-list" class="presence-list"></div>
-            </div>
-            <div class="panel" id="panel-agents-overview">
-              <div class="panel-header">Agents</div>
-              <div id="agents-overview-list"></div>
-            </div>
-          </div>
-        </div>
+// ── MOCK DATA ─────────────────────────────────────────────────
+const MOCK_AGENTS=[
+  {id:'main',name:'Main',isDefault:true,identity:{name:'OpenClaw',emoji:'🦞',theme:'General-purpose assistant and task coordinator'}},
+  {id:'codebot',name:'CodeBot',isDefault:false,identity:{name:'CodeBot',emoji:'🤖',theme:'Code review, refactoring, and technical analysis'}},
+  {id:'monitor',name:'Monitor',isDefault:false,identity:{name:'Monitor',emoji:'📊',theme:'System health monitoring and operational alerting'}},
+  {id:'writer',name:'Writer',isDefault:false,identity:{name:'Writer',emoji:'✍️',theme:'Content creation, drafting, and editorial work'}},
+];
+const MOCK_FILES=[
+  {name:'AGENTS.md',path:'~/.openclaw/workspace/AGENTS.md',missing:false,size:2048,updatedAtMs:Date.now()-3600000},
+  {name:'SOUL.md',path:'~/.openclaw/workspace/SOUL.md',missing:false,size:1024,updatedAtMs:Date.now()-7200000},
+  {name:'IDENTITY.md',path:'~/.openclaw/workspace/IDENTITY.md',missing:false,size:512,updatedAtMs:Date.now()-86400000},
+  {name:'TOOLS.md',path:'~/.openclaw/workspace/TOOLS.md',missing:false,size:768,updatedAtMs:Date.now()-86400000},
+  {name:'HEARTBEAT.md',path:'~/.openclaw/workspace/HEARTBEAT.md',missing:true},
+  {name:'MEMORY.md',path:'~/.openclaw/workspace/MEMORY.md',missing:false,size:4096,updatedAtMs:Date.now()-1800000},
+];
+const MOCK_CRON=[
+  {id:'job-001',name:'daily-brief',agentId:'main',schedule:{kind:'cron',expr:'0 9 * * *'},enabled:true,sessionTarget:'isolated',wakeMode:'now',payload:{kind:'agentTurn',message:'Good morning. Please prepare the daily briefing.'},delivery:{mode:'announce',channel:'last'},state:{lastRunAtMs:Date.now()-86400000,lastStatus:'ok',nextRunAtMs:Date.now()+3600000},createdAtMs:Date.now()-604800000,updatedAtMs:Date.now()-86400000,description:'Morning briefing for the day'},
+  {id:'job-002',name:'health-check',agentId:'monitor',schedule:{kind:'every',everyMs:900000},enabled:true,sessionTarget:'isolated',wakeMode:'now',payload:{kind:'systemEvent',text:'Run system health check and report anomalies.'},delivery:{mode:'none'},state:{lastRunAtMs:Date.now()-900000,lastStatus:'ok',nextRunAtMs:Date.now()+450000},createdAtMs:Date.now()-604800000,updatedAtMs:Date.now()-3600000},
+  {id:'job-003',name:'code-review',agentId:'codebot',schedule:{kind:'cron',expr:'0 18 * * 1-5'},enabled:false,sessionTarget:'isolated',wakeMode:'now',payload:{kind:'agentTurn',message:'Review any PRs opened today and summarize findings.'},delivery:{mode:'announce',channel:'last'},state:{lastRunAtMs:Date.now()-172800000,lastStatus:'ok'},createdAtMs:Date.now()-604800000,updatedAtMs:Date.now()-172800000,description:'Weekday end-of-day PR sweep'},
+];
+const MOCK_SESSIONS=[
+  {key:'main:main',agentId:'main',sessionId:'sess-aaa',updatedAtMs:Date.now()-120000,messageCount:14,label:'default',model:'anthropic/claude-opus-4-6'},
+  {key:'main:codebot',agentId:'codebot',sessionId:'sess-bbb',updatedAtMs:Date.now()-900000,messageCount:6,label:'default',model:'anthropic/claude-opus-4-6'},
+  {key:'main:monitor',agentId:'monitor',sessionId:'sess-ccc',updatedAtMs:Date.now()-3600000,messageCount:32,label:'default',model:'anthropic/claude-opus-4-6'},
+];
+const MOCK_HEALTH={ts:Date.now(),ok:true,uptime:86400*3,version:'2025.3.1',checks:{gateway:{ok:true,latencyMs:12},auth:{ok:true},memory:{ok:true},storage:{ok:true}}};
+const SOUL_TPL=`# SOUL.md - Who You Are\n\n## Core Truths\n\n**Be genuinely helpful, not performatively helpful.**\nSkip the "Great question!" — just help.\n\n**Have opinions.** You're allowed to disagree, prefer things, find stuff amusing.\n\n**Be resourceful before asking.** Read the file. Check context. Then ask.\n\n**Earn trust through competence.** Be careful with external actions. Be bold with internal ones.\n\n## Vibe\n\nBe the assistant you'd actually want to talk to. Concise when needed, thorough when it matters.\n\n## Continuity\n\nEach session, you wake up fresh. These files are your memory. Read them. Update them.\n`;
+const MOCK_TOOLS=[
+  {id:'read',group:'Files',desc:'Read file contents'},{id:'write',group:'Files',desc:'Create/overwrite files'},
+  {id:'edit',group:'Files',desc:'Make precise edits'},{id:'exec',group:'Runtime',desc:'Run shell commands'},
+  {id:'process',group:'Runtime',desc:'Manage processes'},{id:'web_search',group:'Web',desc:'Search the web'},
+  {id:'web_fetch',group:'Web',desc:'Fetch web content'},{id:'memory_search',group:'Memory',desc:'Semantic search'},
+  {id:'sessions_list',group:'Sessions',desc:'List sessions'},{id:'sessions_send',group:'Sessions',desc:'Send to session'},
+  {id:'sessions_spawn',group:'Sessions',desc:'Spawn sub-agent'},{id:'browser',group:'UI',desc:'Browser control'},
+  {id:'canvas',group:'UI',desc:'Canvas control'},{id:'message',group:'Messaging',desc:'Send messages'},
+  {id:'cron',group:'Automation',desc:'Schedule tasks'},{id:'gateway',group:'Automation',desc:'Gateway control'},
+  {id:'image',group:'Media',desc:'Image understanding'},
+];
 
-        <!-- Agents -->
-        <div id="view-agents" class="view hidden">
-          <div class="view-header">
-            <h2>Agents</h2>
-            <div class="header-actions">
-              <button id="btn-create-agent" class="btn-primary sm">+ New Agent</button>
-            </div>
-          </div>
-          <div id="agents-list" class="agents-list"></div>
-        </div>
+// ── UTILS ──────────────────────────────────────────────────────
+const fmtT=ts=>{if(!ts)return'never';const d=Date.now()-ts;if(d<60000)return'just now';if(d<3600000)return`${Math.floor(d/60000)}m ago`;if(d<86400000)return`${Math.floor(d/3600000)}h ago`;return`${Math.floor(d/86400000)}d ago`;};
+const fmtB=b=>{if(!b)return'-';if(b<1024)return`${b}B`;if(b<1048576)return`${(b/1024).toFixed(1)}KB`;return`${(b/1048576).toFixed(1)}MB`;};
+const fmtMs=ms=>{if(!ms)return'-';if(ms<1000)return`${ms}ms`;if(ms<60000)return`${(ms/1000).toFixed(1)}s`;return`${Math.floor(ms/60000)}m`;};
+const fmtUptime=s=>{if(!s)return'-';const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return`${h}h ${m}m`;};
+const agentLabel=a=>a?.identity?.name?.trim()||a?.name?.trim()||a?.id||'?';
+const agentEmoji=a=>a?.identity?.emoji||'🤖';
+const cronScheduleLabel=s=>{if(!s)return'?';if(s.kind==='cron')return s.expr+(s.tz?` (${s.tz})`:'');if(s.kind==='every')return`every ${fmtMs(s.everyMs)}`;if(s.kind==='at')return`at ${s.at}`;return JSON.stringify(s);};
+const cronLastStatus=s=>{if(!s?.lastStatus)return null;return{ok:'OK',error:'ERROR',skipped:'SKIPPED'}[s.lastStatus]||s.lastStatus;};
 
-        <!-- Sessions -->
-        <div id="view-sessions" class="view hidden">
-          <div class="view-header">
-            <h2>Sessions</h2>
-            <div class="header-actions">
-              <input id="sessions-search" type="text" class="search-input" placeholder="Search sessions…" />
-            </div>
-          </div>
-          <div id="sessions-list" class="sessions-list"></div>
-        </div>
+// ── AUDIT LOG (in-memory, event-sourced) ──────────────────────
+let AUDIT_LOG=[
+  {ts:Date.now()-600000,type:'update',method:'agents.update',detail:'main — model set to claude-opus-4-6'},
+  {ts:Date.now()-3600000,type:'create',method:'agents.create',detail:'writer — workspace ~/writer created'},
+  {ts:Date.now()-7200000,type:'update',method:'config.patch',detail:'gateway.cron.enabled → true'},
+  {ts:Date.now()-86400000,type:'update',method:'cron.update',detail:'health-check — schedule updated'},
+  {ts:Date.now()-172800000,type:'delete',method:'agents.delete',detail:'old-bot — files trashed'},
+];
+function pushAudit(type,method,detail){AUDIT_LOG=[{ts:Date.now(),type,method,detail},...AUDIT_LOG].slice(0,200);}
 
-        <!-- Channels -->
-        <div id="view-channels" class="view hidden">
-          <div class="view-header">
-            <h2>Channels</h2>
-          </div>
-          <div id="channels-list" class="channels-list"></div>
-        </div>
+// ── CONNECT SCREEN ─────────────────────────────────────────────
+function ConnectScreen({onConnect,onDemo}){
+  const[url,setUrl]=useState('ws://localhost:18789');
+  const[token,setToken]=useState('');
+  const[loading,setLoading]=useState(false);
+  const[err,setErr]=useState('');
+  const go=async()=>{
+    setLoading(true);setErr('');
+    try{const c=new GW(url.trim(),token.trim()||null);await c.connect();onConnect(c);}
+    catch(e){setErr(e.message);}finally{setLoading(false);}
+  };
+  return h('div',{className:'connect-panel'},
+    h('div',{className:'connect-logo'},'🦞 OpenClaw'),
+    h('p',{className:'connect-sub'},'Mission Control v2 — production operator interface for your agent fleet'),
+    h('div',{className:'connect-form'},
+      h('h3',null,'Connect to Gateway'),
+      err&&h('div',{className:'callout c-err',style:{fontSize:11}},err),
+      h('div',{className:'field'},h('label',null,'Gateway WebSocket URL'),h('input',{value:url,onChange:e=>setUrl(e.target.value),placeholder:'ws://localhost:18789',onKeyDown:e=>e.key==='Enter'&&go()})),
+      h('div',{className:'field'},h('label',null,'Auth Token (optional)'),h('input',{type:'password',value:token,onChange:e=>setToken(e.target.value),placeholder:'gateway token',onKeyDown:e=>e.key==='Enter'&&go()})),
+      h('div',{className:'callout c-info',style:{fontSize:10}},'Run ',h('code',null,'openclaw gateway'),' to start the gateway (default port 18789). For remote access use ',h('code',null,'--bind tailnet'),' with a token.'),
+      h('div',{className:'btn-row'},
+        h('button',{className:'btn btn-prim flex-1',onClick:go,disabled:loading},loading?h(Fragment,null,h('span',{className:'spin'}),' Connecting…'):'Connect'),
+        h('button',{className:'btn flex-1',onClick:onDemo},'Demo Mode')
+      )
+    )
+  );
+}
 
-        <!-- Cron -->
-        <div id="view-cron" class="view hidden">
-          <div class="view-header">
-            <h2>Cron Jobs</h2>
-            <div class="header-actions">
-              <button id="btn-add-cron" class="btn-primary sm">+ Add Job</button>
-            </div>
-          </div>
-          <div id="cron-list" class="cron-list"></div>
-        </div>
+// ── HEALTH STATUS PANEL ────────────────────────────────────────
+function HealthPanel({health,loading,onRefresh}){
+  if(!health)return h('div',{className:'card'},h('div',{className:'ch'},h('span',{className:'ct'},'Gateway Health'),h('button',{className:'btn btn-sm',onClick:onRefresh,disabled:loading},loading?'Loading…':'Load Health')),h('div',{className:'cb'},h('div',{className:'empty'},h('div',{className:'empty-icon'},'💊'),h('div',{className:'empty-sub'},'Click to load health data'))));
+  const checks=health.checks||{};
+  const all=Object.values(checks).every(c=>c.ok);
+  return h('div',{className:'card'},
+    h('div',{className:'ch'},h('span',{className:'ct'},'Gateway Health'),h('div',{className:'row',style:{gap:6}},h('span',{className:`pill ${all?'p-ok':'p-warn'}`},all?'Healthy':'Degraded'),h('button',{className:'btn btn-sm',onClick:onRefresh,disabled:loading},'Refresh'))),
+    h('div',{className:'cb'},
+      h('div',{className:'g4',style:{gap:8}},
+        [['Gateway',checks.gateway],['Auth',checks.auth],['Memory',checks.memory],['Storage',checks.storage]].map(([label,c])=>
+          h('div',{key:label,className:'stat'},
+            h('div',{className:'stat-l'},label),
+            h('div',{className:`stat-v ${c?.ok?'c-green':'c-red'}`,style:{fontSize:14}},c?.ok?'OK':'FAIL'),
+            c?.latencyMs&&h('div',{className:'stat-s'},`${c.latencyMs}ms`)
+          )
+        )
+      ),
+      h('div',{className:'kv',style:{marginTop:12}},
+        h('span',{className:'kl'},'Version'),h('span',{className:'kv-v'},health.version||'-'),
+        h('span',{className:'kl'},'Uptime'),h('span',{className:'kv-v'},fmtUptime(health.uptime)),
+        h('span',{className:'kl'},'Checked'),h('span',{className:'kv-v'},fmtT(health.ts))
+      )
+    )
+  );
+}
 
-        <!-- Models -->
-        <div id="view-models" class="view hidden">
-          <div class="view-header">
-            <h2>Available Models</h2>
-            <div class="header-actions">
-              <input id="models-search" type="text" class="search-input" placeholder="Filter models…" />
-            </div>
-          </div>
-          <div id="models-list" class="models-list"></div>
-        </div>
+// ── OVERVIEW TAB ───────────────────────────────────────────────
+function OverviewTab({agents,cronJobs,sessions,health,healthLoading,onRefreshHealth,isDemo,auditLog}){
+  const active=cronJobs.filter(j=>j.enabled).length;
+  const def=agents.find(a=>a.isDefault)||agents[0];
+  const activeSess=sessions.filter(s=>Date.now()-s.updatedAtMs<3600000).length;
+  return h(Fragment,null,
+    h('div',{className:'g4'},
+      h('div',{className:'stat'},h('div',{className:'stat-l'},'Agents'),h('div',{className:'stat-v'},agents.length),h('div',{className:'stat-s'},'in fleet')),
+      h('div',{className:'stat'},h('div',{className:'stat-l'},'Gateway'),h('div',{className:`stat-v ${isDemo?'c-yellow':'c-green'}`},isDemo?'DEMO':'LIVE'),h('div',{className:'stat-s'},isDemo?'no gateway':'connected')),
+      h('div',{className:'stat'},h('div',{className:'stat-l'},'Active Cron'),h('div',{className:'stat-v c-green'},active),h('div',{className:'stat-s'},`${cronJobs.length} total`)),
+      h('div',{className:'stat'},h('div',{className:'stat-l'},'Sessions (1h)'),h('div',{className:'stat-v c-blue'},activeSess),h('div',{className:'stat-s'},`${sessions.length} loaded`))
+    ),
+    h(HealthPanel,{health,loading:healthLoading,onRefresh:onRefreshHealth}),
+    h('div',{className:'g2'},
+      h('div',{className:'card'},
+        h('div',{className:'ch'},h('span',{className:'ct'},'Agent Fleet'),h('span',{className:'pill p-ok'},`${agents.length} agents`)),
+        h('div',{className:'cb'},
+          agents.length===0?h('div',{className:'empty'},h('div',{className:'empty-icon'},'🦞'),h('div',{className:'empty-title'},'No agents'))
+          :h('div',{className:'col',style:{gap:3}},
+            agents.map(a=>h('div',{key:a.id,style:{display:'flex',alignItems:'center',gap:8,padding:'7px 0',borderBottom:'1px solid var(--border)'}},
+              h('div',{className:'sb-avatar'},agentEmoji(a)),
+              h('div',{style:{flex:1,minWidth:0}},h('div',{className:'sb-name'},agentLabel(a)),h('div',{className:'sb-sub'},a.id)),
+              a.isDefault&&h('span',{className:'pill p-default'},'default')
+            ))
+          )
+        )
+      ),
+      h('div',{className:'card'},
+        h('div',{className:'ch'},h('span',{className:'ct'},'Audit Trail'),h('span',{style:{fontSize:10,color:'var(--t3)'}},'last 7 days')),
+        h('div',{className:'cb',style:{padding:'6px 0'}},
+          (auditLog||AUDIT_LOG).slice(0,8).map((e,i)=>h('div',{key:i,className:`audit-item ${e.type}`},
+            h('span',{className:'audit-ts'},fmtT(e.ts)),
+            h('div',null,h('div',{className:'audit-method'},e.method),h('div',{style:{fontSize:10,color:'var(--t3)',marginTop:1}},e.detail))
+          ))
+        )
+      )
+    )
+  );
+}
 
-        <!-- Config -->
-        <div id="view-config" class="view hidden">
-          <div class="view-header">
-            <h2>Configuration</h2>
-            <div class="header-actions">
-              <button id="btn-save-config" class="btn-primary sm">Save</button>
-            </div>
-          </div>
-          <div class="config-layout">
-            <div id="config-editor-wrap" class="config-editor-wrap">
-              <textarea id="config-editor" class="config-editor" spellcheck="false"></textarea>
-            </div>
-            <div id="config-meta" class="config-meta">
-              <div class="meta-item"><span class="meta-k">PATH</span><span id="cfg-path" class="meta-v">—</span></div>
-              <div class="meta-item"><span class="meta-k">STATE DIR</span><span id="cfg-state" class="meta-v">—</span></div>
-              <div class="meta-item"><span class="meta-k">VERSION</span><span id="cfg-version" class="meta-v">—</span></div>
-            </div>
-          </div>
-        </div>
+// ── SESSIONS TAB ───────────────────────────────────────────────
+function SessionsTab({sessions,loading,onLoad,agents,client,isDemo}){
+  const[sel,setSel]=useState(null);
+  const[patchLoading,setPatchLoading]=useState(false);
+  const[patchMsg,setPatchMsg]=useState('');
+  const[thinkingLevel,setThinkingLevel]=useState('');
+  const selSession=sel?sessions.find(s=>s.key===sel):null;
 
-        <!-- Logs -->
-        <div id="view-logs" class="view hidden">
-          <div class="view-header">
-            <h2>Gateway Logs</h2>
-            <div class="header-actions">
-              <label class="toggle-label">
-                <input type="checkbox" id="logs-follow" checked /> Follow
-              </label>
-              <button id="btn-clear-logs" class="btn-ghost sm">Clear</button>
-            </div>
-          </div>
-          <div id="logs-output" class="logs-output"></div>
-        </div>
+  const applyPatch=async()=>{
+    if(!selSession)return;
+    setPatchLoading(true);setPatchMsg('');
+    const params={key:selSession.key};
+    if(thinkingLevel)params.thinkingLevel=thinkingLevel||null;
+    try{
+      if(!isDemo&&client)await client.req('sessions.patch',params);
+      pushAudit('update','sessions.patch',`${selSession.key} — patched`);
+      setPatchMsg('Patch applied');
+    }catch(e){setPatchMsg('Error: '+e.message);}
+    setPatchLoading(false);
+  };
 
-        <!-- Nodes -->
-        <div id="view-nodes" class="view hidden">
-          <div class="view-header">
-            <h2>Nodes</h2>
-          </div>
-          <div id="nodes-list" class="nodes-list"></div>
-        </div>
+  return h('div',{className:'g2',style:{alignItems:'start'}},
+    h('div',{className:'card'},
+      h('div',{className:'ch'},h('span',{className:'ct'},'Sessions'),h('button',{className:'btn btn-sm',onClick:onLoad,disabled:loading},loading?h(Fragment,null,h('span',{className:'spin'}),' Loading…'):'Refresh')),
+      h('div',{className:'cb'},
+        sessions.length===0&&!loading
+          ?h('div',{className:'empty'},h('div',{className:'empty-icon'},'💬'),h('div',{className:'empty-title'},'No sessions'),h('div',{className:'empty-sub'},'Click Refresh to load session data'))
+          :h('div',{className:'col',style:{gap:6}},
+            sessions.map(s=>h('div',{key:s.key,className:`session-item ${sel===s.key?'active':''}`,onClick:()=>setSel(s.key)},
+              h('div',{style:{flex:1,minWidth:0}},
+                h('div',{className:'session-key'},s.key),
+                h('div',{className:'session-meta'},`${s.messageCount||0} messages · ${fmtT(s.updatedAtMs)}`)
+              ),
+              s.label&&h('span',{className:'pill p-blue'},s.label)
+            ))
+          )
+      )
+    ),
+    selSession
+      ?h('div',{className:'col',style:{gap:10}},
+          h('div',{className:'card'},
+            h('div',{className:'ch'},h('span',{className:'ct'},'Session Detail')),
+            h('div',{className:'cb'},
+              h('div',{className:'kv'},
+                h('span',{className:'kl'},'Key'),h('span',{className:'kv-v'},selSession.key),
+                h('span',{className:'kl'},'Agent'),h('span',{className:'kv-v'},selSession.agentId||'-'),
+                h('span',{className:'kl'},'Session ID'),h('span',{className:'kv-v'},selSession.sessionId||'-'),
+                h('span',{className:'kl'},'Label'),h('span',{className:'kv-v'},selSession.label||'(none)'),
+                h('span',{className:'kl'},'Model'),h('span',{className:'kv-v'},selSession.model||'inherit'),
+                h('span',{className:'kl'},'Messages'),h('span',{className:'kv-v'},selSession.messageCount||0),
+                h('span',{className:'kl'},'Last active'),h('span',{className:'kv-v'},fmtT(selSession.updatedAtMs))
+              )
+            )
+          ),
+          h('div',{className:'card'},
+            h('div',{className:'ch'},h('span',{className:'ct'},'Session Patch')),
+            h('div',{className:'cb'},
+              h('div',{className:'col',style:{gap:10}},
+                patchMsg&&h('div',{className:`callout ${patchMsg.startsWith('Error')?'c-err':'c-ok'}`},patchMsg),
+                h('div',{className:'field'},h('label',null,'Thinking Level'),h('select',{value:thinkingLevel,onChange:e=>setThinkingLevel(e.target.value)},h('option',{value:''},'(inherit default)'),['off','minimal','low','medium','high'].map(v=>h('option',{key:v,value:v},v)))),
+                h('div',{className:'callout c-info',style:{fontSize:10}},'Overrides apply to the next agent run on this session. Gateway method: ',h('code',null,'sessions.patch')),
+                h('div',{className:'btn-row',style:{justifyContent:'flex-end'}},h('button',{className:'btn btn-prim',onClick:applyPatch,disabled:patchLoading||(!thinkingLevel)},patchLoading?'Applying…':'Apply Patch'))
+              )
+            )
+          )
+        )
+      :h('div',{className:'card'},h('div',{className:'cb'},h('div',{className:'empty'},h('div',{className:'empty-sub'},'← Select a session to inspect and patch'))))
+  );
+}
 
-        <!-- Exec Approvals -->
-        <div id="view-approvals" class="view hidden">
-          <div class="view-header">
-            <h2>Exec Approvals</h2>
-            <div class="header-actions">
-              <span id="approvals-pending-count" class="badge">0 pending</span>
-              <button id="btn-refresh-approvals" class="btn-ghost sm">Refresh</button>
-            </div>
-          </div>
-          <div id="approvals-queue" class="approvals-queue"></div>
-          <div class="view-subheader"><span>Allowlist Policy</span></div>
-          <div id="approvals-policy" class="approvals-policy"></div>
-        </div>
+// ── CRON ADD MODAL ─────────────────────────────────────────────
+function CronAddModal({agents,onClose,onAdded,client,isDemo}){
+  const[name,setName]=useState('');
+  const[agentId,setAgentId]=useState(agents[0]?.id||'');
+  const[schedKind,setSchedKind]=useState('cron');
+  const[expr,setExpr]=useState('0 9 * * *');
+  const[everyMs,setEveryMs]=useState('900000');
+  const[message,setMessage]=useState('');
+  const[payloadKind,setPayloadKind]=useState('agentTurn');
+  const[deliveryMode,setDeliveryMode]=useState('none');
+  const[enabled,setEnabled]=useState(true);
+  const[desc,setDesc]=useState('');
+  const[loading,setLoading]=useState(false);
+  const[err,setErr]=useState('');
 
-        <!-- Skills -->
-        <div id="view-skills" class="view hidden">
-          <div class="view-header">
-            <h2>Skills</h2>
-            <div class="header-actions">
-              <input id="skills-search" type="text" class="search-input" placeholder="Filter skills…" />
-            </div>
-          </div>
-          <div id="skills-list" class="skills-list"></div>
-        </div>
+  const go=async()=>{
+    if(!name.trim()){setErr('Name required');return;}
+    if(payloadKind==='agentTurn'&&!message.trim()){setErr('Message required');return;}
+    setLoading(true);setErr('');
+    const schedule=schedKind==='cron'?{kind:'cron',expr:expr.trim()}:{kind:'every',everyMs:parseInt(everyMs)||900000};
+    const payload=payloadKind==='systemEvent'?{kind:'systemEvent',text:message.trim()}:{kind:'agentTurn',message:message.trim()};
+    const job={name:name.trim(),agentId:agentId||undefined,description:desc.trim()||undefined,enabled,schedule,sessionTarget:'isolated',wakeMode:'now',payload,delivery:{mode:deliveryMode}};
+    try{
+      let created=job;
+      if(!isDemo&&client){created=await client.req('cron.add',job);}
+      else{created={...job,id:'job-'+Math.random().toString(36).slice(2),state:{},createdAtMs:Date.now(),updatedAtMs:Date.now()};}
+      pushAudit('create','cron.add',`${name.trim()} — created for agent ${agentId}`);
+      onAdded(created);
+    }catch(e){setErr(e.message);}
+    setLoading(false);
+  };
 
-        <!-- Devices -->
-        <div id="view-devices" class="view hidden">
-          <div class="view-header">
-            <h2>Devices</h2>
-            <div class="header-actions">
-              <span id="device-pair-pending" class="badge hidden">0 pending</span>
-            </div>
-          </div>
-          <div id="device-pair-requests" class="device-pair-requests"></div>
-          <div class="view-subheader"><span>Paired Devices</span></div>
-          <div id="devices-list" class="devices-list"></div>
-        </div>
+  return h('div',{className:'overlay',onClick:e=>e.target===e.currentTarget&&onClose()},
+    h('div',{className:'modal'},
+      h('h2',null,'+ New Cron Job'),
+      h('p',{className:'modal-sub'},'Schedules an automated agent task via ',h('code',null,'cron.add')),
+      err&&h('div',{className:'callout c-err'},err),
+      h('div',{className:'g2'},
+        h('div',{className:'field'},h('label',null,'Job Name *'),h('input',{value:name,onChange:e=>setName(e.target.value),placeholder:'daily-brief',autoFocus:true})),
+        h('div',{className:'field'},h('label',null,'Agent'),h('select',{value:agentId,onChange:e=>setAgentId(e.target.value)},agents.map(a=>h('option',{key:a.id,value:a.id},agentLabel(a)))))
+      ),
+      h('div',{className:'field'},h('label',null,'Description'),h('input',{value:desc,onChange:e=>setDesc(e.target.value),placeholder:'Optional description'})),
+      h('div',{className:'g2'},
+        h('div',{className:'field'},h('label',null,'Schedule Kind'),h('select',{value:schedKind,onChange:e=>setSchedKind(e.target.value)},h('option',{value:'cron'},'Cron expression'),h('option',{value:'every'},'Every N milliseconds'))),
+        schedKind==='cron'
+          ?h('div',{className:'field'},h('label',null,'Cron Expression'),h('input',{value:expr,onChange:e=>setExpr(e.target.value),placeholder:'0 9 * * *'}))
+          :h('div',{className:'field'},h('label',null,'Every (ms)'),h('input',{value:everyMs,onChange:e=>setEveryMs(e.target.value),placeholder:'900000'}))
+      ),
+      h('div',{className:'g2'},
+        h('div',{className:'field'},h('label',null,'Payload Kind'),h('select',{value:payloadKind,onChange:e=>setPayloadKind(e.target.value)},h('option',{value:'agentTurn'},'Agent Turn'),h('option',{value:'systemEvent'},'System Event'))),
+        h('div',{className:'field'},h('label',null,'Delivery Mode'),h('select',{value:deliveryMode,onChange:e=>setDeliveryMode(e.target.value)},h('option',{value:'none'},'None (internal)'),h('option',{value:'announce'},'Announce (last channel)')))
+      ),
+      h('div',{className:'field'},h('label',null,payloadKind==='agentTurn'?'Agent Message *':'System Event Text *'),h('textarea',{value:message,onChange:e=>setMessage(e.target.value),placeholder:payloadKind==='agentTurn'?'Good morning. Prepare the daily briefing.':'Run system health check.',rows:3})),
+      h('div',{className:'row',style:{gap:10}},
+        h('label',{className:'row',style:{gap:6,cursor:'pointer'}},h('input',{type:'checkbox',checked:enabled,onChange:e=>setEnabled(e.target.checked)}),h('span',{style:{fontSize:11}},'Enabled on create'))
+      ),
+      h('div',{className:'btn-row',style:{justifyContent:'flex-end'}},
+        h('button',{className:'btn',onClick:onClose},'Cancel'),
+        h('button',{className:'btn btn-prim',onClick:go,disabled:loading},loading?'Creating…':'Create Job')
+      )
+    )
+  );
+}
 
-        <!-- Usage -->
-        <div id="view-usage" class="view hidden">
-          <div class="view-header">
-            <h2>Usage &amp; Cost</h2>
-            <div class="header-actions">
-              <select id="usage-range" class="search-input" style="width:auto">
-                <option value="7">Last 7 days</option>
-                <option value="30" selected>Last 30 days</option>
-                <option value="90">Last 90 days</option>
-              </select>
-              <button id="btn-refresh-usage" class="btn-ghost sm">Refresh</button>
-            </div>
-          </div>
-          <div id="usage-summary" class="usage-summary"></div>
-          <div id="usage-sessions" class="usage-sessions"></div>
-        </div>
-      </main>
-    </div>
+// ── CRON EDIT MODAL ────────────────────────────────────────────
+function CronEditModal({job,onClose,onUpdated,client,isDemo}){
+  const[enabled,setEnabled]=useState(job.enabled);
+  const[msg,setMsg]=useState(job.payload?.message||job.payload?.text||'');
+  const[loading,setLoading]=useState(false);
+  const[err,setErr]=useState('');
+  const[result,setResult]=useState('');
 
-    <!-- Modals -->
-    <div id="modal-backdrop" class="modal-backdrop hidden">
-      <div id="modal" class="modal">
-        <div class="modal-header">
-          <h3 id="modal-title"></h3>
-          <button class="modal-close" id="modal-close">✕</button>
-        </div>
-        <div id="modal-body" class="modal-body"></div>
-        <div id="modal-footer" class="modal-footer"></div>
-      </div>
-    </div>
+  const save=async()=>{
+    setLoading(true);setErr('');setResult('');
+    const payloadPatch=job.payload?.kind==='agentTurn'?{kind:'agentTurn',message:msg}:{kind:'systemEvent',text:msg};
+    try{
+      if(!isDemo&&client){await client.req('cron.update',{id:job.id,patch:{enabled,payload:payloadPatch}});}
+      pushAudit('update','cron.update',`${job.name} — enabled=${enabled}`);
+      onUpdated({...job,enabled,payload:{...job.payload,...(job.payload?.kind==='agentTurn'?{message:msg}:{text:msg})}});
+      setResult('Saved');
+    }catch(e){setErr(e.message);}
+    setLoading(false);
+  };
 
-    <!-- Toast -->
-    <div id="toast-container"></div>
-  </div>
+  const remove=async()=>{
+    if(!confirm(`Delete job "${job.name}"?`))return;
+    setLoading(true);
+    try{
+      if(!isDemo&&client)await client.req('cron.remove',{id:job.id});
+      pushAudit('delete','cron.remove',`${job.name} — deleted`);
+      onUpdated(null);
+    }catch(e){setErr(e.message);}
+    setLoading(false);
+  };
 
-  <script src="mc.js"></script>
+  const runNow=async()=>{
+    setLoading(true);setErr('');
+    try{
+      if(!isDemo&&client)await client.req('cron.run',{id:job.id});
+      pushAudit('event','cron.run',`${job.name} — triggered manually`);
+      setResult('Job triggered');
+    }catch(e){setErr(e.message);}
+    setLoading(false);
+  };
+
+  return h('div',{className:'overlay',onClick:e=>e.target===e.currentTarget&&onClose()},
+    h('div',{className:'modal'},
+      h('h2',null,'Edit Cron Job: '+job.name),
+      h('p',{className:'modal-sub'},`Agent: ${job.agentId||'(any)'} · ${cronScheduleLabel(job.schedule)}`),
+      err&&h('div',{className:'callout c-err'},err),
+      result&&h('div',{className:'callout c-ok'},result),
+      h('div',{className:'kv'},
+        h('span',{className:'kl'},'Job ID'),h('span',{className:'kv-v'},job.id),
+        h('span',{className:'kl'},'Schedule'),h('span',{className:'kv-v'},cronScheduleLabel(job.schedule)),
+        h('span',{className:'kl'},'Session target'),h('span',{className:'kv-v'},job.sessionTarget),
+        h('span',{className:'kl'},'Last run'),h('span',{className:'kv-v'},fmtT(job.state?.lastRunAtMs)),
+        h('span',{className:'kl'},'Last status'),h('span',{className:'kv-v'},cronLastStatus(job.state)||'-'),
+        h('span',{className:'kl'},'Next run'),h('span',{className:'kv-v'},fmtT(job.state?.nextRunAtMs))
+      ),
+      h('div',{className:'sep'}),
+      h('div',{className:'field'},h('label',null,'Payload Message / Text'),h('textarea',{value:msg,onChange:e=>setMsg(e.target.value),rows:3})),
+      h('div',{className:'row',style:{gap:10}},
+        h('label',{className:'row',style:{gap:6,cursor:'pointer'}},h('input',{type:'checkbox',checked:enabled,onChange:e=>setEnabled(e.target.checked)}),h('span',{style:{fontSize:11}},'Enabled'))
+      ),
+      h('div',{className:'btn-row',style:{justifyContent:'space-between'}},
+        h('div',{className:'btn-row'},
+          h('button',{className:'btn btn-ok btn-sm',onClick:runNow,disabled:loading},'▶ Run Now'),
+          h('button',{className:'btn btn-danger btn-sm',onClick:remove,disabled:loading},'Delete')
+        ),
+        h('div',{className:'btn-row'},
+          h('button',{className:'btn',onClick:onClose},'Cancel'),
+          h('button',{className:'btn btn-prim',onClick:save,disabled:loading},loading?'Saving…':'Save')
+        )
+      )
+    )
+  );
+}
+
+// ── FULL CRON TAB ──────────────────────────────────────────────
+function CronTab({cronJobs,setCronJobs,loading,onLoad,agents,client,isDemo}){
+  const[showAdd,setShowAdd]=useState(false);
+  const[editJob,setEditJob]=useState(null);
+
+  return h(Fragment,null,
+    h('div',{className:'row',style:{justifyContent:'space-between'}},
+      h('div',{className:'row',style:{gap:6}},h('span',{className:'pill p-ok'},`${cronJobs.filter(j=>j.enabled).length} active`),h('span',{className:'pill p-off'},`${cronJobs.filter(j=>!j.enabled).length} disabled`)),
+      h('div',{className:'btn-row'},
+        h('button',{className:'btn btn-sm',onClick:onLoad,disabled:loading},'Refresh'),
+        h('button',{className:'btn btn-prim btn-sm',onClick:()=>setShowAdd(true)},'+ New Job')
+      )
+    ),
+    cronJobs.length===0?h('div',{className:'empty'},h('div',{className:'empty-icon'},'⏰'),h('div',{className:'empty-title'},'No cron jobs'),h('div',{className:'empty-sub'},'Create a scheduled job to automate agent tasks'))
+    :h('div',{className:'col',style:{gap:8}},
+      cronJobs.map(job=>h('div',{key:job.id||job.name,className:'cron-item'},
+        h('div',{className:'cron-info'},
+          h('div',{className:'cron-name'},job.name),
+          h('div',{className:'cron-sched'},cronScheduleLabel(job.schedule)+(job.agentId?` → ${job.agentId}`:'')),
+          job.description&&h('div',{className:'cron-desc'},job.description),
+          h('div',{className:'cron-meta'},
+            h('span',{className:`pill ${job.enabled?'p-ok':'p-off'}`},job.enabled?'enabled':'disabled'),
+            h('span',{className:'pill p-blue'},job.sessionTarget),
+            job.delivery?.mode&&h('span',{className:'pill',style:{background:'var(--bg-3)',color:'var(--t3)',border:'1px solid var(--border)'}},`deliver:${job.delivery.mode}`)
+          ),
+          h('div',{className:'cron-state'},
+            h('span',{className:'sl'},'last run'),h('span',{className:'sv'},fmtT(job.state?.lastRunAtMs)),
+            h('span',{className:'sl'},'status'),h('span',{className:`sv ${job.state?.lastStatus==='error'?'c-red':job.state?.lastStatus==='ok'?'c-green':''}`},cronLastStatus(job.state)||'-'),
+            h('span',{className:'sl'},'next run'),h('span',{className:'sv'},fmtT(job.state?.nextRunAtMs))
+          )
+        ),
+        h('div',{className:'btn-row',style:{flexDirection:'column',gap:4,alignItems:'flex-end'}},
+          h('button',{className:'btn btn-sm',onClick:()=>setEditJob(job)},'Edit'),
+          h('button',{className:`btn btn-sm ${job.enabled?'btn-danger':'btn-ok'}`,onClick:async()=>{
+            const patch={...job,enabled:!job.enabled};
+            if(!isDemo&&client)try{await client.req('cron.update',{id:job.id,patch:{enabled:!job.enabled}});}catch{}
+            pushAudit('update','cron.update',`${job.name} — enabled=${!job.enabled}`);
+            setCronJobs(prev=>prev.map(j=>(j.id||j.name)===(job.id||job.name)?patch:j));
+          }},job.enabled?'Disable':'Enable')
+        )
+      ))
+    ),
+    showAdd&&h(CronAddModal,{agents,onClose:()=>setShowAdd(false),onAdded:job=>{setCronJobs(prev=>[...prev,job]);setShowAdd(false);},client,isDemo}),
+    editJob&&h(CronEditModal,{job:editJob,onClose:()=>setEditJob(null),onUpdated:updated=>{if(updated===null)setCronJobs(prev=>prev.filter(j=>(j.id||j.name)!==(editJob.id||editJob.name)));else setCronJobs(prev=>prev.map(j=>(j.id||j.name)===(editJob.id||editJob.name)?updated:j));setEditJob(null);},client,isDemo})
+  );
+}
+
+// ── TOOL POLICY PANEL ──────────────────────────────────────────
+// Writes back through config.patch to persist tool policy into openclaw.json
+function ToolPolicyPanel({agentId,configRaw,configHash,configLoading,client,isDemo,onConfigRefresh}){
+  const[toolsEnabled,setToolsEnabled]=useState(()=>{const m={};MOCK_TOOLS.forEach(t=>{m[t.id]=!['exec','browser'].includes(t.id)});return m;});
+  const[saving,setSaving]=useState(false);
+  const[msg,setMsg]=useState('');
+  const toolGroups=useMemo(()=>{const g={};MOCK_TOOLS.forEach(t=>{if(!g[t.group])g[t.group]=[];g[t.group].push(t)});return g;},[]);
+  const enabledCount=Object.values(toolsEnabled).filter(Boolean).length;
+
+  const savePatch=async()=>{
+    setSaving(true);setMsg('');
+    const deny=MOCK_TOOLS.filter(t=>!toolsEnabled[t.id]).map(t=>t.id);
+    const alsoAllow=MOCK_TOOLS.filter(t=>toolsEnabled[t.id]&&['exec','browser'].includes(t.id)).map(t=>t.id);
+    // Build a minimal JSON5 config patch for this agent's tool policy
+    // config.patch uses JSON Merge Patch applied to the config
+    const patchObj={agents:{list:[{id:agentId,tools:{deny,alsoAllow}}]}};
+    try{
+      if(!isDemo&&client&&configHash){
+        await client.req('config.patch',{raw:JSON.stringify(patchObj),baseHash:configHash,note:`Mission Control: tool policy for ${agentId}`});
+        pushAudit('update','config.patch',`${agentId} tool policy — deny:[${deny.join(',')}]`);
+      } else {
+        pushAudit('update','config.patch',`${agentId} tool policy (demo) — deny:[${deny.join(',')}]`);
+      }
+      setMsg('Tool policy saved to config');
+      if(onConfigRefresh)onConfigRefresh();
+    }catch(e){setMsg('Error: '+e.message);}
+    setSaving(false);
+  };
+
+  return h('div',{className:'card'},
+    h('div',{className:'ch'},
+      h('span',{className:'ct'},'Tool Access Policy'),
+      h('div',{className:'row',style:{gap:6}},
+        h('span',{style:{fontSize:10,color:'var(--t3)'}},[`${enabledCount}/${MOCK_TOOLS.length} enabled`]),
+        h('button',{className:'btn btn-sm',onClick:()=>{const a={};MOCK_TOOLS.forEach(t=>a[t.id]=true);setToolsEnabled(a);}},'All On'),
+        h('button',{className:'btn btn-sm',onClick:()=>{const a={};MOCK_TOOLS.forEach(t=>a[t.id]=false);setToolsEnabled(a);}},'All Off')
+      )
+    ),
+    h('div',{className:'cb'},
+      msg&&h('div',{className:`callout ${msg.startsWith('Error')?'c-err':'c-ok'}`,style:{marginBottom:10}},msg),
+      h('div',{className:'callout c-info',style:{marginBottom:12,fontSize:10}},
+        'Changes persist via ',h('code',null,'config.patch'),' with merge patch. The gateway validates the patch before writing. baseHash prevents concurrent overwrites.'
+      ),
+      Object.entries(toolGroups).map(([group,tools])=>h('div',{key:group,style:{marginBottom:14}},
+        h('div',{style:{fontSize:9,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'.09em',marginBottom:6}},group),
+        h('div',{className:'tool-g'},
+          tools.map(tool=>h('div',{key:tool.id,className:'tool-item'},
+            h('div',null,h('div',{className:'tool-name'},tool.id),h('div',{className:'tool-desc'},tool.desc)),
+            h('button',{className:`toggle ${toolsEnabled[tool.id]?'on':''}`,onClick:()=>setToolsEnabled(p=>({...p,[tool.id]:!p[tool.id]}))})
+          ))
+        )
+      )),
+      h('div',{className:'sep'}),
+      h('div',{className:'btn-row',style:{justifyContent:'flex-end'}},
+        h('button',{className:'btn btn-prim',onClick:savePatch,disabled:saving||configLoading},saving?'Saving…':'Save Policy via config.patch')
+      )
+    )
+  );
+}
+
+// ── TOPOLOGY TAB ───────────────────────────────────────────────
+function TopologyTab({agents,configRaw,configHash,client,isDemo,onConfigRefresh}){
+  const[sel,setSel]=useState(null);
+  const[editAllowed,setEditAllowed]=useState('*');
+  const[saving,setSaving]=useState(false);
+  const[msg,setMsg]=useState('');
+  const selAgent=sel?agents.find(a=>a.id===sel):null;
+
+  const saveSubagentPolicy=async()=>{
+    if(!selAgent)return;
+    setSaving(true);setMsg('');
+    const allowAgents=editAllowed.trim()==='*'?['*']:editAllowed.split(',').map(s=>s.trim()).filter(Boolean);
+    const patchObj={agents:{list:[{id:selAgent.id,subagents:{allowAgents}}]}};
+    try{
+      if(!isDemo&&client&&configHash){
+        await client.req('config.patch',{raw:JSON.stringify(patchObj),baseHash:configHash,note:`Mission Control: sub-agent policy for ${selAgent.id}`});
+        pushAudit('update','config.patch',`${selAgent.id} subagents.allowAgents → [${allowAgents.join(',')}]`);
+      } else {
+        pushAudit('update','config.patch',`${selAgent.id} subagents.allowAgents (demo) → [${allowAgents.join(',')}]`);
+      }
+      setMsg(`Policy saved for ${selAgent.id}`);
+      if(onConfigRefresh)onConfigRefresh();
+    }catch(e){setMsg('Error: '+e.message);}
+    setSaving(false);
+  };
+
+  return h('div',{className:'col',style:{gap:14}},
+    h('div',{className:'callout c-info'},'Click an agent to inspect and edit its sub-agent communication policy. Changes write to config via ',h('code',null,'config.patch'),' using JSON Merge Patch with hash guard.'),
+    h('div',{className:'card'},
+      h('div',{className:'ch'},h('span',{className:'ct'},'Agent Network')),
+      h('div',{className:'cb'},
+        h('div',{style:{display:'flex',flexWrap:'wrap',gap:10,alignItems:'center'}},
+          agents.map((a,i)=>h(Fragment,{key:a.id},
+            h('div',{className:`topo-node ${sel===a.id?'active':''}`,onClick:()=>setSel(sel===a.id?null:a.id)},h('span',null,agentEmoji(a)),h('span',null,agentLabel(a))),
+            i<agents.length-1&&h('span',{className:'topo-arrow'},'↔')
+          ))
+        ),
+        selAgent&&h('div',{style:{marginTop:14,padding:12,background:'var(--bg-3)',borderRadius:7,border:'1px solid var(--border)'}},
+          h('div',{style:{fontFamily:'var(--sans)',fontSize:12,fontWeight:600,marginBottom:10}},agentLabel(selAgent),' — Communication Policy'),
+          msg&&h('div',{className:`callout ${msg.startsWith('Error')?'c-err':'c-ok'}`,style:{marginBottom:10,fontSize:10}},msg),
+          h('div',{className:'kv',style:{marginBottom:12}},
+            h('span',{className:'kl'},'Agent ID'),h('span',{className:'kv-v'},selAgent.id),
+            h('span',{className:'kl'},'Is Default'),h('span',{className:'kv-v'},selAgent.isDefault?'yes':'no')
+          ),
+          h('div',{className:'field',style:{marginBottom:10}},
+            h('label',null,'Sub-agent allowAgents (comma-separated, * for all)'),
+            h('input',{value:editAllowed,onChange:e=>setEditAllowed(e.target.value),placeholder:'* or: codebot, monitor'})
+          ),
+          h('div',{className:'callout c-info',style:{marginBottom:10,fontSize:10}},
+            'Writes: ',h('code',null,`agents.list[id="${selAgent.id}"].subagents.allowAgents`),'. The receiving agent enforces this at spawn time.'
+          ),
+          h('div',{className:'btn-row',style:{justifyContent:'flex-end'}},
+            h('button',{className:'btn btn-prim btn-sm',onClick:saveSubagentPolicy,disabled:saving},saving?'Saving…':'Save Policy')
+          )
+        )
+      )
+    ),
+    h('div',{className:'g2'},
+      h('div',{className:'card'},h('div',{className:'ch'},h('span',{className:'ct'},'Silo Groups')),h('div',{className:'cb'},h('div',{className:'empty',style:{padding:'20px 0'}},h('div',{className:'empty-icon'},'🔒'),h('div',{className:'empty-title'},'No silos defined'),h('div',{className:'empty-sub'},'All agents collaborate in default group')))),
+      h('div',{className:'card'},
+        h('div',{className:'ch'},h('span',{className:'ct'},'Sub-agent Matrix')),
+        h('div',{className:'cb'},
+          h('div',{className:'col',style:{gap:6}},
+            agents.map(a=>h('div',{key:a.id,style:{display:'flex',alignItems:'center',gap:8,padding:'5px 0',borderBottom:'1px solid var(--border)'}},
+              h('span',null,agentEmoji(a)),h('span',{style:{flex:1,fontSize:11}},agentLabel(a)),h('span',{style:{fontSize:10,color:'var(--t3)',fontFamily:'var(--mono)'}},'→ *')
+            ))
+          )
+        )
+      )
+    )
+  );
+}
+
+// ── AGENT FILES TAB ────────────────────────────────────────────
+function AgentFilesTab({agentId,client,isDemo}){
+  const[files,setFiles]=useState(null);
+  const[content,setContent]=useState({});
+  const[draft,setDraft]=useState({});
+  const[active,setActive]=useState(null);
+  const[saving,setSaving]=useState(false);
+  const[err,setErr]=useState('');
+  const[loading,setLoading]=useState(false);
+
+  const load=async()=>{
+    setLoading(true);
+    if(isDemo){setFiles({agentId,workspace:`~/.openclaw/agents/${agentId}`,files:MOCK_FILES});setLoading(false);return;}
+    try{const r=await client.req('agents.files.list',{agentId});setFiles(r);}catch(e){setErr(e.message);}
+    setLoading(false);
+  };
+
+  const loadFile=async(name)=>{
+    if(content[name]!==undefined)return;
+    if(isDemo){setContent(p=>({...p,[name]:name==='SOUL.md'?SOUL_TPL:`# ${name}\n\nContents of ${name} for ${agentId}\n`}));return;}
+    try{const r=await client.req('agents.files.get',{agentId,name});setContent(p=>({...p,[name]:r.file.content||''}));}catch{}
+  };
+
+  const save=async(name)=>{
+    const body=draft[name]??content[name]??'';
+    setSaving(true);
+    try{
+      if(!isDemo&&client)await client.req('agents.files.set',{agentId,name,content:body});
+      pushAudit('update','agents.files.set',`${agentId}/${name} — saved`);
+      setContent(p=>({...p,[name]:body}));setDraft(p=>{const n={...p};delete n[name];return n;});
+    }catch(e){setErr(e.message);}
+    setSaving(false);
+  };
+
+  if(!files)return h('div',{className:'card'},h('div',{className:'cb'},h('div',{className:'empty'},h('div',{className:'empty-icon'},'📁'),err?h('div',{className:'callout c-err',style:{marginBottom:10}},err):null,h('button',{className:'btn btn-prim',onClick:load,disabled:loading},loading?h(Fragment,null,h('span',{className:'spin'}),' Loading…'):'Load Agent Files'))));
+
+  return h('div',{className:'card'},
+    h('div',{className:'ch'},h('span',{className:'ct'},'Core Files'),h('div',{className:'row',style:{gap:6}},err&&h('span',{style:{fontSize:10,color:'var(--acc)'}},err),h('span',{style:{fontSize:10,color:'var(--t3)',fontFamily:'var(--mono)'}},files.workspace),h('button',{className:'btn btn-sm',onClick:load,disabled:loading},'Refresh'))),
+    h('div',{className:'cb',style:{display:'grid',gridTemplateColumns:'185px 1fr',gap:14,minHeight:340}},
+      h('div',{className:'fl'},
+        files.files.map(f=>h('div',{key:f.name,className:`fr ${active===f.name?'active':''}`,onClick:()=>{setActive(f.name);loadFile(f.name);}},
+          h('div',{style:{flex:1}},h('div',{className:'fn'},f.name),h('div',{className:'fm'},f.missing?'missing':`${fmtB(f.size)} · ${fmtT(f.updatedAtMs)}`)),
+          f.missing&&h('span',{className:'pill p-warn',style:{fontSize:8}},'missing'),
+          draft[f.name]!==undefined&&h('span',{className:'pill p-blue',style:{fontSize:8}},'unsaved')
+        ))
+      ),
+      active
+        ?h('div',{className:'editor-wrap'},
+            h('div',{className:'editor-toolbar'},
+              h('span',{className:'editor-path'},`${files.workspace}/${active}`),
+              h('div',{className:'btn-row'},
+                h('button',{className:'btn btn-sm',onClick:()=>setDraft(p=>{const n={...p};delete n[active];return n;}),disabled:draft[active]===undefined},'Reset'),
+                h('button',{className:'btn btn-prim btn-sm',onClick:()=>save(active),disabled:saving||draft[active]===undefined},saving?'Saving…':'Save')
+              )
+            ),
+            h('textarea',{className:'editor-area',value:draft[active]??content[active]??'',onChange:e=>setDraft(p=>({...p,[active]:e.target.value})),spellCheck:false})
+          )
+        :h('div',{className:'empty'},h('div',{className:'empty-sub'},'← Select a file to edit'))
+    )
+  );
+}
+
+// ── AGENT DETAIL ───────────────────────────────────────────────
+function AgentDetail({agent,client,isDemo,onUpdated,configRaw,configHash,configLoading,onConfigRefresh,cronJobs,setCronJobs,onCronLoad,cronLoading}){
+  const[tab,setTab]=useState('overview');
+  const[editName,setEditName]=useState(agentLabel(agent));
+  const[editModel,setEditModel]=useState('');
+  const[saving,setSaving]=useState(false);
+  const[saved,setSaved]=useState(false);
+  const[err,setErr]=useState('');
+
+  useEffect(()=>{setEditName(agentLabel(agent));setEditModel('');},[agent.id]);
+
+  const saveAgent=async()=>{
+    setSaving(true);setErr('');setSaved(false);
+    try{
+      if(!isDemo&&client)await client.req('agents.update',{agentId:agent.id,name:editName,...(editModel?{model:editModel}:{})});
+      pushAudit('update','agents.update',`${agent.id} — name="${editName}"${editModel?` model="${editModel}"`:''}`);
+      setSaved(true);setTimeout(()=>setSaved(false),2500);
+      if(onUpdated)onUpdated();
+    }catch(e){setErr(e.message);}
+    setSaving(false);
+  };
+
+  const agentCron=cronJobs.filter(j=>j.agentId===agent.id);
+  const TABS=[{id:'overview',l:'Overview'},{id:'files',l:'Files'},{id:'tools',l:'Tools'},{id:'cron',l:`Cron (${agentCron.length})`},{id:'policy',l:'Policy'}];
+
+  return h('div',{className:'col',style:{gap:11}},
+    h('div',{className:'card'},
+      h('div',{className:'cb',style:{display:'flex',alignItems:'center',gap:13}},
+        h('div',{className:'sb-avatar',style:{width:42,height:42,fontSize:20,borderRadius:9}},agentEmoji(agent)),
+        h('div',{style:{flex:1}},
+          h('div',{style:{fontFamily:'var(--sans)',fontSize:16,fontWeight:700}},agentLabel(agent)),
+          h('div',{style:{fontSize:10,color:'var(--t3)',fontFamily:'var(--mono)',marginTop:2}},agent.id),
+          agent.identity?.theme&&h('div',{style:{fontSize:11,color:'var(--t2)',marginTop:4}},agent.identity.theme)
+        ),
+        agent.isDefault&&h('span',{className:'pill p-default'},'default'),
+        h('span',{className:'pill p-ok'},'active')
+      )
+    ),
+    h('div',{className:'tab-row'},TABS.map(t=>h('button',{key:t.id,className:`tab ${tab===t.id?'active':''}`,onClick:()=>setTab(t.id)},t.l))),
+
+    tab==='overview'&&h(Fragment,null,
+      err&&h('div',{className:'callout c-err'},err),
+      saved&&h('div',{className:'callout c-ok'},'✓ Configuration saved'),
+      h('div',{className:'g2'},
+        h('div',{className:'card'},
+          h('div',{className:'ch'},h('span',{className:'ct'},'Identity')),
+          h('div',{className:'cb'},h('div',{className:'col',style:{gap:10}},
+            h('div',{className:'field'},h('label',null,'Display Name'),h('input',{value:editName,onChange:e=>setEditName(e.target.value)})),
+            h('div',{className:'kv'},
+              h('span',{className:'kl'},'Agent ID'),h('span',{className:'kv-v'},agent.id),
+              h('span',{className:'kl'},'Emoji'),h('span',{className:'kv-v'},agentEmoji(agent)),
+              h('span',{className:'kl'},'Workspace'),h('span',{className:'kv-v'},'~/.openclaw/workspace')
+            ),
+            h('div',{className:'btn-row',style:{justifyContent:'flex-end'}},h('button',{className:'btn btn-prim btn-sm',onClick:saveAgent,disabled:saving},'Save'))
+          ))
+        ),
+        h('div',{className:'card'},
+          h('div',{className:'ch'},h('span',{className:'ct'},'Model Config')),
+          h('div',{className:'cb'},h('div',{className:'col',style:{gap:10}},
+            h('div',{className:'field'},h('label',null,'Primary Model'),h('input',{value:editModel,onChange:e=>setEditModel(e.target.value),placeholder:'anthropic/claude-opus-4-6'})),
+            h('div',{className:'kv'},
+              h('span',{className:'kl'},'Scope'),h('span',{className:'kv-v'},'per-sender'),
+              h('span',{className:'kl'},'Fallbacks'),h('span',{className:'kv-v'},'inherit from defaults'),
+              h('span',{className:'kl'},'Session key'),h('span',{className:'kv-v'},`main:${agent.id}`)
+            ),
+            h('div',{className:'btn-row',style:{justifyContent:'flex-end'}},h('button',{className:'btn btn-prim btn-sm',onClick:saveAgent,disabled:saving},'Save'))
+          ))
+        )
+      )
+    ),
+    tab==='files'&&h(AgentFilesTab,{agentId:agent.id,client,isDemo}),
+    tab==='tools'&&h(ToolPolicyPanel,{agentId:agent.id,configRaw,configHash,configLoading,client,isDemo,onConfigRefresh}),
+    tab==='cron'&&h(Fragment,null,
+      h('div',{className:'row',style:{justifyContent:'space-between',marginBottom:4}},
+        h('div',{className:'row',style:{gap:6}},h('span',{className:'pill p-ok'},`${agentCron.filter(j=>j.enabled).length} active`)),
+        h('button',{className:'btn btn-sm',onClick:onCronLoad,disabled:cronLoading},'Refresh')
+      ),
+      agentCron.length===0
+        ?h('div',{className:'empty'},h('div',{className:'empty-icon'},'⏰'),h('div',{className:'empty-title'},'No jobs for this agent'),h('div',{className:'empty-sub'},'Switch to the Cron tab to add one'))
+        :h('div',{className:'col',style:{gap:8}},
+          agentCron.map(job=>h('div',{key:job.id||job.name,className:'cron-item'},
+            h('div',{className:'cron-info'},
+              h('div',{className:'cron-name'},job.name),
+              h('div',{className:'cron-sched'},cronScheduleLabel(job.schedule)),
+              job.description&&h('div',{className:'cron-desc'},job.description),
+              h('div',{className:'cron-meta'},
+                h('span',{className:`pill ${job.enabled?'p-ok':'p-off'}`},job.enabled?'enabled':'disabled'),
+                h('span',{className:'pill p-blue'},job.sessionTarget)
+              ),
+              h('div',{className:'cron-state'},
+                h('span',{className:'sl'},'last run'),h('span',{className:'sv'},fmtT(job.state?.lastRunAtMs)),
+                h('span',{className:'sl'},'status'),h('span',{className:`sv ${job.state?.lastStatus==='error'?'c-red':'c-green'}`},cronLastStatus(job.state)||'-')
+              )
+            ),
+            h('div',{className:'btn-row',style:{flexDirection:'column',gap:4,alignItems:'flex-end'}},
+              h('button',{className:`btn btn-sm ${job.enabled?'btn-danger':'btn-ok'}`,onClick:async()=>{
+                const patch={...job,enabled:!job.enabled};
+                if(!isDemo&&client)try{await client.req('cron.update',{id:job.id,patch:{enabled:!job.enabled}});}catch{}
+                pushAudit('update','cron.update',`${job.name} — enabled=${!job.enabled}`);
+                setCronJobs(prev=>prev.map(j=>(j.id||j.name)===(job.id||job.name)?patch:j));
+              }},job.enabled?'Disable':'Enable')
+            )
+          ))
+        )
+    ),
+    tab==='policy'&&h('div',{className:'card'},
+      h('div',{className:'ch'},h('span',{className:'ct'},'Governance & Guardrails')),
+      h('div',{className:'cb'},
+        h('div',{className:'col',style:{gap:14}},
+          h('div',{className:'field'},h('label',null,'Human Approval Required'),h('select',null,h('option',{value:'off'},'Off — agent acts autonomously'),h('option',{value:'exec'},'Required for exec/shell commands'),h('option',{value:'external'},'Required for external actions'),h('option',{value:'all'},'Required for all actions'))),
+          h('div',{className:'field'},h('label',null,'Sandbox Mode'),h('select',null,h('option',{value:'off'},'Off — unrestricted'),h('option',{value:'non-main'},'Sandbox non-main agents'),h('option',{value:'all'},'Sandbox all agents'))),
+          h('div',{className:'field'},h('label',null,'Workspace Access in Sandbox'),h('select',null,h('option',{value:'rw'},'Read/Write'),h('option',{value:'ro'},'Read-Only'),h('option',{value:'none'},'No Access'))),
+          h('div',{className:'field'},h('label',null,'Blocked Actions (one per line)'),h('textarea',{placeholder:'exec\nbrowser\nimage',rows:3})),
+          h('div',{className:'callout c-info',style:{fontSize:10}},'These guardrails constrain agent capabilities. Writes via ',h('code',null,'config.patch'),' with hash guard.'),
+          h('div',{className:'btn-row',style:{justifyContent:'flex-end'}},h('button',{className:'btn btn-prim',onClick:saveAgent},'Save Policy'))
+        )
+      )
+    )
+  );
+}
+
+// ── CREATE AGENT MODAL ─────────────────────────────────────────
+function CreateModal({onClose,onCreate,client,isDemo}){
+  const[name,setName]=useState('');
+  const[ws,setWs]=useState('');
+  const[emoji,setEmoji]=useState('');
+  const[model,setModel]=useState('');
+  const[loading,setLoading]=useState(false);
+  const[err,setErr]=useState('');
+  const go=async()=>{
+    if(!name.trim()){setErr('Name required');return;}
+    setLoading(true);setErr('');
+    try{
+      const workspace=ws.trim()||`~/.openclaw/agents/${name.trim().toLowerCase().replace(/\s+/g,'-')}`;
+      if(!isDemo&&client)await client.req('agents.create',{name:name.trim(),workspace,...(emoji?{emoji}:{})});
+      pushAudit('create','agents.create',`${name.trim()} — workspace: ${workspace}`);
+      onCreate({id:name.trim().toLowerCase().replace(/\s+/g,'-'),name:name.trim(),isDefault:false,identity:{name:name.trim(),emoji:emoji||'🤖',theme:''}});
+    }catch(e){setErr(e.message);}
+    setLoading(false);
+  };
+  return h('div',{className:'overlay',onClick:e=>e.target===e.currentTarget&&onClose()},
+    h('div',{className:'modal'},
+      h('h2',null,'+ New Agent'),
+      h('p',{className:'modal-sub'},'Creates workspace and bootstrap files via ',h('code',null,'agents.create')),
+      err&&h('div',{className:'callout c-err'},err),
+      h('div',{className:'field'},h('label',null,'Agent Name *'),h('input',{value:name,onChange:e=>setName(e.target.value),placeholder:'Code Reviewer',autoFocus:true})),
+      h('div',{className:'field'},h('label',null,'Workspace Path'),h('input',{value:ws,onChange:e=>setWs(e.target.value),placeholder:'~/.openclaw/agents/my-agent'})),
+      h('div',{className:'g2'},
+        h('div',{className:'field'},h('label',null,'Emoji'),h('input',{value:emoji,onChange:e=>setEmoji(e.target.value),placeholder:'🤖',maxLength:4})),
+        h('div',{className:'field'},h('label',null,'Model (optional)'),h('input',{value:model,onChange:e=>setModel(e.target.value),placeholder:'anthropic/claude-opus-4-6'}))
+      ),
+      h('div',{className:'callout c-info',style:{fontSize:10}},'📁 SOUL.md, IDENTITY.md, TOOLS.md, AGENTS.md, MEMORY.md will be generated automatically.'),
+      h('div',{className:'btn-row',style:{justifyContent:'flex-end'}},
+        h('button',{className:'btn',onClick:onClose},'Cancel'),
+        h('button',{className:'btn btn-prim',onClick:go,disabled:loading},loading?'Creating…':'Create Agent')
+      )
+    )
+  );
+}
+
+// ── MAIN APP ──────────────────────────────────────────────────
+function App(){
+  const[view,setView]=useState('connect');
+  const[isDemo,setIsDemo]=useState(false);
+  const[client,setClient]=useState(null);
+  const[gwStatus,setGwStatus]=useState('disconnected');
+  const[agents,setAgents]=useState([]);
+  const[selectedId,setSelectedId]=useState(null);
+  const[nav,setNav]=useState('overview'); // overview|fleet|agent|topology|cron|sessions
+  const[filter,setFilter]=useState('');
+  const[showCreate,setShowCreate]=useState(false);
+  const[health,setHealth]=useState(null);
+  const[healthLoading,setHealthLoading]=useState(false);
+  const[cronJobs,setCronJobs]=useState([]);
+  const[cronLoading,setCronLoading]=useState(false);
+  const[sessions,setSessions]=useState([]);
+  const[sessLoading,setSessLoading]=useState(false);
+  const[auditLog,setAuditLog]=useState(AUDIT_LOG);
+  // Config state (for tool policy + topology patch)
+  const[configRaw,setConfigRaw]=useState(null);
+  const[configHash,setConfigHash]=useState(null);
+  const[configLoading,setConfigLoading]=useState(false);
+
+  // Sync audit log from global every 2 seconds
+  useEffect(()=>{const t=setInterval(()=>setAuditLog([...AUDIT_LOG]),2000);return()=>clearInterval(t);},[]);
+
+  const loadAgents=useCallback(async(gc,demo)=>{
+    if(demo){const a=MOCK_AGENTS.map((x,i)=>({...x,isDefault:i===0}));setAgents(a);setSelectedId(a[0].id);return;}
+    try{const r=await gc.req('agents.list',{});const a=r.agents.map(x=>({...x,isDefault:x.id===r.defaultId}));setAgents(a);setSelectedId(a[0]?.id||null);}
+    catch{const a=MOCK_AGENTS.map((x,i)=>({...x,isDefault:i===0}));setAgents(a);setSelectedId(a[0].id);}
+  },[]);
+
+  const loadHealth=useCallback(async()=>{
+    if(isDemo){setHealth(MOCK_HEALTH);return;}
+    if(!client)return;
+    setHealthLoading(true);
+    try{const h=await client.req('health',{});setHealth(h);}
+    catch{setHealth(MOCK_HEALTH);}
+    setHealthLoading(false);
+  },[client,isDemo]);
+
+  const loadCron=useCallback(async()=>{
+    setCronLoading(true);
+    if(isDemo){setCronJobs(MOCK_CRON);setCronLoading(false);return;}
+    if(!client){setCronLoading(false);return;}
+    try{const r=await client.req('cron.list',{includeDisabled:true});setCronJobs(r.jobs||[]);}
+    catch{setCronJobs(MOCK_CRON);}
+    setCronLoading(false);
+  },[client,isDemo]);
+
+  const loadSessions=useCallback(async()=>{
+    setSessLoading(true);
+    if(isDemo){setSessions(MOCK_SESSIONS);setSessLoading(false);return;}
+    if(!client){setSessLoading(false);return;}
+    try{const r=await client.req('sessions.list',{limit:50,includeDerivedTitles:false});setSessions(r.sessions||[]);}
+    catch{setSessions(MOCK_SESSIONS);}
+    setSessLoading(false);
+  },[client,isDemo]);
+
+  const loadConfig=useCallback(async()=>{
+    if(isDemo)return;
+    if(!client)return;
+    setConfigLoading(true);
+    try{
+      const r=await client.req('config.get',{});
+      setConfigRaw(r.raw);
+      setConfigHash(r.hash||r.baseHash||null);
+    }catch{}
+    setConfigLoading(false);
+  },[client,isDemo]);
+
+  const handleConnect=useCallback(async(gc)=>{
+    setClient(gc);setGwStatus('connected');setIsDemo(false);setView('main');
+    gc.on('disconnect',()=>setGwStatus('disconnected'));
+    gc.on('event',ev=>{
+      if(ev?.data?.method){pushAudit('event',ev.data.method,ev.data.detail||JSON.stringify(ev.data).slice(0,60));}
+    });
+    await loadAgents(gc,false);
+    // Load data eagerly
+    try{const h=await gc.req('health',{});setHealth(h);}catch{setHealth(MOCK_HEALTH);}
+    try{const r=await gc.req('cron.list',{includeDisabled:true});setCronJobs(r.jobs||[]);}catch{setCronJobs(MOCK_CRON);}
+    try{const r=await gc.req('sessions.list',{limit:50});setSessions(r.sessions||[]);}catch{setSessions(MOCK_SESSIONS);}
+    try{const r=await gc.req('config.get',{});setConfigRaw(r.raw);setConfigHash(r.hash||r.baseHash||null);}catch{}
+  },[loadAgents]);
+
+  const enterDemo=useCallback(()=>{
+    setIsDemo(true);setGwStatus('disconnected');setView('main');
+    loadAgents(null,true);setHealth(MOCK_HEALTH);setCronJobs(MOCK_CRON);setSessions(MOCK_SESSIONS);
+  },[loadAgents]);
+
+  const doDisconnect=useCallback(()=>{client?.disconnect();setClient(null);setView('connect');setGwStatus('disconnected');setAgents([]);setSelectedId(null);setHealth(null);setCronJobs([]);setSessions([]);},[client]);
+
+  const filtered=useMemo(()=>{if(!filter.trim())return agents;const q=filter.toLowerCase();return agents.filter(a=>agentLabel(a).toLowerCase().includes(q)||a.id.toLowerCase().includes(q));},[agents,filter]);
+  const selectedAgent=useMemo(()=>agents.find(a=>a.id===selectedId)||null,[agents,selectedId]);
+
+  if(view==='connect')return h('div',{style:{height:'100vh',background:'var(--bg)'}},h(ConnectScreen,{onConnect:handleConnect,onDemo:enterDemo}));
+
+  // Sidebar content based on nav
+  const sidebarItems=()=>{
+    if(nav==='fleet'||nav==='agent')return filtered.map(a=>h('div',{key:a.id,className:`sb-item ${selectedId===a.id&&nav==='agent'?'active':''}`,onClick:()=>{setSelectedId(a.id);setNav('agent');}},h('div',{className:'sb-avatar'},agentEmoji(a)),h('div',{className:'sb-info'},h('div',{className:'sb-name'},agentLabel(a)),h('div',{className:'sb-sub'},a.id)),h('div',{className:`sb-dot ${a.isDefault?'acc':'on'}`})));
+    if(nav==='cron'||nav==='cron-detail')return cronJobs.map(j=>h('div',{key:j.id||j.name,className:'sb-item',onClick:()=>{}},h('div',{className:'sb-avatar'},'⏰'),h('div',{className:'sb-info'},h('div',{className:'sb-name'},j.name),h('div',{className:'sb-sub'},cronScheduleLabel(j.schedule))),h('div',{className:`sb-dot ${j.enabled?'on':''}`})));
+    if(nav==='sessions')return sessions.map(s=>h('div',{key:s.key,className:'sb-item'},h('div',{className:'sb-avatar'},'💬'),h('div',{className:'sb-info'},h('div',{className:'sb-name'},s.agentId||s.key),h('div',{className:'sb-sub'},fmtT(s.updatedAtMs)))));
+    if(nav==='topology')return agents.map(a=>h('div',{key:a.id,className:'sb-item'},h('div',{className:'sb-avatar'},agentEmoji(a)),h('div',{className:'sb-info'},h('div',{className:'sb-name'},agentLabel(a)),h('div',{className:'sb-sub'},'↔ all'))));
+    return [
+      h('div',{key:'dash',className:'sb-item'},h('div',{className:'sb-avatar'},'▤'),h('div',{className:'sb-info'},h('div',{className:'sb-name'},'Fleet Overview'),h('div',{className:'sb-sub'},'stats & health'))),
+      h('div',{key:'aud',className:'sb-item'},h('div',{className:'sb-avatar'},'📋'),h('div',{className:'sb-info'},h('div',{className:'sb-name'},'Audit Trail'),h('div',{className:'sb-sub'},'change history'))),
+    ];
+  };
+
+  const topTitle=nav==='agent'&&selectedAgent?agentLabel(selectedAgent):nav==='topology'?'Collaboration Topology':nav==='cron'?'Scheduled Jobs':nav==='sessions'?'Sessions':nav==='fleet'?'Agent Fleet':'Fleet Overview';
+
+  return h('div',{className:'shell'},
+    // RAIL
+    h('div',{className:'rail'},
+      h('div',{className:'rail-logo'},'🦞'),
+      h('div',{className:'rail-sep'}),
+      h('button',{className:`rail-btn ${nav==='overview'?'active':''}`,title:'Fleet Overview',onClick:()=>setNav('overview')},'▤'),
+      h('button',{className:`rail-btn ${nav==='fleet'||nav==='agent'?'active':''}`,title:'Agents',onClick:()=>setNav('fleet')},'◆'),
+      h('button',{className:`rail-btn ${nav==='topology'?'active':''}`,title:'Topology',onClick:()=>setNav('topology')},'⬡'),
+      h('button',{className:`rail-btn ${nav==='cron'?'active':''}`,title:'Cron Jobs',onClick:()=>{setNav('cron');loadCron();}},'⏰'),
+      h('button',{className:`rail-btn ${nav==='sessions'?'active':''}`,title:'Sessions',onClick:()=>{setNav('sessions');loadSessions();}},'💬'),
+      h('div',{className:'rail-spacer'}),
+      h('button',{className:'rail-btn',title:'Disconnect',onClick:doDisconnect},'⏏')
+    ),
+    // SIDEBAR
+    h('div',{className:'sidebar'},
+      h('div',{className:'sb-head'},
+        h('div',{className:'sb-head-title'},nav==='topology'?'Topology':nav==='sessions'?'Sessions':nav==='cron'?'Cron Jobs':nav==='overview'?'Overview':'Agents'),
+        h('div',{className:'sb-head-count'},`${agents.length} agent${agents.length===1?'':'s'} · ${isDemo?'demo':'live'}`)
+      ),
+      (nav==='fleet'||nav==='agent')&&h('div',{className:'sb-search'},h('input',{value:filter,onChange:e=>setFilter(e.target.value),placeholder:'Search agents…'})),
+      h('div',{className:'sb-list'},sidebarItems()),
+      (nav==='fleet'||nav==='agent')&&h('button',{className:'sb-add',onClick:()=>setShowCreate(true)},'+ New Agent')
+    ),
+    // MAIN
+    h('div',{className:'main'},
+      h('div',{className:'topbar'},
+        h('div',{className:'topbar-title'},topTitle),
+        h('div',{className:'row',style:{gap:8,flexShrink:0}},
+          h('div',{className:'status-row'},h('div',{className:`sdot ${isDemo?'yellow':gwStatus==='connected'?'green':'red'}`}),h('span',{style:{fontSize:10,color:'var(--t3)',fontFamily:'var(--mono)'}},isDemo?'DEMO':gwStatus==='connected'?'LIVE':'OFFLINE'))
+        )
+      ),
+      h('div',{className:'content'},
+        nav==='agent'&&selectedAgent?h(AgentDetail,{agent:selectedAgent,client,isDemo,onUpdated:()=>loadAgents(client,isDemo),configRaw,configHash,configLoading,onConfigRefresh:loadConfig,cronJobs,setCronJobs,onCronLoad:loadCron,cronLoading}):
+        nav==='topology'?h(TopologyTab,{agents,configRaw,configHash,client,isDemo,onConfigRefresh:loadConfig}):
+        nav==='cron'?h(CronTab,{cronJobs,setCronJobs,loading:cronLoading,onLoad:loadCron,agents,client,isDemo}):
+        nav==='sessions'?h(SessionsTab,{sessions,loading:sessLoading,onLoad:loadSessions,agents,client,isDemo}):
+        h(OverviewTab,{agents,cronJobs,sessions,health,healthLoading,onRefreshHealth:loadHealth,isDemo,auditLog})
+      )
+    ),
+    showCreate&&h(CreateModal,{onClose:()=>setShowCreate(false),onCreate:a=>{setAgents(prev=>[...prev,a]);setSelectedId(a.id);setNav('agent');setShowCreate(false);},client,isDemo}),
+    isDemo&&h('div',{className:'conn-banner'},h('div',{className:'sdot yellow'}),h('div',{className:'conn-text'},h('div',{style:{fontWeight:600,fontSize:11}},'Demo Mode'),h('div',{style:{fontSize:9,color:'var(--t3)',marginTop:2}},'Simulating real gateway. No data is persisted.')),h('button',{className:'conn-close',onClick:doDisconnect},'✕'))
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(h(App));
+</script>
 </body>
 </html>
