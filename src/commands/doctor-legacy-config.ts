@@ -6,6 +6,19 @@ export function normalizeLegacyConfigValues(cfg: OpenClawConfig): {
   const changes: string[] = [];
   let next: OpenClawConfig = cfg;
 
+  const bind = cfg.gateway?.bind;
+  const legacyLoopbackBinds = new Set(["127.0.0.1", "localhost", "::1"]);
+  if (typeof bind === "string" && legacyLoopbackBinds.has(bind)) {
+    next = {
+      ...next,
+      gateway: {
+        ...next.gateway,
+        bind: "loopback",
+      },
+    };
+    changes.push(`Normalized gateway.bind from '${bind}' to 'loopback'.`);
+  }
+
   const legacyAckReaction = cfg.messages?.ackReaction?.trim();
   const hasWhatsAppConfig = cfg.channels?.whatsapp !== undefined;
   if (legacyAckReaction && hasWhatsAppConfig) {

@@ -56,6 +56,21 @@ describe("normalizeLegacyConfigValues", () => {
     ]);
   });
 
+  it.each(["127.0.0.1", "localhost", "::1"])(
+    "normalizes legacy gateway.bind %s to loopback",
+    (bind) => {
+      const res = normalizeLegacyConfigValues({ gateway: { bind } });
+
+      expect(res.config.gateway?.bind).toBe("loopback");
+    },
+  );
+
+  it("records bind normalization change note", () => {
+    const res = normalizeLegacyConfigValues({ gateway: { bind: "127.0.0.1" } });
+
+    expect(res.changes).toContain("Normalized gateway.bind from '127.0.0.1' to 'loopback'.");
+  });
+
   it("does not add whatsapp config when only auth exists (issue #900)", () => {
     const credsDir = path.join(tempOauthDir ?? "", "whatsapp", "default");
     writeCreds(credsDir);
