@@ -1,0 +1,25 @@
+{
+  "source": "openclaw",
+  "gateway": {
+    "name": "local-gateway",
+    "version": "0.0.0-dev"
+  },
+  "agents": [
+    {
+      "slug": "main",
+      "name": "Main Agent",
+      "model": "anthropic/claude-opus-4-6",
+      "workspace": "~/.openclaw/workspace",
+      "manifests": [
+        "AGENTS.md",
+        "SOUL.md",
+        "USER.md",
+        "TOOLS.md",
+        "HEARTBEAT.md",
+        "MEMORY.md",
+        "SECURITY.md"
+      ],
+      "state": "online"
+    }
+  ]
+}

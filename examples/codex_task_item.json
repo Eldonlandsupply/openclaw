@@ -1,0 +1,155 @@
+{
+  "task_id": "task_repo_change_001",
+  "source": "n8n_ingestion",
+  "request_summary": "Update docs for campaign launch and commit changes.",
+  "intent": "repo_code_change",
+  "target_system": "git_repository",
+  "attachments": [
+    {
+      "name": "campaign-notes.md",
+      "media_type": "text/markdown",
+      "bytes": 4240
+    }
+  ],
+  "storage_links": ["s3://openclaw-inbox/tasks/ing_2026_03_12_001/campaign-notes.md"],
+  "execution_plan": [
+    {
+      "step": "Create MCP task record and set status to planning",
+      "route": "mcp",
+      "status": "completed"
+    },
+    {
+      "step": "Apply repository edit to docs/campaign/launch.md",
+      "route": "repo_edit",
+      "status": "completed"
+    },
+    {
+      "step": "Run local docs checks",
+      "route": "cli",
+      "status": "completed"
+    }
+  ],
+  "dependencies": ["task_audit_log_001"],
+  "approval_status": "not_required",
+  "status": "completed",
+  "owner": "codex-worker-1",
+  "retries": 0,
+  "blockers": [],
+  "outputs": {
+    "execution_path": ["mcp", "repo_edit", "cli"],
+    "browser_rejection_reason": "Direct repository edit and CLI validation were available and sufficient.",
+    "files_used": ["docs/campaign/launch.md", "examples/codex_task_item.json"],
+    "actions_taken": [
+      "Created MCP task record",
+      "Patched docs file",
+      "Ran docs validation command"
+    ],
+    "result": "Docs update committed and ready for review.",
+    "blockers": [],
+    "retry_or_escalation_state": "none"
+  },
+  "logs": [
+    {
+      "at": "2026-03-12T10:05:00Z",
+      "level": "info",
+      "message": "Task picked up by codex-worker-1"
+    },
+    {
+      "at": "2026-03-12T10:08:00Z",
+      "level": "info",
+      "message": "Repository edit completed without browser fallback"
+    }
+  ],
+  "created_at": "2026-03-12T10:04:00Z",
+  "updated_at": "2026-03-12T10:08:30Z"
+  "task_id": "task_cms_2026_03_12_001",
+  "source": "n8n_ingestion",
+  "request_summary": "Update homepage hero content from approved attachment bundle",
+  "intent": "website_cms_update",
+  "target_system": "contentful",
+  "attachments": [
+    {
+      "name": "homepage-update-copy.docx",
+      "mime_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "ingested_via_n8n": true,
+      "storage_key": "inbox/2026/03/12/homepage-update-copy.docx"
+    }
+  ],
+  "storage_links": ["s3://openclaw-inbox/inbox/2026/03/12/homepage-update-copy.docx"],
+  "execution_plan": [
+    {
+      "step": "Read approved copy from storage",
+      "route": "db_storage",
+      "status": "completed"
+    },
+    {
+      "step": "Apply CMS changes via API",
+      "route": "api",
+      "status": "completed"
+    },
+    {
+      "step": "Log completion in task system",
+      "route": "mcp",
+      "status": "completed"
+    }
+  ],
+  "dependencies": ["task_ingestion_2026_03_12_001"],
+  "approval_status": "approved",
+  "status": "completed",
+  "owner": "codex",
+  "retries": 0,
+  "blockers": [],
+  "outputs": {
+    "execution_path": "db_storage -> api -> mcp",
+    "browser_rejection_reason": "Direct CMS API and MCP logging were available; browser automation was unnecessary",
+    "files_used": ["examples/n8n_ingestion_payload.json", "docs/architecture/task-routing-spec.md"],
+    "actions_taken": [
+      "Fetched attachment metadata from S3-compatible inbox",
+      "Updated target CMS entry via API",
+      "Recorded task completion and audit trail in MCP-backed task system"
+    ],
+    "result": "Homepage hero content updated successfully and audit trail persisted",
+    "retry_or_escalation_state": "not_required"
+  },
+  "logs": [
+    {
+      "timestamp": "2026-03-12T10:01:12Z",
+      "level": "info",
+      "message": "Task accepted by Codex worker"
+    },
+    {
+      "timestamp": "2026-03-12T10:02:18Z",
+      "level": "info",
+      "message": "CMS API update succeeded"
+    },
+    {
+      "timestamp": "2026-03-12T10:02:49Z",
+      "level": "info",
+      "message": "Completion record written to MCP task system"
+    }
+  ],
+  "created_at": "2026-03-12T10:00:10Z",
+  "updated_at": "2026-03-12T10:02:49Z"
+  "task_id": "task_01HZXA1P8M2T",
+  "source": "mcp.queue",
+  "status": "queued",
+  "priority": "high",
+  "requested_capabilities": ["api", "n8n", "mcp", "repo_edit"],
+  "chosen_layer": "api",
+  "attempted_layers": ["api"],
+  "browser_rejection_reason": "Rejected: direct API endpoint supports all required operations with lower risk and full auditability.",
+  "attachments": [
+    {
+      "attachment_id": "att_001",
+      "storage": "s3_compatible",
+      "bucket": "openclaw-ingestion",
+      "object_key": "incoming/2026/03/task_01HZXA1P8M2T/invoice-2026-03.pdf",
+      "signed_url": "https://storage.example.com/openclaw-ingestion/incoming/2026/03/task_01HZXA1P8M2T/invoice-2026-03.pdf?X-Amz-Signature=example",
+      "checksum_sha256": "0a1b2c3d4e5f6a7b8c9d00112233445566778899aabbccddeeff001122334455",
+      "content_type": "application/pdf",
+      "size_bytes": 284112
+    }
+  ],
+  "created_at": "2026-03-12T10:05:00Z",
+  "updated_at": "2026-03-12T10:07:32Z"
+}

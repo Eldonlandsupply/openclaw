@@ -105,7 +105,7 @@ Asked “Robby” (@openclaw) for a local wine cellar skill. It requests a sampl
 <Card title="Tesco Shop Autopilot" icon="cart-shopping" href="https://x.com/i/status/2009724862470689131">
   **@marchattonhere** • `automation` `browser` `shopping`
 
-Weekly meal plan → regulars → book delivery slot → confirm order. No APIs, just browser control.
+Weekly meal plan → regulars → book delivery slot → confirm order. Browser control is used when API and workflow options are not available.
 
   <img src="/assets/showcase/tesco-shop.jpg" alt="Tesco shop automation via chat" />
 </Card>
@@ -272,7 +272,7 @@ Automated Todoist tasks and had OpenClaw generate the skill directly in Telegram
 <Card title="TradingView Analysis" icon="chart-line">
   **@bheem1798** • `finance` `browser` `automation`
 
-Logs into TradingView via browser automation, screenshots charts, and performs technical analysis on demand. No API needed—just browser control.
+Logs into TradingView via browser automation, screenshots charts, and performs technical analysis on demand after API-first options are ruled out.
 </Card>
 
 <Card title="Slack Auto-Support" icon="slack">

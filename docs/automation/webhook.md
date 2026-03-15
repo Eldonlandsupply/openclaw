@@ -172,3 +172,70 @@ curl -X POST http://127.0.0.1:18789/hooks/gmail \
 - Hook payloads are treated as untrusted and wrapped with safety boundaries by default.
   If you must disable this for a specific hook, set `allowUnsafeExternalContent: true`
   in that hook's mapping (dangerous).
+
+## LOLA preset event envelope
+
+For executive logistics workflows, use a normalized event envelope and map it to `hooks/agent`.
+
+Example payload:
+
+```json
+{
+  "source": "graph",
+  "eventType": "meeting.followup",
+  "eventId": "evt-2026-01-22-001",
+  "occurredAt": "2026-01-22T14:00:00.000Z",
+  "subject": "Q1 logistics review",
+  "summary": "Decisions and open items from meeting.",
+  "participants": ["alex@example.com", "maria@example.com"],
+  "actionItems": [
+    {
+      "id": "ai-1",
+      "title": "Send revised freight plan",
+      "owner": "alex@example.com",
+      "dueDate": "2026-01-24T17:00:00.000Z"
+    }
+  ],
+  "metadata": {
+    "tenant": "contoso",
+    "system": "graph"
+  }
+}
+```
+
+Recommended mapping baseline:
+
+- `source`: `graph`, `attio`, `scheduler`, or another deterministic upstream.
+- `eventType`: stable category value for routing (`meeting.followup`, `task.created`, `deadline.changed`).
+- `eventId`: immutable idempotency key from the upstream system.
+- `occurredAt`: upstream event timestamp in ISO-8601 UTC.
+- `summary`: short natural-language context for LOLA.
+- `actionItems`: normalized follow-up objects (`id`, `title`, `owner`, `dueDate`).
+
+Suggested `hooks.mappings` entry:
+
+```json5
+{
+  hooks: {
+    presets: ["gmail"],
+    mappings: [
+      {
+        id: "lola-ops-envelope",
+        match: { source: "graph" },
+        action: "agent",
+        name: "LOLA Ops",
+        agentId: "lola",
+        sessionKey: "hook:lola:{{eventId}}",
+        wakeMode: "now",
+        messageTemplate: "Event {{eventType}} at {{occurredAt}}\nSubject: {{subject}}\nSummary: {{summary}}\nAction items: {{actionItems}}",
+      },
+    ],
+  },
+}
+```
+
+Operational notes:
+
+- Keep `eventId` stable for retries to avoid duplicate follow-up entries.
+- Prefer upstream normalization before posting to OpenClaw so mappings stay simple.
+- Use explicit `agentId: "lola"` with `hooks.allowedAgentIds` to constrain routing.

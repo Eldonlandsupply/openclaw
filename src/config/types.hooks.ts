@@ -72,6 +72,47 @@ export type HooksGmailConfig = {
   thinking?: "off" | "minimal" | "low" | "medium" | "high";
 };
 
+export type HooksLolaTeamConfig = {
+  id?: string;
+  name?: string;
+  channel?: string;
+  to?: string;
+};
+
+export type HooksLolaAttioConfig = {
+  workspaceId?: string;
+  listId?: string;
+  apiBaseUrl?: string;
+};
+
+export type HooksLolaOneDriveConfig = {
+  driveId?: string;
+  rootPath?: string;
+};
+
+export type HooksLolaConfig = {
+  enabled?: boolean;
+  workspace?: string;
+  bridgeBaseUrl?: string;
+  followThrough?: {
+    enabled?: boolean;
+    defaultMessage?: string;
+    schedule?: string;
+    model?: string;
+    thinking?: "off" | "minimal" | "low" | "medium" | "high";
+    timeoutSeconds?: number;
+    lightContext?: boolean;
+  };
+  auditSchedule?: {
+    enabled?: boolean;
+    schedule?: string;
+    timezone?: string;
+  };
+  teams?: HooksLolaTeamConfig[];
+  attio?: HooksLolaAttioConfig;
+  onedrive?: HooksLolaOneDriveConfig;
+};
+
 export type InternalHookHandlerConfig = {
   /** Event key to listen for (e.g., 'command:new', 'session:start') */
   event: string;
@@ -127,6 +168,7 @@ export type HooksConfig = {
   transformsDir?: string;
   mappings?: HookMappingConfig[];
   gmail?: HooksGmailConfig;
+  lola?: HooksLolaConfig;
   /** Internal agent event hooks */
   internal?: InternalHooksConfig;
 };

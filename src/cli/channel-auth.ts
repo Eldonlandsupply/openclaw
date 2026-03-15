@@ -4,6 +4,7 @@ import { DEFAULT_CHAT_CHANNEL } from "../channels/registry.js";
 import { loadConfig } from "../config/config.js";
 import { setVerbose } from "../globals.js";
 import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
+import { ensurePluginRegistryLoaded } from "./plugin-registry.js";
 
 type ChannelAuthOptions = {
   channel?: string;
@@ -15,6 +16,7 @@ export async function runChannelLogin(
   opts: ChannelAuthOptions,
   runtime: RuntimeEnv = defaultRuntime,
 ) {
+  ensurePluginRegistryLoaded();
   const channelInput = opts.channel ?? DEFAULT_CHAT_CHANNEL;
   const channelId = normalizeChannelId(channelInput);
   if (!channelId) {
@@ -41,6 +43,7 @@ export async function runChannelLogout(
   opts: ChannelAuthOptions,
   runtime: RuntimeEnv = defaultRuntime,
 ) {
+  ensurePluginRegistryLoaded();
   const channelInput = opts.channel ?? DEFAULT_CHAT_CHANNEL;
   const channelId = normalizeChannelId(channelInput);
   if (!channelId) {

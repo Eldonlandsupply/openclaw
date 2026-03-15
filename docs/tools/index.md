@@ -254,7 +254,7 @@ Notes:
 - Enable via `tools.web.fetch.enabled`.
 - `maxChars` is clamped by `tools.web.fetch.maxCharsCap` (default 50000).
 - Responses are cached (default 15 min).
-- For JS-heavy sites, prefer the browser tool.
+- For JS-heavy sites, prefer direct APIs, n8n, and MCP paths first; use the browser tool only as a last resort fallback.
 - See [Web tools](/tools/web) for setup.
 - See [Firecrawl](/tools/firecrawl) for the optional anti-bot fallback.
 

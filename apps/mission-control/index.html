@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenClaw Mission Control</title>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Syne:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --bg: #0a0b0d;
+  --bg-2: #0f1117;
+  --bg-3: #161922;
+  --bg-4: #1c2030;
+  --border: #252a38;
+  --border-2: #2e3447;
+  --text: #e8eaf2;
+  --text-2: #9aa3ba;
+  --text-3: #5a637a;
+  --accent: #e84c3d;
+  --accent-2: #ff6b5e;
+  --green: #2ecc71;
+  --yellow: #f1c40f;
+  --blue: #3498db;
+  --purple: #9b59b6;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Syne', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--mono); font-size: 13px; overflow: hidden; }
+
+.shell {
+  display: grid;
+  grid-template-columns: 52px 220px 1fr;
+  grid-template-rows: 100vh;
+  height: 100vh;
+}
+
+/* RAIL */
+.rail {
+  background: var(--bg-2);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; align-items: center;
+  padding: 12px 0; gap: 4px; z-index: 20;
+}
+.rail-logo {
+  width: 32px; height: 32px;
+  background: var(--accent);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 14px; color: white;
+  margin-bottom: 12px; cursor: pointer;
+}
+.rail-sep { width: 28px; height: 1px; background: var(--border); margin: 4px 0; }
+.rail-btn {
+  width: 36px; height: 36px; border-radius: 8px; border: none;
+  background: transparent; color: var(--text-3); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; transition: background 0.15s, color 0.15s;
+}
+.rail-btn:hover { background: var(--bg-3); color: var(--text-2); }
+.rail-btn.active { background: var(--bg-4); color: var(--accent); }
+.rail-spacer { flex: 1; }
+
+/* SIDEBAR */
+.sidebar {
+  background: var(--bg-2); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.sidebar-head { padding: 16px 16px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.sidebar-head h2 {
+  font-family: var(--sans); font-size: 13px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3);
+}
+.sidebar-search { padding: 10px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.sidebar-search input {
+  width: 100%; background: var(--bg-3); border: 1px solid var(--border);
+  border-radius: 6px; padding: 6px 10px; color: var(--text);
+  font-family: var(--mono); font-size: 12px; outline: none;
+}
+.sidebar-search input:focus { border-color: var(--accent); }
+.sidebar-search input::placeholder { color: var(--text-3); }
+.sidebar-list { flex: 1; overflow-y: auto; padding: 8px 0; }
+.sidebar-list::-webkit-scrollbar { width: 4px; }
+.sidebar-list::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 2px; }
+
+.agent-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 14px; cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: background 0.1s, border-color 0.1s;
+}
+.agent-item:hover { background: var(--bg-3); }
+.agent-item.active { background: var(--bg-4); border-left-color: var(--accent); }
+.agent-avatar {
+  width: 28px; height: 28px; background: var(--bg-4); border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; flex-shrink: 0; border: 1px solid var(--border);
+}
+.agent-info { flex: 1; min-width: 0; }
+.agent-name {
+  font-family: var(--sans); font-size: 12px; font-weight: 600; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.agent-id { font-size: 10px; color: var(--text-3); font-family: var(--mono); }
+.agent-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-3); flex-shrink: 0; }
+.agent-dot.online { background: var(--green); }
+.agent-dot.default { background: var(--accent); }
+
+.sidebar-add-btn {
+  margin: 8px 12px 12px; width: calc(100% - 24px);
+  background: var(--bg-3); border: 1px dashed var(--border-2);
+  border-radius: 8px; color: var(--text-3); font-family: var(--mono); font-size: 12px;
+  padding: 8px; cursor: pointer; transition: all 0.15s;
+}
+.sidebar-add-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--bg-4); }
+
+/* MAIN */
+.main { display: flex; flex-direction: column; overflow: hidden; }
+.topbar {
+  background: var(--bg-2); border-bottom: 1px solid var(--border);
+  padding: 0 20px; height: 48px; display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+}
+.topbar-title { font-family: var(--sans); font-size: 15px; font-weight: 700; flex: 1; }
+
+/* PILLS */
+.pill {
+  display: inline-flex; align-items: center; padding: 2px 8px;
+  border-radius: 4px; font-size: 10px; font-family: var(--mono);
+  font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;
+}
+.pill-default { background: rgba(232,76,61,0.15); color: var(--accent); border: 1px solid rgba(232,76,61,0.3); }
+.pill-online { background: rgba(46,204,113,0.1); color: var(--green); border: 1px solid rgba(46,204,113,0.25); }
+.pill-offline { background: rgba(90,99,122,0.15); color: var(--text-3); border: 1px solid var(--border); }
+.pill-warn { background: rgba(241,196,15,0.1); color: var(--yellow); border: 1px solid rgba(241,196,15,0.25); }
+
+/* CONTENT */
+.content { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.content::-webkit-scrollbar { width: 6px; }
+.content::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
+
+/* TABS */
+.tab-row {
+  display: flex; gap: 2px; background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 3px; width: fit-content; flex-shrink: 0;
+}
+.tab {
+  padding: 6px 14px; border-radius: 6px; border: none; background: transparent;
+  color: var(--text-3); font-family: var(--mono); font-size: 11px; font-weight: 500;
+  cursor: pointer; transition: all 0.15s; white-space: nowrap;
+}
+.tab:hover { color: var(--text-2); background: var(--bg-3); }
+.tab.active { background: var(--bg-4); color: var(--text); border: 1px solid var(--border); }
+
+/* CARDS */
+.card { background: var(--bg-2); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.card-header { padding: 14px 18px 10px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.card-title { font-family: var(--sans); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-2); }
+.card-body { padding: 16px 18px; }
+
+/* GRID */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+
+/* STAT */
+.stat-card { background: var(--bg-3); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+.stat-label { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+.stat-value { font-family: var(--sans); font-size: 22px; font-weight: 700; }
+.stat-value.green { color: var(--green); }
+.stat-value.red { color: var(--accent); }
+.stat-value.yellow { color: var(--yellow); }
+.stat-sub { font-size: 11px; color: var(--text-3); margin-top: 4px; }
+
+/* KV */
+.kv-grid { display: grid; grid-template-columns: 160px 1fr; gap: 8px 16px; align-items: baseline; }
+.kv-label { font-size: 11px; color: var(--text-3); }
+.kv-value { font-size: 12px; color: var(--text); font-family: var(--mono); word-break: break-all; }
+
+/* FORM */
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field label { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em; }
+.field input, .field select, .field textarea {
+  background: var(--bg-3); border: 1px solid var(--border); border-radius: 6px;
+  padding: 8px 10px; color: var(--text); font-family: var(--mono); font-size: 12px; outline: none; width: 100%;
+}
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+.field textarea { resize: vertical; min-height: 100px; }
+.field select option { background: var(--bg-3); }
+.field input::placeholder { color: var(--text-3); }
+
+/* BTNS */
+.btn {
+  padding: 7px 14px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--bg-3); color: var(--text-2); font-family: var(--mono);
+  font-size: 12px; cursor: pointer; transition: all 0.15s; white-space: nowrap;
+}
+.btn:hover:not(:disabled) { background: var(--bg-4); color: var(--text); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+.btn-primary:hover:not(:disabled) { background: var(--accent-2); }
+.btn-danger { background: rgba(232,76,61,0.1); color: var(--accent); border-color: rgba(232,76,61,0.3); }
+.btn-sm { padding: 4px 10px; font-size: 11px; }
+.btn-row { display: flex; gap: 8px; }
+.flex-1 { flex: 1; }
+
+/* TOOL GRID */
+.tool-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; margin-top: 8px; }
+.tool-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--bg-3); border: 1px solid var(--border); border-radius: 6px; }
+.tool-name { font-size: 11px; font-family: var(--mono); color: var(--text-2); }
+.toggle { width: 32px; height: 18px; background: var(--border-2); border-radius: 9px; position: relative; cursor: pointer; border: none; transition: background 0.2s; }
+.toggle.on { background: var(--accent); }
+.toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; background: white; border-radius: 50%; transition: transform 0.2s; }
+.toggle.on::after { transform: translateX(14px); }
+
+/* CRON */
+.cron-item { background: var(--bg-3); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; }
+.cron-info { flex: 1; min-width: 0; }
+.cron-name { font-size: 12px; color: var(--text); font-weight: 500; }
+.cron-schedule { font-size: 11px; color: var(--text-3); font-family: var(--mono); margin-top: 2px; }
+.cron-meta { display: flex; gap: 6px; margin-top: 6px; }
+
+/* FILE LIST */
+.file-list { display: flex; flex-direction: column; gap: 1px; }
+.file-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; cursor: pointer; transition: background 0.1s; }
+.file-row:hover { background: var(--bg-3); }
+.file-row.active { background: var(--bg-4); }
+.file-name { font-size: 12px; color: var(--text); font-family: var(--mono); flex: 1; }
+.file-meta { font-size: 10px; color: var(--text-3); }
+
+/* EDITOR */
+.editor-wrap { display: flex; flex-direction: column; gap: 8px; }
+.editor-toolbar { display: flex; justify-content: space-between; align-items: center; }
+.editor-path { font-size: 10px; color: var(--text-3); font-family: var(--mono); }
+.editor-area {
+  background: var(--bg-3); border: 1px solid var(--border); border-radius: 6px;
+  padding: 12px; color: var(--text); font-family: var(--mono); font-size: 12px;
+  line-height: 1.6; min-height: 300px; outline: none; resize: vertical; width: 100%;
+}
+.editor-area:focus { border-color: var(--accent); }
+
+/* AUDIT */
+.audit-item { display: flex; gap: 12px; padding: 8px 12px; border-radius: 4px; font-size: 11px; color: var(--text-2); border-left: 2px solid transparent; }
+.audit-item:hover { background: var(--bg-3); }
+.audit-item.create { border-left-color: var(--green); }
+.audit-item.update { border-left-color: var(--blue); }
+.audit-item.delete { border-left-color: var(--accent); }
+.audit-ts { color: var(--text-3); font-family: var(--mono); flex-shrink: 0; }
+
+/* CALLOUTS */
+.callout { padding: 10px 14px; border-radius: 6px; font-size: 12px; line-height: 1.5; }
+.callout-info { background: rgba(52,152,219,0.1); border: 1px solid rgba(52,152,219,0.3); color: #7ec8f5; }
+.callout-warn { background: rgba(241,196,15,0.1); border: 1px solid rgba(241,196,15,0.3); color: var(--yellow); }
+.callout-error { background: rgba(232,76,61,0.1); border: 1px solid rgba(232,76,61,0.3); color: var(--accent); }
+.callout-ok { background: rgba(46,204,113,0.1); border: 1px solid rgba(46,204,113,0.3); color: var(--green); }
+
+/* MODAL */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 200; }
+.modal { background: var(--bg-2); border: 1px solid var(--border); border-radius: 12px; padding: 24px; width: 480px; max-width: 90vw; max-height: 80vh; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+.modal h2 { font-family: var(--sans); font-size: 16px; font-weight: 700; }
+.modal-sub { font-size: 12px; color: var(--text-3); margin-top: -8px; }
+
+/* CONN BANNER */
+.conn-banner { position: fixed; bottom: 16px; right: 16px; background: var(--bg-2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; gap: 10px; z-index: 100; min-width: 280px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+.conn-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.conn-dot.yellow { background: var(--yellow); animation: pulse 1s infinite; }
+.conn-dot.green { background: var(--green); }
+.conn-dot.red { background: var(--accent); }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+
+/* STATUS */
+.status-row { display: flex; align-items: center; gap: 8px; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; }
+.status-dot.green { background: var(--green); }
+.status-dot.red { background: var(--accent); }
+.status-dot.yellow { background: var(--yellow); animation: pulse 1.2s infinite; }
+
+/* CONNECT SCREEN */
+.connect-panel { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 24px; padding: 40px; }
+.connect-logo { font-family: var(--sans); font-size: 32px; font-weight: 800; color: var(--accent); letter-spacing: -0.02em; }
+.connect-sub { font-size: 13px; color: var(--text-3); text-align: center; max-width: 360px; line-height: 1.6; }
+.connect-form { background: var(--bg-2); border: 1px solid var(--border); border-radius: 12px; padding: 24px; width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 16px; }
+.connect-form h3 { font-family: var(--sans); font-size: 14px; font-weight: 700; }
+
+/* TOPOLOGY */
+.topo-node { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; background: var(--bg-3); border: 1px solid var(--border); border-radius: 8px; font-size: 12px; color: var(--text-2); cursor: pointer; transition: all 0.15s; }
+.topo-node:hover, .topo-node.active { border-color: var(--accent); color: var(--text); }
+
+/* EMPTY */
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 24px; color: var(--text-3); text-align: center; gap: 8px; }
+.empty-icon { font-size: 32px; margin-bottom: 4px; }
+.empty-title { font-family: var(--sans); font-size: 14px; font-weight: 600; color: var(--text-2); }
+.empty-sub { font-size: 12px; }
+
+.muted { color: var(--text-3); }
+.mono { font-family: var(--mono); }
+.row { display: flex; gap: 8px; align-items: center; }
+.col { display: flex; flex-direction: column; gap: 8px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const { createElement:h, useState, useEffect, useRef, useCallback, useMemo, Fragment } = React;
+
+// ── GATEWAY CLIENT ─────────────────────────────────────
+class GatewayClient {
+  constructor(url, token) {
+    this.url = url; this.token = token; this.ws = null;
+    this.pending = new Map(); this.seq = 0; this.listeners = new Map(); this.connected = false;
+  }
+  on(ev, fn) { if (!this.listeners.has(ev)) this.listeners.set(ev, new Set()); this.listeners.get(ev).add(fn); return () => this.listeners.get(ev)?.delete(fn); }
+  emit(ev, d) { this.listeners.get(ev)?.forEach(fn => fn(d)); }
+  connect() {
+    return new Promise((res, rej) => {
+      try { this.ws = new WebSocket(this.url); } catch(e) { rej(new Error('Invalid URL: ' + this.url)); return; }
+      const t = setTimeout(() => { this.ws?.close(); rej(new Error('Connection timeout')); }, 8000);
+      this.ws.onopen = () => {
+        clearTimeout(t);
+        this.ws.send(JSON.stringify({ type:'request', seq:++this.seq, method:'connect', params:{ minProtocol:1, maxProtocol:99, client:{ id:'mc-'+Math.random().toString(36).slice(2), displayName:'Mission Control', version:'1.0.0', platform:'browser', mode:'ui' }, ...(this.token ? {auth:{token:this.token}} : {}) } }));
+        this.connected = true; res(this); this.emit('connect', {});
+      };
+      this.ws.onmessage = (e) => {
+        try {
+          const m = JSON.parse(e.data);
+          if (m.type==='response' && m.seq) { const p = this.pending.get(m.seq); if (p) { this.pending.delete(m.seq); m.ok ? p.res(m.result) : p.rej(new Error(m.error?.message||'Request failed')); } }
+          else if (m.type==='event') this.emit('event', m);
+        } catch {}
+      };
+      this.ws.onerror = (e) => { clearTimeout(t); this.emit('error', e); rej(new Error('WebSocket error')); };
+      this.ws.onclose = (e) => { this.connected=false; this.pending.forEach(p=>p.rej(new Error('Disconnected'))); this.pending.clear(); this.emit('disconnect', {code:e.code,reason:e.reason}); };
+    });
+  }
+  request(method, params={}) {
+    return new Promise((res, rej) => {
+      if (!this.ws || this.ws.readyState!==WebSocket.OPEN) { rej(new Error('Not connected')); return; }
+      const seq = ++this.seq;
+      this.pending.set(seq, {res, rej});
+      this.ws.send(JSON.stringify({type:'request',seq,method,params}));
+      setTimeout(() => { if (this.pending.has(seq)) { this.pending.delete(seq); rej(new Error('Request timeout')); } }, 15000);
+    });
+  }
+  disconnect() { this.ws?.close(); this.ws=null; this.connected=false; }
+}
+
+// ── MOCK DATA ──────────────────────────────────────────
+const MOCK_AGENTS = [
+  {id:'main',name:'Main',isDefault:true,identity:{name:'OpenClaw',emoji:'🦞',theme:'General-purpose assistant and task coordinator'}},
+  {id:'codebot',name:'CodeBot',isDefault:false,identity:{name:'CodeBot',emoji:'🤖',theme:'Code review, refactoring, and technical analysis'}},
+  {id:'monitor',name:'Monitor',isDefault:false,identity:{name:'Monitor',emoji:'📊',theme:'System health checks and operational alerting'}},
+  {id:'writer',name:'Writer',isDefault:false,identity:{name:'Writer',emoji:'✍️',theme:'Content drafting, editing, and publication'}},
+];
+const MOCK_FILES = [
+  {name:'AGENTS.md',path:'~/.openclaw/workspace/AGENTS.md',missing:false,size:2048,updatedAtMs:Date.now()-3600000},
+  {name:'SOUL.md',path:'~/.openclaw/workspace/SOUL.md',missing:false,size:1024,updatedAtMs:Date.now()-7200000},
+  {name:'IDENTITY.md',path:'~/.openclaw/workspace/IDENTITY.md',missing:false,size:512,updatedAtMs:Date.now()-86400000},
+  {name:'TOOLS.md',path:'~/.openclaw/workspace/TOOLS.md',missing:false,size:768,updatedAtMs:Date.now()-86400000},
+  {name:'HEARTBEAT.md',path:'~/.openclaw/workspace/HEARTBEAT.md',missing:true},
+  {name:'MEMORY.md',path:'~/.openclaw/workspace/MEMORY.md',missing:false,size:4096,updatedAtMs:Date.now()-1800000},
+];
+const MOCK_CRON = [
+  {name:'daily-brief',agentId:'main',schedule:'0 9 * * *',enabled:true,sessionTarget:'default',description:'Daily morning briefing'},
+  {name:'health-check',agentId:'monitor',schedule:'*/15 * * * *',enabled:true,sessionTarget:'default',description:'System health check every 15m'},
+  {name:'code-review',agentId:'codebot',schedule:'0 18 * * 1-5',enabled:false,sessionTarget:'default',description:'End-of-day code review'},
+];
+const MOCK_TOOLS=[{id:'read',label:'read',group:'Files',desc:'Read file contents'},{id:'write',label:'write',group:'Files',desc:'Create or overwrite files'},{id:'edit',label:'edit',group:'Files',desc:'Make precise edits'},{id:'exec',label:'exec',group:'Runtime',desc:'Run shell commands'},{id:'process',label:'process',group:'Runtime',desc:'Manage background processes'},{id:'web_search',label:'web_search',group:'Web',desc:'Search the web'},{id:'web_fetch',label:'web_fetch',group:'Web',desc:'Fetch web content'},{id:'memory_search',label:'memory_search',group:'Memory',desc:'Semantic search'},{id:'sessions_list',label:'sessions_list',group:'Sessions',desc:'List sessions'},{id:'sessions_send',label:'sessions_send',group:'Sessions',desc:'Send to session'},{id:'sessions_spawn',label:'sessions_spawn',group:'Sessions',desc:'Spawn sub-agent'},{id:'browser',label:'browser',group:'UI',desc:'Browser control'},{id:'canvas',label:'canvas',group:'UI',desc:'Canvas control'},{id:'message',label:'message',group:'Messaging',desc:'Send messages'},{id:'cron',label:'cron',group:'Automation',desc:'Schedule tasks'}];
+const MOCK_AUDIT=[{ts:Date.now()-60000,type:'update',action:'agents.update',detail:'main: model changed to claude-opus-4-6'},{ts:Date.now()-300000,type:'create',action:'agents.create',detail:'writer: created with workspace ~/writer'},{ts:Date.now()-3600000,type:'update',action:'config.patch',detail:'gateway.cron.enabled set to true'},{ts:Date.now()-86400000,type:'delete',action:'agents.delete',detail:'old-bot: deleted (files trashed)'},{ts:Date.now()-172800000,type:'update',action:'skills.update',detail:'github skill: enabled'}];
+const SOUL_TPL=`# SOUL.md - Who You Are\n\n## Core Truths\n\n**Be genuinely helpful, not performatively helpful.**\nSkip the "Great question!" — just help. Actions speak louder than filler.\n\n**Have opinions.** You're allowed to disagree, prefer things, find stuff amusing.\n\n**Be resourceful before asking.** Try to figure it out. Read the file. Check context.\n\n**Earn trust through competence.** Your human gave you access to their stuff. Don't make them regret it.\n\n## Vibe\n\nBe the assistant you'd actually want to talk to. Concise when needed, thorough when it matters.\n\n## Continuity\n\nEach session, you wake up fresh. These files are your memory. Read them. Update them.\n`;
+
+const fmtTime = ts => { if (!ts) return 'never'; const d=Date.now()-ts; if(d<60000)return'just now'; if(d<3600000)return`${Math.floor(d/60000)}m ago`; if(d<86400000)return`${Math.floor(d/3600000)}h ago`; return`${Math.floor(d/86400000)}d ago`; };
+const fmtBytes = b => { if (!b) return '-'; if(b<1024)return`${b}B`; if(b<1048576)return`${(b/1024).toFixed(1)}KB`; return`${(b/1048576).toFixed(1)}MB`; };
+const agentLabel = a => a?.identity?.name?.trim()||a?.name?.trim()||a?.id||'?';
+const agentEmoji = a => a?.identity?.emoji||'🤖';
+
+// ── CONNECT SCREEN ─────────────────────────────────────
+function ConnectScreen({onConnect, onDemo}) {
+  const [url, setUrl] = useState('ws://localhost:18789');
+  const [token, setToken] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState('');
+  const tryConn = async () => {
+    setLoading(true); setErr('');
+    try { const c=new GatewayClient(url.trim(),token.trim()||null); await c.connect(); onConnect(c); }
+    catch(e) { setErr(e.message); } finally { setLoading(false); }
+  };
+  return h('div',{className:'connect-panel'},
+    h('div',{className:'connect-logo'},'🦞 OpenClaw'),
+    h('p',{className:'connect-sub'},'Mission Control — operator interface for your agent fleet'),
+    h('div',{className:'connect-form'},
+      h('h3',null,'Connect to Gateway'),
+      err && h('div',{className:'callout callout-error'},err),
+      h('div',{className:'field'},h('label',null,'Gateway WebSocket URL'),h('input',{value:url,onChange:e=>setUrl(e.target.value),placeholder:'ws://localhost:18789',onKeyDown:e=>e.key==='Enter'&&tryConn()})),
+      h('div',{className:'field'},h('label',null,'Auth Token (optional)'),h('input',{type:'password',value:token,onChange:e=>setToken(e.target.value),placeholder:'Gateway auth token',onKeyDown:e=>e.key==='Enter'&&tryConn()})),
+      h('div',{className:'callout callout-info',style:{fontSize:11}},'💡 Run ',h('code',null,'openclaw gateway'),' to start the gateway on port 18789.'),
+      h('div',{className:'btn-row'},
+        h('button',{className:'btn btn-primary flex-1',onClick:tryConn,disabled:loading},loading?'Connecting…':'Connect'),
+        h('button',{className:'btn flex-1',onClick:onDemo},'Demo Mode')
+      )
+    )
+  );
+}
+
+// ── OVERVIEW ───────────────────────────────────────────
+function OverviewTab({agents, cronJobs, isDemo}) {
+  const active = cronJobs.filter(j=>j.enabled).length;
+  const defAgent = agents.find(a=>a.isDefault)||agents[0];
+  return h(Fragment,null,
+    h('div',{className:'grid-4'},
+      h('div',{className:'stat-card'},h('div',{className:'stat-label'},'Agents'),h('div',{className:'stat-value'},agents.length),h('div',{className:'stat-sub'},'in fleet')),
+      h('div',{className:'stat-card'},h('div',{className:'stat-label'},'Gateway'),h('div',{className:`stat-value ${isDemo?'yellow':'green'}`},isDemo?'DEMO':'LIVE'),h('div',{className:'stat-sub'},isDemo?'no gateway':'connected')),
+      h('div',{className:'stat-card'},h('div',{className:'stat-label'},'Active Jobs'),h('div',{className:'stat-value green'},active),h('div',{className:'stat-sub'},`${cronJobs.length} total`)),
+      h('div',{className:'stat-card'},h('div',{className:'stat-label'},'Default Agent'),h('div',{className:'stat-value',style:{fontSize:16}},defAgent?agentLabel(defAgent):'-'),h('div',{className:'stat-sub mono',style:{fontSize:10}},defAgent?.id||'-'))
+    ),
+    h('div',{className:'grid-2'},
+      h('div',{className:'card'},
+        h('div',{className:'card-header'},h('span',{className:'card-title'},'Agent Fleet'),h('span',{className:'pill pill-online'},`${agents.length} agents`)),
+        h('div',{className:'card-body'},
+          agents.length===0?h('div',{className:'empty-state'},h('div',{className:'empty-icon'},'🦞'),h('div',{className:'empty-title'},'No agents'),h('div',{className:'empty-sub'},'Create an agent to get started'))
+          :h('div',{className:'col',style:{gap:4}},
+            agents.map(a=>h('div',{key:a.id,style:{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:'1px solid var(--border)'}},
+              h('div',{className:'agent-avatar'},agentEmoji(a)),
+              h('div',{style:{flex:1,minWidth:0}},h('div',{className:'agent-name'},agentLabel(a)),h('div',{className:'agent-id'},a.id)),
+              a.isDefault&&h('span',{className:'pill pill-default'},'default')
+            ))
+          )
+        )
+      ),
+      h('div',{className:'card'},
+        h('div',{className:'card-header'},h('span',{className:'card-title'},'Audit Trail')),
+        h('div',{className:'card-body',style:{padding:'8px 0'}},
+          MOCK_AUDIT.map((e,i)=>h('div',{key:i,className:`audit-item ${e.type}`},
+            h('span',{className:'audit-ts'},fmtTime(e.ts)),
+            h('div',null,h('div',{style:{fontFamily:'var(--mono)',fontWeight:500,fontSize:11}},e.action),h('div',{style:{fontSize:10,color:'var(--text-3)',marginTop:2}},e.detail))
+          ))
+        )
+      )
+    )
+  );
+}
+
+// ── AGENT DETAIL ───────────────────────────────────────
+function AgentDetail({agent,client,isDemo,onUpdated}) {
+  const [tab,setTab]=useState('overview');
+  const [files,setFiles]=useState(null);
+  const [fileContent,setFileContent]=useState({});
+  const [fileDraft,setFileDraft]=useState({});
+  const [activeFile,setActiveFile]=useState(null);
+  const [saving,setSaving]=useState(false);
+  const [toolsEnabled,setToolsEnabled]=useState(()=>{const m={};MOCK_TOOLS.forEach(t=>{m[t.id]=!['exec','browser'].includes(t.id)});return m;});
+  const [cronJobs,setCronJobs]=useState(MOCK_CRON.filter(j=>j.agentId===agent.id));
+  const [editName,setEditName]=useState(agentLabel(agent));
+  const [editModel,setEditModel]=useState('');
+  const [saved,setSaved]=useState(false);
+
+  useEffect(()=>{setEditName(agentLabel(agent));setEditModel('');},[agent.id]);
+
+  const loadFiles=async()=>{
+    if(isDemo){setFiles({agentId:agent.id,workspace:`~/.openclaw/agents/${agent.id}`,files:MOCK_FILES});return;}
+    try{const r=await client.request('agents.files.list',{agentId:agent.id});setFiles(r);}catch{setFiles({agentId:agent.id,workspace:'-',files:[]});}
+  };
+  const loadFile=async(name)=>{
+    if(fileContent[name]!==undefined)return;
+    if(isDemo){setFileContent(p=>({...p,[name]:name==='SOUL.md'?SOUL_TPL:`# ${name}\n\nContents of ${name} for agent ${agent.id}\n`}));return;}
+    try{const r=await client.request('agents.files.get',{agentId:agent.id,name});setFileContent(p=>({...p,[name]:r.file.content||''}));}catch{}
+  };
+  const saveFile=async(name)=>{
+    const content=fileDraft[name]??fileContent[name]??'';
+    if(!isDemo&&client){setSaving(true);try{await client.request('agents.files.set',{agentId:agent.id,name,content});}catch{}setSaving(false);}
+    setFileContent(p=>({...p,[name]:content}));setFileDraft(p=>{const n={...p};delete n[name];return n;});
+  };
+  const saveConfig=async()=>{
+    if(!isDemo&&client)try{await client.request('agents.update',{agentId:agent.id,name:editName,...(editModel?{model:editModel}:{})});}catch{}
+    setSaved(true);setTimeout(()=>setSaved(false),2200);if(onUpdated)onUpdated();
+  };
+
+  const toolGroups=useMemo(()=>{const g={};MOCK_TOOLS.forEach(t=>{if(!g[t.group])g[t.group]=[];g[t.group].push(t);});return g;},[]);
+
+  const TABS=[{id:'overview',l:'Overview'},{id:'files',l:'Files'},{id:'tools',l:'Tools'},{id:'cron',l:'Cron'},{id:'policy',l:'Policy'}];
+
+  return h('div',{className:'col',style:{gap:12}},
+    // Header card
+    h('div',{className:'card'},
+      h('div',{className:'card-body',style:{display:'flex',alignItems:'center',gap:14}},
+        h('div',{className:'agent-avatar',style:{width:44,height:44,fontSize:22,borderRadius:10}},agentEmoji(agent)),
+        h('div',{style:{flex:1}},
+          h('div',{style:{fontFamily:'var(--sans)',fontSize:18,fontWeight:700}},agentLabel(agent)),
+          h('div',{style:{fontSize:11,color:'var(--text-3)',fontFamily:'var(--mono)',marginTop:2}},agent.id),
+          agent.identity?.theme&&h('div',{style:{fontSize:12,color:'var(--text-2)',marginTop:4}},agent.identity.theme)
+        ),
+        agent.isDefault&&h('span',{className:'pill pill-default'},'default'),
+        h('span',{className:'pill pill-online'},'active')
+      )
+    ),
+    // Tabs
+    h('div',{className:'tab-row'},TABS.map(t=>h('button',{key:t.id,className:`tab ${tab===t.id?'active':''}`,onClick:()=>setTab(t.id)},t.l))),
+
+    // Overview
+    tab==='overview'&&h(Fragment,null,
+      saved&&h('div',{className:'callout callout-ok'},'✓ Configuration saved'),
+      h('div',{className:'grid-2'},
+        h('div',{className:'card'},
+          h('div',{className:'card-header'},h('span',{className:'card-title'},'Identity & Name')),
+          h('div',{className:'card-body'},
+            h('div',{className:'col',style:{gap:12}},
+              h('div',{className:'field'},h('label',null,'Display Name'),h('input',{value:editName,onChange:e=>setEditName(e.target.value)})),
+              h('div',{className:'kv-grid'},
+                h('span',{className:'kv-label'},'Agent ID'),h('span',{className:'kv-value'},agent.id),
+                h('span',{className:'kv-label'},'Workspace'),h('span',{className:'kv-value'},'~/.openclaw/workspace'),
+                h('span',{className:'kv-label'},'Emoji'),h('span',{className:'kv-value'},agentEmoji(agent))
+              ),
+              h('div',{className:'btn-row',style:{justifyContent:'flex-end'}},h('button',{className:'btn btn-primary btn-sm',onClick:saveConfig},'Save'))
+            )
+          )
+        ),
+        h('div',{className:'card'},
+          h('div',{className:'card-header'},h('span',{className:'card-title'},'Model Configuration')),
+          h('div',{className:'card-body'},
+            h('div',{className:'col',style:{gap:12}},
+              h('div',{className:'field'},h('label',null,'Primary Model'),h('input',{value:editModel,onChange:e=>setEditModel(e.target.value),placeholder:'anthropic/claude-opus-4-6'})),
+              h('div',{className:'kv-grid'},
+                h('span',{className:'kv-label'},'Scope'),h('span',{className:'kv-value'},'per-sender'),
+                h('span',{className:'kv-label'},'Fallbacks'),h('span',{className:'kv-value'},'inherit from defaults'),
+                h('span',{className:'kv-label'},'Session key'),h('span',{className:'kv-value'},`main:${agent.id}`)
+              ),
+              h('div',{className:'btn-row',style:{justifyContent:'flex-end'}},h('button',{className:'btn btn-primary btn-sm',onClick:saveConfig},'Save'))
+            )
+          )
+        )
+      )
+    ),
+
+    // Files
+    tab==='files'&&h(Fragment,null,
+      !files&&h('div',{style:{textAlign:'center',padding:20}},h('button',{className:'btn btn-primary',onClick:loadFiles},'Load Agent Files')),
+      files&&h('div',{className:'card'},
+        h('div',{className:'card-header'},h('span',{className:'card-title'},'Core Files'),h('div',{className:'row',style:{gap:8}},h('span',{style:{fontSize:11,color:'var(--text-3)',fontFamily:'var(--mono)'}},files.workspace),h('button',{className:'btn btn-sm',onClick:loadFiles},'Refresh'))),
+        h('div',{className:'card-body',style:{display:'grid',gridTemplateColumns:'200px 1fr',gap:16}},
+          h('div',{className:'file-list'},
+            files.files.map(f=>h('div',{key:f.name,className:`file-row ${activeFile===f.name?'active':''}`,onClick:()=>{setActiveFile(f.name);loadFile(f.name);}},
+              h('div',{style:{flex:1}},h('div',{className:'file-name'},f.name),h('div',{className:'file-meta'},f.missing?'missing':`${fmtBytes(f.size)} · ${fmtTime(f.updatedAtMs)}`)),
+              f.missing&&h('span',{className:'pill pill-warn',style:{fontSize:9}},'missing')
+            ))
+          ),
+          activeFile
+            ?h('div',{className:'editor-wrap'},
+                h('div',{className:'editor-toolbar'},h('span',{className:'editor-path'},`${files.workspace}/${activeFile}`),h('div',{className:'btn-row'},h('button',{className:'btn btn-sm',onClick:()=>setFileDraft(p=>{const n={...p};delete n[activeFile];return n;}),disabled:!fileDraft[activeFile]},'Reset'),h('button',{className:'btn btn-primary btn-sm',onClick:()=>saveFile(activeFile),disabled:saving||!fileDraft[activeFile]},saving?'Saving…':'Save'))),
+                h('textarea',{className:'editor-area',value:fileDraft[activeFile]??fileContent[activeFile]??'',onChange:e=>setFileDraft(p=>({...p,[activeFile]:e.target.value})),spellCheck:false})
+              )
+            :h('div',{className:'empty-state'},h('div',{className:'empty-sub'},'← Select a file to edit'))
+        )
+      )
+    ),
+
+    // Tools
+    tab==='tools'&&h('div',{className:'card'},
+      h('div',{className:'card-header'},h('span',{className:'card-title'},'Tool Access Policy'),h('div',{className:'row',style:{gap:8}},h('span',{style:{fontSize:11,color:'var(--text-3)'}},[`${Object.values(toolsEnabled).filter(Boolean).length}/${MOCK_TOOLS.length} enabled`]),h('button',{className:'btn btn-sm',onClick:()=>{const a={};MOCK_TOOLS.forEach(t=>a[t.id]=true);setToolsEnabled(a);}},'All On'),h('button',{className:'btn btn-sm',onClick:()=>{const a={};MOCK_TOOLS.forEach(t=>a[t.id]=false);setToolsEnabled(a);}},'All Off'))),
+      h('div',{className:'card-body'},
+        Object.entries(toolGroups).map(([group,tools])=>h('div',{key:group,style:{marginBottom:16}},
+          h('div',{style:{fontSize:10,color:'var(--text-3)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:8}},group),
+          h('div',{className:'tool-grid'},
+            tools.map(tool=>h('div',{key:tool.id,className:'tool-item'},
+              h('div',null,h('div',{className:'tool-name'},tool.label),h('div',{style:{fontSize:10,color:'var(--text-3)',marginTop:2}},tool.desc)),
+              h('button',{className:`toggle ${toolsEnabled[tool.id]?'on':''}`,onClick:()=>setToolsEnabled(p=>({...p,[tool.id]:!p[tool.id]}))})
+            ))
+          )
+        )),
+        h('div',{style:{paddingTop:12,borderTop:'1px solid var(--border)',marginTop:4}},h('div',{className:'btn-row',style:{justifyContent:'flex-end'}},h('button',{className:'btn btn-primary',onClick:saveConfig},'Save Tool Policy')))
+      )
+    ),
+
+    // Cron
+    tab==='cron'&&h('div',{className:'card'},
+      h('div',{className:'card-header'},h('span',{className:'card-title'},'Scheduled Jobs'),h('button',{className:'btn btn-sm'},'+ New Job')),
+      h('div',{className:'card-body'},
+        cronJobs.length===0
+          ?h('div',{className:'empty-state'},h('div',{className:'empty-icon'},'⏰'),h('div',{className:'empty-title'},'No cron jobs'),h('div',{className:'empty-sub'},'This agent has no scheduled tasks'))
+          :h('div',{className:'col',style:{gap:8}},
+            cronJobs.map(job=>h('div',{key:job.name,className:'cron-item'},
+              h('div',{className:'cron-info'},
+                h('div',{className:'cron-name'},job.name),
+                h('div',{className:'cron-schedule'},job.schedule),
+                job.description&&h('div',{style:{fontSize:11,color:'var(--text-3)',marginTop:2}},job.description),
+                h('div',{className:'cron-meta'},h('span',{className:`pill ${job.enabled?'pill-online':'pill-offline'}`},job.enabled?'enabled':'disabled'),h('span',{className:'pill',style:{background:'var(--bg-3)',color:'var(--text-3)',border:'1px solid var(--border)'}},job.sessionTarget))
+              ),
+              h('div',{className:'btn-row'},h('button',{className:'btn btn-sm'},'▶ Run'),h('button',{className:`btn btn-sm ${job.enabled?'btn-danger':''}`,onClick:()=>setCronJobs(prev=>prev.map(j=>j.name===job.name?{...j,enabled:!j.enabled}:j))},job.enabled?'Disable':'Enable'))
+            ))
+          )
+      )
+    ),
+
+    // Policy
+    tab==='policy'&&h('div',{className:'card'},
+      h('div',{className:'card-header'},h('span',{className:'card-title'},'Governance & Guardrails')),
+      h('div',{className:'card-body'},
+        h('div',{className:'col',style:{gap:16}},
+          h('div',{className:'field'},h('label',null,'Human Approval Required'),h('select',null,h('option',{value:'off'},'Off — agent acts autonomously'),h('option',{value:'exec'},'Required for exec/shell'),h('option',{value:'external'},'Required for external actions'),h('option',{value:'all'},'Required for all actions'))),
+          h('div',{className:'field'},h('label',null,'Sandbox Mode'),h('select',null,h('option',{value:'off'},'Off — unrestricted'),h('option',{value:'non-main'},'Sandbox non-main agents'),h('option',{value:'all'},'Sandbox all agents'))),
+          h('div',{className:'field'},h('label',null,'Blocked Actions (one per line)'),h('textarea',{placeholder:'exec\nbrowser\nimage',rows:4})),
+          h('div',{className:'field'},h('label',null,'Sub-agent Collaboration — Allowed IDs'),h('input',{placeholder:'* (any), or: codebot, monitor',defaultValue:'*'})),
+          h('div',{className:'callout callout-info'},'🔒 Guardrails constrain agent capabilities and communication boundaries. Changes take effect on the next agent run.'),
+          h('div',{className:'btn-row',style:{justifyContent:'flex-end'}},h('button',{className:'btn btn-primary',onClick:saveConfig},'Save Policy'))
+        )
+      )
+    )
+  );
+}
+
+// ── TOPOLOGY TAB ───────────────────────────────────────
+function TopologyTab({agents}) {
+  const [sel,setSel]=useState(null);
+  return h('div',{className:'col',style:{gap:16}},
+    h('div',{className:'callout callout-info'},'🔗 Collaboration topology — which agents can communicate. Click to inspect.'),
+    h('div',{className:'card'},
+      h('div',{className:'card-header'},h('span',{className:'card-title'},'Agent Network')),
+      h('div',{className:'card-body'},
+        h('div',{style:{display:'flex',flexWrap:'wrap',gap:12,alignItems:'center'}},
+          agents.map((a,i)=>h(Fragment,{key:a.id},
+            h('div',{className:`topo-node ${sel===a.id?'active':''}`,onClick:()=>setSel(sel===a.id?null:a.id)},h('span',null,agentEmoji(a)),h('span',null,agentLabel(a))),
+            i<agents.length-1&&h('span',{style:{color:'var(--text-3)',fontSize:14}},'↔')
+          ))
+        ),
+        sel&&h('div',{style:{marginTop:16,padding:12,background:'var(--bg-3)',borderRadius:8,border:'1px solid var(--border)'}},
+          h('div',{style:{fontSize:12,fontWeight:600,marginBottom:8}},`${agentLabel(agents.find(a=>a.id===sel)||{})} — Communication Policy`),
+          h('div',{className:'kv-grid'},
+            h('span',{className:'kv-label'},'Can send to'),h('span',{className:'kv-value'},'* (all agents)'),
+            h('span',{className:'kv-label'},'Can receive from'),h('span',{className:'kv-value'},'* (all agents)'),
+            h('span',{className:'kv-label'},'Shared memory'),h('span',{className:'kv-value'},'none (isolated)'),
+            h('span',{className:'kv-label'},'Sub-agent model'),h('span',{className:'kv-value'},'inherit from defaults')
+          )
+        )
+      )
+    ),
+    h('div',{className:'grid-2'},
+      h('div',{className:'card'},h('div',{className:'card-header'},h('span',{className:'card-title'},'Silo Groups')),h('div',{className:'card-body'},h('div',{className:'empty-state',style:{padding:'24px 0'}},h('div',{className:'empty-icon'},'🔒'),h('div',{className:'empty-title'},'No silos defined'),h('div',{className:'empty-sub'},'All agents collaborate freely')))),
+      h('div',{className:'card'},h('div',{className:'card-header'},h('span',{className:'card-title'},'Sub-agent Permissions')),h('div',{className:'card-body'},h('div',{className:'col',style:{gap:8}},agents.map(a=>h('div',{key:a.id,style:{display:'flex',alignItems:'center',gap:8,padding:'6px 0',borderBottom:'1px solid var(--border)'}},h('span',null,agentEmoji(a)),h('span',{style:{flex:1,fontSize:12}},agentLabel(a)),h('span',{style:{fontSize:11,color:'var(--text-3)',fontFamily:'var(--mono)'}},'→ *'))))))
+    )
+  );
+}
+
+// ── CREATE MODAL ───────────────────────────────────────
+function CreateModal({onClose,onCreate,client,isDemo}) {
+  const [name,setName]=useState('');
+  const [ws,setWs]=useState('');
+  const [emoji,setEmoji]=useState('');
+  const [model,setModel]=useState('');
+  const [loading,setLoading]=useState(false);
+  const [err,setErr]=useState('');
+  const go=async()=>{
+    if(!name.trim()){setErr('Name is required');return;}
+    setLoading(true);setErr('');
+    try{
+      const workspace=ws.trim()||`~/.openclaw/agents/${name.trim().toLowerCase().replace(/\s+/g,'-')}`;
+      if(!isDemo&&client)await client.request('agents.create',{name:name.trim(),workspace,...(emoji?{emoji}:{})});
+      onCreate({id:name.trim().toLowerCase().replace(/\s+/g,'-'),name:name.trim(),isDefault:false,identity:{name:name.trim(),emoji:emoji||'🤖',theme:''}});
+    }catch(e){setErr(e.message);}finally{setLoading(false);}
+  };
+  return h('div',{className:'modal-overlay',onClick:e=>e.target===e.currentTarget&&onClose()},
+    h('div',{className:'modal'},
+      h('h2',null,'+ New Agent'),
+      h('p',{className:'modal-sub'},'Creates workspace with bootstrap files (SOUL.md, IDENTITY.md, TOOLS.md, etc.)'),
+      err&&h('div',{className:'callout callout-error'},err),
+      h('div',{className:'field'},h('label',null,'Agent Name *'),h('input',{value:name,onChange:e=>setName(e.target.value),placeholder:'e.g. Code Reviewer',autoFocus:true})),
+      h('div',{className:'field'},h('label',null,'Workspace Path'),h('input',{value:ws,onChange:e=>setWs(e.target.value),placeholder:'~/.openclaw/agents/my-agent'})),
+      h('div',{className:'grid-2'},h('div',{className:'field'},h('label',null,'Emoji'),h('input',{value:emoji,onChange:e=>setEmoji(e.target.value),placeholder:'🤖',maxLength:4})),h('div',{className:'field'},h('label',null,'Model'),h('input',{value:model,onChange:e=>setModel(e.target.value),placeholder:'anthropic/claude-opus-4-6'}))),
+      h('div',{className:'callout callout-info'},'📁 Bootstrap files will be auto-generated in the workspace directory.'),
+      h('div',{className:'btn-row',style:{justifyContent:'flex-end'}},h('button',{className:'btn',onClick:onClose},'Cancel'),h('button',{className:'btn btn-primary',onClick:go,disabled:loading},loading?'Creating…':'Create Agent'))
+    )
+  );
+}
+
+// ── SETTINGS MODAL ─────────────────────────────────────
+function SettingsModal({onClose}) {
+  return h('div',{className:'modal-overlay',onClick:e=>e.target===e.currentTarget&&onClose()},
+    h('div',{className:'modal'},
+      h('h2',null,'⚙ Settings'),
+      h('div',{className:'callout callout-info'},'OpenClaw Mission Control v1.0.0\nConnects directly to your OpenClaw gateway via WebSocket protocol.\n\nBuilt for operators managing agent fleets on the OpenClaw runtime.'),
+      h('div',{className:'btn-row',style:{justifyContent:'flex-end'}},h('button',{className:'btn btn-primary',onClick:onClose},'Close'))
+    )
+  );
+}
+
+// ── MAIN APP ──────────────────────────────────────────
+function App() {
+  const [view,setView]=useState('connect');
+  const [isDemo,setIsDemo]=useState(false);
+  const [client,setClient]=useState(null);
+  const [gwStatus,setGwStatus]=useState('disconnected');
+  const [agents,setAgents]=useState([]);
+  const [selectedId,setSelectedId]=useState(null);
+  const [nav,setNav]=useState('fleet');
+  const [showCreate,setShowCreate]=useState(false);
+  const [showSettings,setShowSettings]=useState(false);
+  const [filter,setFilter]=useState('');
+  const [cronJobs,setCronJobs]=useState(MOCK_CRON);
+
+  const loadAgents=useCallback(async(gc,demo)=>{
+    if(demo){const a=MOCK_AGENTS.map((x,i)=>({...x,isDefault:i===0}));setAgents(a);setSelectedId(a[0].id);return;}
+    try{const r=await gc.request('agents.list',{});const a=r.agents.map(x=>({...x,isDefault:x.id===r.defaultId}));setAgents(a);setSelectedId(a[0]?.id||null);}
+    catch{const a=MOCK_AGENTS.map((x,i)=>({...x,isDefault:i===0}));setAgents(a);setSelectedId(a[0].id);}
+  },[]);
+
+  const handleConnect=useCallback(async(gc)=>{
+    setClient(gc);setGwStatus('connected');setIsDemo(false);setView('main');
+    gc.on('disconnect',()=>setGwStatus('disconnected'));
+    await loadAgents(gc,false);
+  },[loadAgents]);
+
+  const enterDemo=useCallback(()=>{setIsDemo(true);setGwStatus('disconnected');setView('main');loadAgents(null,true);},[loadAgents]);
+  const doDisconnect=useCallback(()=>{client?.disconnect();setClient(null);setView('connect');setGwStatus('disconnected');setAgents([]);setSelectedId(null);},[client]);
+
+  const filtered=useMemo(()=>{if(!filter.trim())return agents;const q=filter.toLowerCase();return agents.filter(a=>agentLabel(a).toLowerCase().includes(q)||a.id.toLowerCase().includes(q));},[agents,filter]);
+  const selectedAgent=useMemo(()=>agents.find(a=>a.id===selectedId)||null,[agents,selectedId]);
+
+  if(view==='connect')return h('div',{style:{height:'100vh',background:'var(--bg)'}},h(ConnectScreen,{onConnect:handleConnect,onDemo:enterDemo}));
+
+  return h('div',{className:'shell'},
+    // Rail
+    h('div',{className:'rail'},
+      h('div',{className:'rail-logo'},'🦞'),
+      h('div',{className:'rail-sep'}),
+      h('button',{className:`rail-btn ${nav==='fleet'||nav==='agent'?'active':''}`,title:'Agent Fleet',onClick:()=>setNav('fleet')},'◆'),
+      h('button',{className:`rail-btn ${nav==='topology'?'active':''}`,title:'Topology',onClick:()=>setNav('topology')},'⬡'),
+      h('button',{className:`rail-btn ${nav==='overview'?'active':''}`,title:'Fleet Overview',onClick:()=>setNav('overview')},'▤'),
+      h('button',{className:`rail-btn ${nav==='cron'?'active':''}`,title:'Cron Jobs',onClick:()=>setNav('cron')},'⏰'),
+      h('div',{className:'rail-spacer'}),
+      h('button',{className:'rail-btn',title:'Settings',onClick:()=>setShowSettings(true)},'⚙'),
+      h('button',{className:'rail-btn',title:'Disconnect',onClick:doDisconnect},'⏏')
+    ),
+    // Sidebar
+    h('div',{className:'sidebar'},
+      h('div',{className:'sidebar-head'},
+        h('h2',null,nav==='topology'?'Topology':nav==='overview'?'Overview':nav==='cron'?'Cron Jobs':'Agent Fleet'),
+        h('div',{style:{fontSize:11,color:'var(--text-3)',marginTop:4}},`${agents.length} agent${agents.length===1?'':'s'}`)
+      ),
+      (nav==='fleet'||nav==='agent')&&h('div',{className:'sidebar-search'},h('input',{value:filter,onChange:e=>setFilter(e.target.value),placeholder:'Search agents…'})),
+      h('div',{className:'sidebar-list'},
+        (nav==='fleet'||nav==='agent')&&filtered.map(a=>h('div',{key:a.id,className:`agent-item ${selectedId===a.id&&nav==='agent'?'active':''}`,onClick:()=>{setSelectedId(a.id);setNav('agent');}},h('div',{className:'agent-avatar'},agentEmoji(a)),h('div',{className:'agent-info'},h('div',{className:'agent-name'},agentLabel(a)),h('div',{className:'agent-id'},a.id)),h('div',{className:`agent-dot ${a.isDefault?'default':'online'}`}))),
+        nav==='topology'&&agents.map(a=>h('div',{key:a.id,className:'agent-item',onClick:()=>{setSelectedId(a.id);}},h('div',{className:'agent-avatar'},agentEmoji(a)),h('div',{className:'agent-info'},h('div',{className:'agent-name'},agentLabel(a)),h('div',{className:'agent-id'},'↔ all agents')))),
+        nav==='cron'&&cronJobs.map(j=>h('div',{key:j.name,className:'agent-item'},h('div',{className:'agent-avatar'},'⏰'),h('div',{className:'agent-info'},h('div',{className:'agent-name'},j.name),h('div',{className:'agent-id'},j.schedule)),h('div',{className:`agent-dot ${j.enabled?'online':''}`}))),
+        nav==='overview'&&[h('div',{key:'dash',className:'agent-item'},h('div',{className:'agent-avatar'},'▤'),h('div',{className:'agent-info'},h('div',{className:'agent-name'},'Dashboard'),h('div',{className:'agent-id'},'Fleet summary'))),h('div',{key:'aud',className:'agent-item'},h('div',{className:'agent-avatar'},'📋'),h('div',{className:'agent-info'},h('div',{className:'agent-name'},'Audit Log'),h('div',{className:'agent-id'},'Change history')))]
+      ),
+      (nav==='fleet'||nav==='agent')&&h('button',{className:'sidebar-add-btn',onClick:()=>setShowCreate(true)},'+ New Agent')
+    ),
+    // Main
+    h('div',{className:'main'},
+      h('div',{className:'topbar'},
+        h('div',{className:'topbar-title'},nav==='agent'&&selectedAgent?agentLabel(selectedAgent):nav==='topology'?'Collaboration Topology':nav==='overview'?'Fleet Overview':nav==='cron'?'Scheduled Jobs':'Mission Control'),
+        h('div',{className:'row',style:{gap:8}},
+          h('div',{className:'status-row'},h('div',{className:`status-dot ${isDemo?'yellow':gwStatus==='connected'?'green':'red'}`}),h('span',{style:{fontSize:11,color:'var(--text-3)',fontFamily:'var(--mono)'}},isDemo?'DEMO':gwStatus==='connected'?'LIVE':'OFFLINE'))
+        )
+      ),
+      h('div',{className:'content'},
+        nav==='agent'&&selectedAgent?h(AgentDetail,{agent:selectedAgent,client,isDemo,onUpdated:()=>loadAgents(client,isDemo)}):
+        nav==='topology'?h(TopologyTab,{agents}):
+        nav==='cron'?h('div',{className:'col',style:{gap:12}},
+          h('div',{className:'callout callout-info'},'⏰ All scheduled jobs across the fleet.'),
+          h('div',{className:'col',style:{gap:8}},cronJobs.map(j=>h('div',{key:j.name,className:'cron-item'},h('div',{className:'cron-info'},h('div',{className:'cron-name'},j.name),h('div',{className:'cron-schedule'},`${j.schedule} → agent: ${j.agentId}`),j.description&&h('div',{style:{fontSize:11,color:'var(--text-3)',marginTop:2}},j.description),h('div',{className:'cron-meta'},h('span',{className:`pill ${j.enabled?'pill-online':'pill-offline'}`},j.enabled?'enabled':'disabled'))),h('div',{className:'btn-row'},h('button',{className:'btn btn-sm'},'▶ Run Now'),h('button',{className:`btn btn-sm ${j.enabled?'btn-danger':''}`,onClick:()=>setCronJobs(prev=>prev.map(x=>x.name===j.name?{...x,enabled:!x.enabled}:x))},j.enabled?'Disable':'Enable')))))
+        ):
+        h(OverviewTab,{agents,cronJobs,isDemo})
+      )
+    ),
+    showCreate&&h(CreateModal,{onClose:()=>setShowCreate(false),onCreate:a=>{setAgents(prev=>[...prev,a]);setSelectedId(a.id);setNav('agent');setShowCreate(false);},client,isDemo}),
+    showSettings&&h(SettingsModal,{onClose:()=>setShowSettings(false)}),
+    isDemo&&h('div',{className:'conn-banner'},h('div',{className:'conn-dot yellow'}),h('div',{style:{flex:1}},h('div',{style:{fontWeight:600,fontSize:12}},'Demo Mode'),h('div',{style:{fontSize:10,color:'var(--text-3)',marginTop:2}},'Not connected — showing mock data')),h('button',{style:{background:'none',border:'none',color:'var(--text-3)',cursor:'pointer',fontSize:14},onClick:doDisconnect},'✕'))
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(h(App));
+</script>
+</body>
+</html>

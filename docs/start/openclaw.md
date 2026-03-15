@@ -207,6 +207,32 @@ MEDIA:https://example.com/screenshot.png
 
 OpenClaw extracts these and sends them as media alongside the text.
 
+## Optional: push OpenClaw agent state into Mission Control
+
+If you have an external control plane that expects OpenClaw agent manifests, heartbeats, and event updates, use the helper script at `scripts/integrations/mission-control-push.sh`.
+
+```bash
+export MISSION_CONTROL_BASE_URL="http://localhost:8000"
+export MISSION_CONTROL_SECRET="replace-me"
+
+# 1) initial sync
+scripts/integrations/mission-control-push.sh sync examples/openclaw-agent-manifest.json
+
+# 2) periodic heartbeat
+scripts/integrations/mission-control-push.sh heartbeat main online
+
+# 3) operational events
+scripts/integrations/mission-control-push.sh event main task.started "Running nightly maintenance"
+```
+
+The script sends `X-OpenClaw-Secret` on each request and posts to:
+
+- `/api/v1/integrations/openclaw/agents/sync`
+- `/api/v1/integrations/openclaw/agents/{slug}/heartbeat`
+- `/api/v1/integrations/openclaw/agents/{slug}/events`
+
+Treat this as a push connector. OpenClaw remains the runtime source of truth, and Mission Control receives explicit updates rather than trying to infer runtime state.
+
 ## Operations checklist
 
 ```bash

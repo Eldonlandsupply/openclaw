@@ -92,6 +92,70 @@ export const InternalHooksSchema = z
   .strict()
   .optional();
 
+const HooksLolaTeamSchema = z
+  .object({
+    id: z.string().optional(),
+    name: z.string().optional(),
+    channel: z.string().optional(),
+    to: z.string().optional(),
+  })
+  .strict();
+
+const HooksLolaAttioSchema = z
+  .object({
+    workspaceId: z.string().optional(),
+    listId: z.string().optional(),
+    apiBaseUrl: z.string().optional(),
+  })
+  .strict();
+
+const HooksLolaOneDriveSchema = z
+  .object({
+    driveId: z.string().optional(),
+    rootPath: z.string().optional(),
+  })
+  .strict();
+
+export const HooksLolaSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    workspace: z.string().optional(),
+    bridgeBaseUrl: z.string().optional(),
+    followThrough: z
+      .object({
+        enabled: z.boolean().optional(),
+        defaultMessage: z.string().optional(),
+        schedule: z.string().optional(),
+        model: z.string().optional(),
+        thinking: z
+          .union([
+            z.literal("off"),
+            z.literal("minimal"),
+            z.literal("low"),
+            z.literal("medium"),
+            z.literal("high"),
+          ])
+          .optional(),
+        timeoutSeconds: z.number().int().positive().optional(),
+        lightContext: z.boolean().optional(),
+      })
+      .strict()
+      .optional(),
+    auditSchedule: z
+      .object({
+        enabled: z.boolean().optional(),
+        schedule: z.string().optional(),
+        timezone: z.string().optional(),
+      })
+      .strict()
+      .optional(),
+    teams: z.array(HooksLolaTeamSchema).optional(),
+    attio: HooksLolaAttioSchema.optional(),
+    onedrive: HooksLolaOneDriveSchema.optional(),
+  })
+  .strict()
+  .optional();
+
 export const HooksGmailSchema = z
   .object({
     account: z.string().optional(),

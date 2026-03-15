@@ -18,6 +18,23 @@ export type ParsedMessageWithImages = {
   images: ChatImageContent[];
 };
 
+function formatAttachmentReference(att: ChatAttachment, idx: number): string {
+  const label = att.fileName?.trim() || att.type?.trim() || `attachment-${idx + 1}`;
+  const details = [att.mimeType?.trim(), att.type?.trim()].filter(Boolean).join(", ");
+  return details ? `${label} (${details})` : label;
+}
+
+function appendAttachmentReferences(message: string, references: string[]): string {
+  if (references.length === 0) {
+    return message;
+  }
+  const section = ["Attached files:", ...references.map((entry) => `- ${entry}`)].join("\n");
+  if (!message.trim()) {
+    return section;
+  }
+  return `${message}\n\n${section}`;
+}
+
 type AttachmentLog = {
   warn: (message: string) => void;
 };
@@ -71,6 +88,7 @@ export async function parseMessageWithAttachments(
   }
 
   const images: ChatImageContent[] = [];
+  const references: string[] = [];
 
   for (const [idx, att] of attachments.entries()) {
     if (!att) {
@@ -81,7 +99,8 @@ export async function parseMessageWithAttachments(
     const label = att.fileName || att.type || `attachment-${idx + 1}`;
 
     if (typeof content !== "string") {
-      throw new Error(`attachment ${label}: content must be base64 string`);
+      references.push(formatAttachmentReference(att, idx));
+      continue;
     }
 
     let sizeBytes = 0;
@@ -108,10 +127,12 @@ export async function parseMessageWithAttachments(
     const sniffedMime = normalizeMime(await sniffMimeFromBase64(b64));
     if (sniffedMime && !isImageMime(sniffedMime)) {
       log?.warn(`attachment ${label}: detected non-image (${sniffedMime}), dropping`);
+      references.push(formatAttachmentReference(att, idx));
       continue;
     }
     if (!sniffedMime && !isImageMime(providedMime)) {
       log?.warn(`attachment ${label}: unable to detect image mime type, dropping`);
+      references.push(formatAttachmentReference(att, idx));
       continue;
     }
     if (sniffedMime && providedMime && sniffedMime !== providedMime) {
@@ -127,7 +148,7 @@ export async function parseMessageWithAttachments(
     });
   }
 
-  return { message, images };
+  return { message: appendAttachmentReferences(message, references), images };
 }
 
 /**
