@@ -513,3 +513,31 @@ describe("web_search external content wrapping", () => {
     expect(details.citations?.[0]).not.toContain("<<<EXTERNAL_UNTRUSTED_CONTENT>>>");
   });
 });
+
+describe("web_search Brave API key aliases", () => {
+  const priorFetch = global.fetch;
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    // @ts-expect-error global fetch cleanup
+    global.fetch = priorFetch;
+  });
+
+  it("uses BRAVE_SEARCH_API_KEY when BRAVE_API_KEY is unset", async () => {
+    vi.stubEnv("BRAVE_API_KEY", "");
+    vi.stubEnv("BRAVE_SEARCH_API_KEY", "alias-key");
+    const mockFetch = vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ web: { results: [] } }),
+      } as Response),
+    );
+    // @ts-expect-error mock fetch
+    global.fetch = mockFetch;
+
+    const tool = createWebSearchTool({ config: undefined, sandboxed: true });
+    await tool?.execute?.(1, { query: "alias key test" });
+
+    expect(mockFetch).toHaveBeenCalledOnce();
+  });
+});

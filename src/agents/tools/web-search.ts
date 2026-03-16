@@ -184,8 +184,9 @@ function resolveSearchApiKey(search?: WebSearchConfig): string | undefined {
     search && "apiKey" in search && typeof search.apiKey === "string"
       ? normalizeSecretInput(search.apiKey)
       : "";
-  const fromEnv = normalizeSecretInput(process.env.BRAVE_API_KEY);
-  return fromConfig || fromEnv || undefined;
+  const fromBraveEnv = normalizeSecretInput(process.env.BRAVE_API_KEY);
+  const fromBraveSearchEnv = normalizeSecretInput(process.env.BRAVE_SEARCH_API_KEY);
+  return fromConfig || fromBraveEnv || fromBraveSearchEnv || undefined;
 }
 
 function missingSearchKeyPayload(provider: (typeof SEARCH_PROVIDERS)[number]) {
@@ -207,7 +208,7 @@ function missingSearchKeyPayload(provider: (typeof SEARCH_PROVIDERS)[number]) {
   }
   return {
     error: "missing_brave_api_key",
-    message: `web_search needs a Brave Search API key. Run \`${formatCliCommand("openclaw configure --section web")}\` to store it, or set BRAVE_API_KEY in the Gateway environment.`,
+    message: `web_search needs a Brave Search API key. Run \`${formatCliCommand("openclaw configure --section web")}\` to store it, or set BRAVE_API_KEY (or BRAVE_SEARCH_API_KEY) in the Gateway environment.`,
     docs: "https://docs.openclaw.ai/tools/web",
   };
 }
