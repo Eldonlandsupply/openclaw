@@ -7,11 +7,9 @@ from __future__ import annotations
 
 import asyncio
 import os
-import subprocess
 from datetime import datetime, timezone
 from typing import Any
 
-from ..services import audit_log as _audit
 
 
 # ── Safe subprocess helpers ───────────────────────────────────────────────

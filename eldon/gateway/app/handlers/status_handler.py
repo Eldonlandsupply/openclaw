@@ -5,7 +5,6 @@ Status handler: returns concise system health for message channels.
 from __future__ import annotations
 
 import asyncio
-import os
 import platform
 import socket
 from datetime import datetime, timezone

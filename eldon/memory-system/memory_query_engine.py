@@ -6,7 +6,6 @@ from __future__ import annotations
 import logging
 from typing import List, Optional
 
-import yaml
 
 from embedding_pipeline import embed_texts
 from repo_indexer import get_vector_store, load_config
@@ -45,7 +44,6 @@ def memory_search(query: str, cfg: dict, top_k: Optional[int] = None) -> List[di
     results = store.query(query_vec, top_k=k)
 
     output = []
-    ids = results.get("ids", [[]])[0]
     docs = results.get("documents", [[]])[0]
     metas = results.get("metadatas", [[]])[0]
     dists = results.get("distances", [[]])[0]
