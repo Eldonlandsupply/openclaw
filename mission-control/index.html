@@ -1217,6 +1217,7 @@ function App(){
   const loadConfig=useCallback(async()=>{
     if(isDemo)return;if(!client)return;setConfigLd(true);
     try{const r=await client.req('config.get',{});setConfigRaw(r.raw||JSON.stringify(r.config||{}));setConfigHash(r.hash);}catch{}setConfigLd(false);
+  },[client,isDemo]);
 
   const loadNodes=useCallback(async()=>{
     setNodesLd(true);
