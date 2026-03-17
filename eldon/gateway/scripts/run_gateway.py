@@ -9,10 +9,12 @@ import os
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
 from aiohttp import web
 from dotenv import load_dotenv
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from app.main import create_app
 
 load_dotenv()
 
@@ -20,8 +22,6 @@ logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO").upper(),
     format="%(asctime)s %(levelname)s %(name)s %(message)s",
 )
-
-from app.main import create_app
 
 if __name__ == "__main__":
     port = int(os.getenv("GATEWAY_PORT", "8443"))

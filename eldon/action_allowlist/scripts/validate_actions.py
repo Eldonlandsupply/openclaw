@@ -1,6 +1,7 @@
 """validate_actions.py — validate actions against schema."""
 from __future__ import annotations
-import json, sys
+import json
+import sys
 from pathlib import Path
 
 REQUIRED = ["action_id","action_name","action_category","execution_mode","status","trigger_type","owner","risk_score","enabled"]

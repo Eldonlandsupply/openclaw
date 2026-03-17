@@ -21,9 +21,12 @@ def score(action: dict) -> float:
         + action.get("confidence_score",   5) * WEIGHTS["confidence_score"]
         + (10 - action.get("risk_score",   5)) * WEIGHTS["risk_inverted"]
     )
-    if action.get("execution_mode") == "manual_only": base -= 2.0
-    if not action.get("owner"):                       base -= 1.5
-    if not action.get("trigger_definition"):          base -= 1.0
+    if action.get("execution_mode") == "manual_only":
+        base -= 2.0
+    if not action.get("owner"):
+        base -= 1.5
+    if not action.get("trigger_definition"):
+        base -= 1.0
     return round(max(base, 0), 3)
 
 def rank_actions(actions):
