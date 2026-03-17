@@ -7,7 +7,6 @@ from __future__ import annotations
 import fnmatch
 import json
 import logging
-import os
 import subprocess
 from pathlib import Path
 from typing import Generator, List, Optional

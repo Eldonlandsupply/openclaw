@@ -8,12 +8,10 @@ Endpoints:
 
 from __future__ import annotations
 
-import hashlib
 import hmac
 import json
 import logging
 import os
-from typing import Any
 
 from aiohttp import web
 

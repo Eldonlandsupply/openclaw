@@ -17,7 +17,6 @@ from pathlib import Path
 # Allow running from any directory
 sys.path.insert(0, str(Path(__file__).parent))
 
-from memory_query_engine import search_repo_memory
 
 
 def main():

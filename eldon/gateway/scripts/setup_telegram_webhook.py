@@ -14,10 +14,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from dotenv import load_dotenv
 load_dotenv()
 
-from app.services.telegram_service import set_webhook, get_webhook_info
-
 
 async def main():
+    from app.services.telegram_service import get_webhook_info, set_webhook
     if len(sys.argv) < 2:
         print("Usage: python setup_telegram_webhook.py <BASE_URL>")
         print("Example: python setup_telegram_webhook.py https://mypi.duckdns.org")

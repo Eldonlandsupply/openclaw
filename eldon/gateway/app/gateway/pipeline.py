@@ -5,12 +5,11 @@ Orchestrates: auth → dedupe → route → risk → confirm/execute → audit.
 
 from __future__ import annotations
 
-from typing import Optional
 
 from .auth import authenticate, is_duplicate
 from .confirmations import get_store
 from .models import (
-    AttachmentMeta, Channel, GatewayRequest, Intent,
+    GatewayRequest, Intent,
     RequestStatus, RiskLevel,
 )
 from .responses import format_error, format_rejection, format_response

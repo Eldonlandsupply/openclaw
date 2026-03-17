@@ -5,8 +5,6 @@ All offline — no network, no Telegram, no Twilio.
 
 from __future__ import annotations
 
-import asyncio
-import os
 import sys
 from pathlib import Path
 
@@ -20,7 +18,6 @@ from app.gateway.auth import authenticate
 from app.gateway.risk import classify_risk
 from app.gateway.router import route
 from app.gateway.confirmations import ConfirmationStore
-from app.gateway.responses import format_response, format_rejection
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────
