@@ -63,6 +63,12 @@ export type AgentConfig = {
     prune?: SandboxPruneSettings;
   };
   tools?: AgentToolsConfig;
+  /**
+   * Optional project slug this agent belongs to.
+   * Must match a slug defined in projects/index.yaml.
+   * Used by Mission Control and tooling to group agents by project.
+   */
+  projectSlug?: string;
 };
 
 export type AgentsConfig = {
