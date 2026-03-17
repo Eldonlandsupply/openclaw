@@ -1110,11 +1110,51 @@ function CreateModal({onClose,onCreate,client,isDemo}){
   );
 }
 // ── MAIN APP ──────────────────────────────────────────────────────
+
+// ── Projects Tab ────────────────────────────────────────────────
+function ProjectsTab({projects,loading}){
+  if(loading)return h('div',{style:{display:'flex',alignItems:'center',gap:8,padding:24,color:'var(--t3)'}},h('span',{className:'spin'}),h('span',null,' Loading projects…'));
+  const list=projects||[];
+  if(!list.length)return h('div',{style:{padding:32,textAlign:'center',color:'var(--t3)'}},
+    h('div',{style:{fontSize:32,marginBottom:8}},'◉'),
+    h('div',{style:{fontWeight:600,marginBottom:4}},'No Projects'),
+    h('div',{style:{fontSize:12}},'Add entries to projects/index.yaml in the repo.')
+  );
+  const statusColor={active:'var(--green,#22c55e)',paused:'var(--yellow,#eab308)',archived:'var(--t3)',planning:'#3b82f6'};
+  const priColor={high:'var(--red,#ef4444)',medium:'var(--yellow,#eab308)',low:'var(--t3)'};
+  return h('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(340px,1fr))',gap:16,padding:20,alignContent:'start'}},
+    list.map(p=>h('div',{key:p.slug,style:{background:'var(--bg-2)',border:'1px solid var(--bd)',borderRadius:10,padding:16,display:'flex',flexDirection:'column',gap:10}},
+      h('div',{style:{display:'flex',alignItems:'flex-start',gap:10}},
+        h('div',{style:{fontSize:22,lineHeight:1}},'◉'),
+        h('div',{style:{flex:1,minWidth:0}},
+          h('div',{style:{fontWeight:700,fontSize:14,color:'var(--t1)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}},p.name||p.slug),
+          h('div',{style:{fontSize:11,color:'var(--t3)',fontFamily:'var(--mo)',marginTop:2}},p.slug)
+        ),
+        h('div',{style:{display:'flex',gap:4,flexShrink:0}},
+          p.status&&h('span',{style:{background:statusColor[p.status]||'var(--t3)',color:p.status==='archived'?'var(--t2)':'var(--bg)',fontSize:9,padding:'2px 6px',borderRadius:4,fontWeight:700,letterSpacing:'0.05em'}},p.status.toUpperCase()),
+          p.priority&&h('span',{style:{background:priColor[p.priority]||'var(--t3)',color:p.priority==='low'?'var(--t2)':'var(--bg)',fontSize:9,padding:'2px 5px',borderRadius:4,fontWeight:600,marginLeft:2}},p.priority)
+        )
+      ),
+      p.description&&h('div',{style:{fontSize:12,color:'var(--t2)',lineHeight:1.5,maxHeight:54,overflow:'hidden'}},p.description),
+      h('div',{style:{display:'flex',flexWrap:'wrap',gap:8,marginTop:4}},
+        p.owner&&h('span',{style:{fontSize:10,color:'var(--t3)'}},h('span',{style:{opacity:.6}},'owner '),h('span',{style:{color:'var(--t2)',fontWeight:500}},p.owner)),
+        p.related_source&&h('span',{style:{fontSize:10,color:'var(--t3)'}},h('span',{style:{opacity:.6}},'src '),h('code',{style:{color:'var(--acc)',fontSize:10}},p.related_source)),
+        p.operating_mode&&h('span',{style:{fontSize:10,color:'var(--t3)'}},h('span',{style:{opacity:.6}},'mode '),h('span',{style:{color:'var(--t2)'}},p.operating_mode))
+      )
+    ))
+  );
+}
+
+const FALLBACK_PROJECTS=[
+  {slug:'mission-control',name:'OpenClaw Mission Control',status:'active',priority:'high',owner:'Eldonlandsupply',related_source:'mission-control/',description:'Web-based operational control plane for the OpenClaw agent ecosystem.'},
+  {slug:'eldon-runtime',name:'Eldon Land Supply Runtime',status:'active',priority:'high',owner:'Eldonlandsupply',related_source:'eldon/',description:'Bespoke Python agent runtime deployed 24/7 on a Raspberry Pi.'},
+];
 function App(){
   const[view,setView]=useState('connect');
   const[isDemo,setIsDemo]=useState(false);const[client,setClient]=useState(null);const[gwSt,setGwSt]=useState('disconnected');
   const[agents,setAgents]=useState([]);const[selId,setSelId]=useState(null);
   const[nav,setNav]=useState('overview');
+  const[projects,setProjects]=useState(null);const[projectsLd,setProjectsLd]=useState(false);
   const[filter,setFilter]=useState('');
   const[showCreate,setShowCreate]=useState(false);
   const[health,setHealth]=useState(null);const[healthLd,setHealthLd]=useState(false);
@@ -1152,6 +1192,25 @@ function App(){
     try{const r=await client.req('config.get',{});setConfigRaw(r.raw||JSON.stringify(r.config||{}));setConfigHash(r.hash);}catch{}setConfigLd(false);
   },[client,isDemo]);
 
+  const loadProjects=useCallback(async()=>{
+    setProjectsLd(true);
+    try{
+      const RAW='https://raw.githubusercontent.com/Eldonlandsupply/openclaw/main/projects/index.yaml';
+      const r=await fetch(RAW);if(!r.ok)throw new Error('HTTP '+r.status);
+      const text=await r.text();
+      const projs=[];let cur=null;
+      for(const line of text.split('\n')){
+        const m=line.match(/^  - slug:\s*(.+)$/);
+        if(m){cur={slug:m[1].trim()};projs.push(cur);continue;}
+        if(!cur)continue;
+        const f=line.match(/^    (\w[\w_]*):\s*(\S.*)$/);
+        if(f){const v=f[2].replace(/^["'>]/,'').replace(/["']$/,'').trim();cur[f[1]]=v;}
+      }
+      setProjects(projs.length?projs:FALLBACK_PROJECTS);
+    }catch(e){setProjects(FALLBACK_PROJECTS);}
+    setProjectsLd(false);
+  },[]);
+
   const handleConnect=useCallback(async(gc)=>{
     setClient(gc);setGwSt('connected');setIsDemo(false);setView('main');
     gc.on('disconnect',()=>setGwSt('disconnected'));
@@ -1183,12 +1242,13 @@ function App(){
     if(nav==='fleet'||nav==='agent')return filtered.map(a=>h('div',{key:a.id,className:`si ${selId===a.id&&nav==='agent'?'on':''}`,onClick:()=>{setSelId(a.id);setNav('agent');}},h('div',{className:'sav'},aEmoji(a)),h('div',{className:'f1',style:{minWidth:0}},h('div',{className:'sn'},aLbl(a)),h('div',{className:'ss'},a.id)),h('div',{className:`sd ${a.isDefault?'ac':'gr'}`})));
     if(nav==='cron')return cronJobs.map(j=>h('div',{key:j.id||j.name,className:'si'},h('div',{className:'sav'},'⏰'),h('div',{className:'f1',style:{minWidth:0}},h('div',{className:'sn'},j.name),h('div',{className:'ss'},cronSched(j.schedule))),h('div',{className:`sd ${j.enabled?'gr':''}`})));
     if(nav==='sessions')return sessions.map(s=>h('div',{key:s.key,className:'si'},h('div',{className:'sav'},'💬'),h('div',{className:'f1',style:{minWidth:0}},h('div',{className:'sn'},s.agentId||s.key),h('div',{className:'ss'},fmtT(s.updatedAt||s.updatedAtMs)))));
+    if(nav==='projects')return (projects||[]).map(p=>h('div',{key:p.slug,className:'si'},h('div',{className:'sav'},'◉'),h('div',{className:'f1',style:{minWidth:0}},h('div',{className:'sn'},p.name||p.slug),h('div',{className:'ss'},p.slug))));
     if(nav==='topology')return agents.map(a=>h('div',{key:a.id,className:'si'},h('div',{className:'sav'},aEmoji(a)),h('div',{className:'f1',style:{minWidth:0}},h('div',{className:'sn'},aLbl(a)),h('div',{className:'ss'},'↔ all'))));
     if(nav==='config')return[h('div',{key:'cfg',className:'si'},h('div',{className:'sav'},'⚙'),h('div',{className:'f1',style:{minWidth:0}},h('div',{className:'sn'},'Config Editor'),h('div',{className:'ss'},'schema form + raw patch')))];
     return[h('div',{key:'ov',className:'si'},h('div',{className:'sav'},'▤'),h('div',{className:'f1',style:{minWidth:0}},h('div',{className:'sn'},'Fleet Overview'),h('div',{className:'ss'},'stats, health, audit')))];
   };
 
-  const topTitle=nav==='agent'&&selAgent?aLbl(selAgent):nav==='topology'?'Topology':nav==='cron'?'Cron Jobs':nav==='sessions'?'Sessions':nav==='config'?'Config Editor':nav==='fleet'?'Agent Fleet':'Overview';
+  const topTitle=nav==='agent'&&selAgent?aLbl(selAgent):nav==='topology'?'Topology':nav==='cron'?'Cron Jobs':nav==='sessions'?'Sessions':nav==='config'?'Config Editor':nav==='projects'?'Projects':nav==='fleet'?'Agent Fleet':'Overview';
 
   return h('div',{className:'shell'},
     h('div',{className:'rail'},
@@ -1200,10 +1260,11 @@ function App(){
       h('button',{className:`rb ${nav==='sessions'?'on':''}`,title:'Sessions',onClick:()=>{setNav('sessions');loadSessions();}},'💬'),
       h('button',{className:`rb ${nav==='config'?'on':''}`,title:'Config',onClick:()=>{setNav('config');}},'⚙'),
       h('div',{className:'rsp'}),
+      h('button',{className:`rb ${nav==='projects'?'on':''}`,title:'Projects',onClick:()=>{setNav('projects');loadProjects();}},'◉'),
       h('button',{className:'rb',title:'Disconnect',onClick:doDisconnect},'⏏')
     ),
     h('div',{className:'sb'},
-      h('div',{className:'sbh'},h('div',{className:'sbht'},nav==='topology'?'Topology':nav==='sessions'?'Sessions':nav==='cron'?'Cron':nav==='config'?'Config':nav==='overview'?'Overview':'Agents'),h('div',{className:'sbhc'},`${agents.length} agents · ${isDemo?'demo':'live'}`)),
+      h('div',{className:'sbh'},h('div',{className:'sbht'},nav==='topology'?'Topology':nav==='sessions'?'Sessions':nav==='cron'?'Cron':nav==='config'?'Config':nav==='projects'?'Projects':nav==='overview'?'Overview':'Agents'),h('div',{className:'sbhc'},`${agents.length} agents · ${isDemo?'demo':'live'}`)),
       (nav==='fleet'||nav==='agent')&&h('div',{className:'sbs'},h('input',{value:filter,onChange:e=>setFilter(e.target.value),placeholder:'Search agents…'})),
       h('div',{className:'sbl'},sbItems()),
       (nav==='fleet'||nav==='agent')&&h('button',{className:'sbadd',onClick:()=>setShowCreate(true)},'+ New Agent')
@@ -1222,6 +1283,7 @@ function App(){
         nav==='cron'?h(CronTab,{cronJobs,setCronJobs,loading:cronLd,onLoad:loadCron,agents,client,isDemo}):
         nav==='sessions'?h(SessionsTab,{sessions,loading:sessLd,onLoad:loadSessions,client,isDemo}):
         nav==='config'?h(ConfigSchemaForm,{configRaw,configHash,configSchema,client,isDemo,onRefresh:loadConfig}):
+        nav==='projects'?h(ProjectsTab,{projects,loading:projectsLd}):
         h(OverviewTab,{agents,cronJobs,sessions,health,healthLoading:healthLd,onRefreshHealth:loadHealth,isDemo,auditLog})
       )
     ),
