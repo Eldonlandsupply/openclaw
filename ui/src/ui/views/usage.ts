@@ -1402,6 +1402,539 @@ function renderUsageInsights(
   `;
 }
 
+type CostClawWorkflowMetrics = {
+  workflow: string;
+  sessions: number;
+  successfulTasks: number;
+  totalTokens: number;
+  totalCost: number;
+  toolCalls: number;
+  retries: number;
+  latencySamples: number;
+  latencyTotalMs: number;
+  p95Ms: number;
+  cacheEligibleTokens: number;
+  cacheHitTokens: number;
+  retrievalPayloadTokens: number;
+  duplicateContextTokens: number;
+  contextTokens: number;
+  promptReuseSessions: number;
+  cacheableSessions: number;
+  downshiftCandidates: number;
+  downshiftWins: number;
+  unnecessaryWebCalls: number;
+  retryLoops: number;
+  verboseOutputs: number;
+  delegationCount: number;
+  subagentSpend: number;
+  subagentSavings: number;
+  scheduledJobs: number;
+  regressionSessions: number;
+  changeMomentum: number;
+};
+
+type CostClawKpiSnapshot = {
+  primary: Array<{ label: string; value: string; sub?: string }>;
+  secondary: Array<{ label: string; value: string; sub?: string }>;
+};
+
+const buildWorkflowKey = (session: UsageSessionEntry): string => {
+  const parts = [
+    session.channel,
+    session.chatType ?? session.origin?.chatType,
+    session.modelProvider ?? session.providerOverride ?? session.origin?.provider,
+  ].filter(Boolean);
+  return parts.length > 0 ? parts.join(" / ") : "unknown";
+};
+
+const getSessionContextTokens = (session: UsageSessionEntry): number => {
+  const context = session.contextWeight;
+  if (!context) {
+    return 0;
+  }
+  const totalChars =
+    (context.systemPrompt?.chars ?? 0) +
+    (context.skills?.promptChars ?? 0) +
+    (context.tools?.listChars ?? 0) +
+    (context.tools?.schemaChars ?? 0) +
+    (context.injectedWorkspaceFiles ?? []).reduce(
+      (sum, file) => sum + (file.injectedChars ?? 0),
+      0,
+    );
+  return charsToTokens(totalChars);
+};
+
+const buildCostClawWorkflowMetrics = (sessions: UsageSessionEntry[]): CostClawWorkflowMetrics[] => {
+  const byWorkflow = new Map<string, CostClawWorkflowMetrics>();
+
+  for (const session of sessions) {
+    const usage = session.usage;
+    if (!usage) {
+      continue;
+    }
+    const workflow = buildWorkflowKey(session);
+    const metrics = byWorkflow.get(workflow) ?? {
+      workflow,
+      sessions: 0,
+      successfulTasks: 0,
+      totalTokens: 0,
+      totalCost: 0,
+      toolCalls: 0,
+      retries: 0,
+      latencySamples: 0,
+      latencyTotalMs: 0,
+      p95Ms: 0,
+      cacheEligibleTokens: 0,
+      cacheHitTokens: 0,
+      retrievalPayloadTokens: 0,
+      duplicateContextTokens: 0,
+      contextTokens: 0,
+      promptReuseSessions: 0,
+      cacheableSessions: 0,
+      downshiftCandidates: 0,
+      downshiftWins: 0,
+      unnecessaryWebCalls: 0,
+      retryLoops: 0,
+      verboseOutputs: 0,
+      delegationCount: 0,
+      subagentSpend: 0,
+      subagentSavings: 0,
+      scheduledJobs: 0,
+      regressionSessions: 0,
+      changeMomentum: 0,
+    };
+
+    const totalMessages = usage.messageCounts?.total ?? 0;
+    const errorCount = usage.messageCounts?.errors ?? 0;
+    const toolCalls = usage.toolUsage?.totalCalls ?? usage.messageCounts?.toolCalls ?? 0;
+    const retryCount = Math.max(errorCount, Math.max(totalMessages - 2, 0));
+    const contextTokens = getSessionContextTokens(session);
+    const duplicateContextTokens = Math.max(contextTokens - usage.input, 0);
+    const retrievalPayloadTokens = Math.max(contextTokens - usage.cacheRead, 0);
+    const likelyVerbose = usage.output > usage.input * 1.2 ? 1 : 0;
+    const hasWebHeavyMix = (session.channel === "web" ? 1 : 0) + (toolCalls > 0 ? 1 : 0);
+    const delegationCount = Math.max(
+      (session.agentId?.includes(":") ? 1 : 0) + (toolCalls > 3 ? 1 : 0),
+      0,
+    );
+    const scheduledJob = session.label?.toLowerCase().includes("cron") ? 1 : 0;
+
+    metrics.sessions += 1;
+    metrics.successfulTasks += errorCount === 0 ? 1 : 0;
+    metrics.totalTokens += usage.totalTokens;
+    metrics.totalCost += usage.totalCost;
+    metrics.toolCalls += toolCalls;
+    metrics.retries += retryCount;
+    metrics.cacheEligibleTokens += usage.input + usage.cacheRead;
+    metrics.cacheHitTokens += usage.cacheRead;
+    metrics.retrievalPayloadTokens += retrievalPayloadTokens;
+    metrics.duplicateContextTokens += duplicateContextTokens;
+    metrics.contextTokens += contextTokens;
+    metrics.promptReuseSessions += usage.cacheRead > 0 ? 1 : 0;
+    metrics.cacheableSessions += usage.input > 0 ? 1 : 0;
+    metrics.downshiftCandidates += usage.input > 4_000 ? 1 : 0;
+    metrics.downshiftWins +=
+      usage.input > 4_000 && usage.totalCost / Math.max(usage.totalTokens, 1) < 0.000002 ? 1 : 0;
+    metrics.unnecessaryWebCalls += hasWebHeavyMix > 1 ? 1 : 0;
+    metrics.retryLoops += retryCount > 1 ? 1 : 0;
+    metrics.verboseOutputs += likelyVerbose;
+    metrics.delegationCount += delegationCount;
+    metrics.subagentSpend += usage.totalCost * (delegationCount > 0 ? 0.35 : 0);
+    metrics.subagentSavings += usage.cacheReadCost + usage.cacheWriteCost;
+    metrics.scheduledJobs += scheduledJob;
+    metrics.regressionSessions += errorCount > 0 ? 1 : 0;
+    metrics.changeMomentum += usage.totalCost * (errorCount === 0 ? 1 : -1);
+
+    if (usage.latency) {
+      metrics.latencySamples += usage.latency.count;
+      metrics.latencyTotalMs += usage.latency.avgMs * usage.latency.count;
+      metrics.p95Ms = Math.max(metrics.p95Ms, usage.latency.p95Ms);
+    }
+
+    byWorkflow.set(workflow, metrics);
+  }
+
+  return Array.from(byWorkflow.values()).toSorted((a, b) => b.totalCost - a.totalCost);
+};
+
+const formatPct = (value: number): string => `${(value * 100).toFixed(1)}%`;
+
+const buildCostClawSnapshots = (
+  sessions: UsageSessionEntry[],
+  totals: UsageTotals,
+  daily: CostDailyEntry[],
+): { kpis: CostClawKpiSnapshot; workflowMetrics: CostClawWorkflowMetrics[] } => {
+  const workflowMetrics = buildCostClawWorkflowMetrics(sessions);
+  const successfulTasks = sessions.filter(
+    (session) => (session.usage?.messageCounts?.errors ?? 0) === 0,
+  ).length;
+  const totalTasks = sessions.length || 1;
+  const totalToolCalls = sessions.reduce(
+    (sum, session) =>
+      sum + (session.usage?.toolUsage?.totalCalls ?? session.usage?.messageCounts?.toolCalls ?? 0),
+    0,
+  );
+  const totalRetries = workflowMetrics.reduce((sum, metric) => sum + metric.retries, 0);
+  const totalContextTokens = workflowMetrics.reduce((sum, metric) => sum + metric.contextTokens, 0);
+  const totalDuplicateContextTokens = workflowMetrics.reduce(
+    (sum, metric) => sum + metric.duplicateContextTokens,
+    0,
+  );
+  const totalRetrievalPayloadTokens = workflowMetrics.reduce(
+    (sum, metric) => sum + metric.retrievalPayloadTokens,
+    0,
+  );
+  const totalDelegation = workflowMetrics.reduce((sum, metric) => sum + metric.delegationCount, 0);
+  const totalSubagentSpend = workflowMetrics.reduce((sum, metric) => sum + metric.subagentSpend, 0);
+  const totalSubagentSavings = workflowMetrics.reduce(
+    (sum, metric) => sum + metric.subagentSavings,
+    0,
+  );
+  const scheduledJobSavings = workflowMetrics.reduce(
+    (sum, metric) => sum + metric.scheduledJobs * (metric.totalCost / Math.max(metric.sessions, 1)),
+    0,
+  );
+  const cacheHitRate =
+    totals.input + totals.cacheRead > 0 ? totals.cacheRead / (totals.input + totals.cacheRead) : 0;
+  const avgDailyCost = daily.length > 0 ? totals.totalCost / daily.length : 0;
+  const avgCostPerWorkflow =
+    workflowMetrics.length > 0
+      ? workflowMetrics.reduce(
+          (sum, metric) => sum + metric.totalCost / Math.max(metric.sessions, 1),
+          0,
+        ) / workflowMetrics.length
+      : 0;
+  const avgLatencyMs =
+    workflowMetrics.reduce((sum, metric) => sum + metric.latencyTotalMs, 0) /
+    Math.max(
+      workflowMetrics.reduce((sum, metric) => sum + metric.latencySamples, 0),
+      1,
+    );
+  const kpis: CostClawKpiSnapshot = {
+    primary: [
+      {
+        label: "total_tokens_per_day",
+        value: formatTokens(
+          Math.round(daily.length ? totals.totalTokens / daily.length : totals.totalTokens),
+        ),
+        sub: `${formatTokens(totals.totalTokens)} total`,
+      },
+      {
+        label: "total_cost_per_day",
+        value: formatCost(avgDailyCost, 4),
+        sub: `${formatCost(totals.totalCost)} total`,
+      },
+      {
+        label: "cost_per_successful_task",
+        value: formatCost(totals.totalCost / Math.max(successfulTasks, 1), 4),
+        sub: `${successfulTasks} successful tasks`,
+      },
+      {
+        label: "avg_context_tokens_by_workflow",
+        value: formatTokens(Math.round(totalContextTokens / Math.max(workflowMetrics.length, 1))),
+        sub: `${workflowMetrics.length} workflows`,
+      },
+      {
+        label: "avg_model_cost_by_workflow",
+        value: formatCost(avgCostPerWorkflow, 4),
+        sub: "Derived from workflow cost / sessions",
+      },
+      {
+        label: "avg_tool_calls_per_task",
+        value: (totalToolCalls / totalTasks).toFixed(2),
+        sub: `${totalToolCalls} tool calls`,
+      },
+      {
+        label: "retries_per_100_tasks",
+        value: ((totalRetries / totalTasks) * 100).toFixed(1),
+        sub: `${totalRetries} retries inferred`,
+      },
+      {
+        label: "cache_hit_rate",
+        value: formatPct(cacheHitRate),
+        sub: `${formatTokens(totals.cacheRead)} cache read tokens`,
+      },
+      {
+        label: "retrieval_payload_tokens",
+        value: formatTokens(totalRetrievalPayloadTokens),
+        sub: "Approximated from injected context",
+      },
+      {
+        label: "delegation_count_per_task",
+        value: (totalDelegation / totalTasks).toFixed(2),
+        sub: `${totalDelegation} delegated spans inferred`,
+      },
+      {
+        label: "latency_by_workflow",
+        value: `${Math.round(avgLatencyMs)} ms`,
+        sub: `${workflowMetrics.filter((metric) => metric.latencySamples > 0).length} workflows with latency`,
+      },
+      {
+        label: "subagent_roi",
+        value: formatPct(
+          (totalSubagentSavings - totalSubagentSpend) / Math.max(totalSubagentSpend || 1, 1),
+        ),
+        sub: `${formatCost(totalSubagentSavings)} savings vs ${formatCost(totalSubagentSpend)} spend`,
+      },
+      {
+        label: "realized_savings",
+        value: formatCost(totals.cacheReadCost + totals.cacheWriteCost, 4),
+        sub: "Cache savings only",
+      },
+      {
+        label: "regressions_introduced",
+        value: `${sessions.filter((session) => (session.usage?.messageCounts?.errors ?? 0) > 0).length}`,
+        sub: "Sessions with errors in range",
+      },
+    ],
+    secondary: [
+      {
+        label: "prompt_reuse_rate",
+        value: formatPct(
+          workflowMetrics.reduce((sum, metric) => sum + metric.promptReuseSessions, 0) / totalTasks,
+        ),
+        sub: "Sessions with cache read tokens",
+      },
+      {
+        label: "duplicate_context_rate",
+        value: formatPct(totalDuplicateContextTokens / Math.max(totalContextTokens || 1, 1)),
+        sub: "Estimated duplicate injected context",
+      },
+      {
+        label: "cacheable_request_rate",
+        value: formatPct(
+          workflowMetrics.reduce((sum, metric) => sum + metric.cacheableSessions, 0) / totalTasks,
+        ),
+        sub: "Sessions with prompt tokens",
+      },
+      {
+        label: "model_downshift_success_rate",
+        value: formatPct(
+          workflowMetrics.reduce((sum, metric) => sum + metric.downshiftWins, 0) /
+            Math.max(
+              workflowMetrics.reduce((sum, metric) => sum + metric.downshiftCandidates, 0),
+              1,
+            ),
+        ),
+        sub: "Low-cost large-context sessions",
+      },
+      {
+        label: "unnecessary_web_call_rate",
+        value: formatPct(
+          workflowMetrics.reduce((sum, metric) => sum + metric.unnecessaryWebCalls, 0) / totalTasks,
+        ),
+        sub: "Heuristic, browser-heavy sessions",
+      },
+      {
+        label: "retry_loop_incidence",
+        value: formatPct(
+          workflowMetrics.reduce((sum, metric) => sum + metric.retryLoops, 0) / totalTasks,
+        ),
+        sub: "Sessions with >1 inferred retry",
+      },
+      {
+        label: "output_verbosity_ratio",
+        value: (totals.output / Math.max(totals.input, 1)).toFixed(2),
+        sub: "Output tokens / input tokens",
+      },
+      {
+        label: "scheduled_job_roi",
+        value: formatPct(
+          (scheduledJobSavings - totalSubagentSpend * 0.15) /
+            Math.max(totalSubagentSpend * 0.15 || 1, 1),
+        ),
+        sub: "Heuristic from cron-labeled sessions",
+      },
+    ],
+  };
+
+  return { kpis, workflowMetrics };
+};
+
+function renderKpiList(
+  title: string,
+  items: Array<{ label: string; value: string; sub?: string }>,
+) {
+  return html`
+    <div class="usage-insight-card">
+      <div class="usage-insight-title">${title}</div>
+      <div class="usage-list">
+        ${items.map(
+          (item) => html`
+            <div class="usage-list-item">
+              <span><code>${item.label}</code></span>
+              <span class="usage-list-value">
+                <span>${item.value}</span>
+                ${item.sub ? html`<span class="usage-list-sub">${item.sub}</span>` : nothing}
+              </span>
+            </div>
+          `,
+        )}
+      </div>
+    </div>
+  `;
+}
+
+function renderSimpleMetricTable(
+  title: string,
+  headers: string[],
+  rows: string[][],
+  emptyLabel: string,
+) {
+  return html`
+    <div class="card" style="margin-top: 16px; overflow-x: auto;">
+      <div class="card-title">${title}</div>
+      ${
+        rows.length === 0
+          ? html`<div class="muted">${emptyLabel}</div>`
+          : html`
+              <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                <thead>
+                  <tr>
+                    ${headers.map(
+                      (header) =>
+                        html`<th style="text-align: left; padding: 8px; border-bottom: 1px solid var(--border-color);">${header}</th>`,
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rows.map(
+                    (row) => html`
+                      <tr>
+                        ${row.map(
+                          (cell) =>
+                            html`<td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.06); vertical-align: top;">${cell}</td>`,
+                        )}
+                      </tr>
+                    `,
+                  )}
+                </tbody>
+              </table>
+            `
+      }
+    </div>
+  `;
+}
+
+function renderCostClawViews(
+  sessions: UsageSessionEntry[],
+  totals: UsageTotals | null,
+  aggregates: UsageAggregates,
+  daily: CostDailyEntry[],
+) {
+  if (!totals) {
+    return nothing;
+  }
+
+  const { kpis, workflowMetrics } = buildCostClawSnapshots(sessions, totals, daily);
+  const wasteRows = workflowMetrics
+    .map((metric) => [
+      metric.workflow,
+      formatCost(metric.totalCost),
+      formatTokens(metric.duplicateContextTokens + metric.retrievalPayloadTokens),
+      `${metric.retries}`,
+      `${metric.unnecessaryWebCalls}`,
+    ])
+    .toSorted((a, b) => Number.parseFloat(b[1].slice(1)) - Number.parseFloat(a[1].slice(1)))
+    .slice(0, 10);
+  const roiRows = workflowMetrics
+    .map((metric) => {
+      const roi =
+        (metric.subagentSavings + metric.cacheHitTokens / 1_000_000 - metric.subagentSpend) /
+        Math.max(metric.totalCost || 1, 1);
+      return [
+        metric.workflow,
+        formatPct(roi),
+        formatCost(metric.subagentSavings),
+        formatCost(metric.subagentSpend),
+        `${metric.retries}`,
+      ];
+    })
+    .toSorted((a, b) => Number.parseFloat(b[1]) - Number.parseFloat(a[1]))
+    .slice(0, 10);
+  const recentEffectRows = daily.slice(-7).map((day, index, arr) => {
+    const prev = arr[index - 1];
+    const deltaCost = prev ? day.totalCost - prev.totalCost : 0;
+    const deltaTokens = prev ? day.totalTokens - prev.totalTokens : 0;
+    return [
+      day.date,
+      formatCost(day.totalCost),
+      `${deltaCost >= 0 ? "+" : ""}${formatCost(deltaCost)}`,
+      `${deltaTokens >= 0 ? "+" : ""}${formatTokens(deltaTokens)}`,
+      `${day.totalTokens > 0 ? formatCost(day.totalCost / day.totalTokens, 6) : "$0.000000"}`,
+    ];
+  });
+  const regressionRows = workflowMetrics
+    .filter((metric) => metric.regressionSessions > 0)
+    .map((metric) => [
+      metric.workflow,
+      `${metric.regressionSessions}`,
+      `${metric.retries}`,
+      `${metric.retryLoops}`,
+      `${metric.changeMomentum.toFixed(4)}`,
+    ])
+    .slice(0, 10);
+  const subagentRows = workflowMetrics
+    .filter((metric) => metric.delegationCount > 0)
+    .map((metric) => [
+      metric.workflow,
+      `${metric.delegationCount}`,
+      formatCost(metric.subagentSpend),
+      formatCost(metric.subagentSavings),
+      formatPct(
+        (metric.subagentSavings - metric.subagentSpend) / Math.max(metric.subagentSpend || 1, 1),
+      ),
+    ]);
+  const workflowRows = workflowMetrics.map((metric) => [
+    metric.workflow,
+    `${metric.sessions}`,
+    formatTokens(metric.totalTokens),
+    formatCost(metric.totalCost),
+    metric.latencySamples > 0
+      ? `${Math.round(metric.latencyTotalMs / metric.latencySamples)} ms`
+      : "—",
+  ]);
+  const routingRows = workflowMetrics.map((metric) => [
+    metric.workflow,
+    formatCost(metric.totalCost / Math.max(metric.sessions, 1), 4),
+    formatTokens(Math.round(metric.totalTokens / Math.max(metric.sessions, 1))),
+    formatPct(metric.downshiftWins / Math.max(metric.downshiftCandidates, 1)),
+    formatPct(metric.cacheHitTokens / Math.max(metric.cacheEligibleTokens, 1)),
+  ]);
+
+  return html`
+    <section class="card" style="margin-top: 16px;">
+      <div class="card-title">CostClaw KPI Spec</div>
+      <div class="callout" style="margin-top: 8px;">
+        These KPI views are derived from session logs and context-weight metadata. Metrics that need explicit task outcomes, retrieval payload accounting, or subagent billing are heuristic until backend event instrumentation lands.
+      </div>
+      <div class="usage-insights-grid">
+        ${renderKpiList("Primary KPIs", kpis.primary)}
+        ${renderKpiList("Secondary KPIs", kpis.secondary)}
+      </div>
+    </section>
+    ${renderSimpleMetricTable(
+      "Daily cost summary",
+      ["Date", "Cost", "Tokens", "Msgs", "Errors"],
+      daily.map((day) => [
+        day.date,
+        formatCost(day.totalCost),
+        formatTokens(day.totalTokens),
+        `${aggregates.daily.find((entry) => entry.date === day.date)?.messages ?? 0}`,
+        `${aggregates.daily.find((entry) => entry.date === day.date)?.errors ?? 0}`,
+      ]),
+      "No daily usage data",
+    )}
+    ${renderSimpleMetricTable("Top 10 waste sources", ["Workflow", "Cost", "Waste tokens", "Retries", "Web-heavy"], wasteRows, "No waste sources yet")}
+    ${renderSimpleMetricTable("Highest ROI fixes pending", ["Workflow", "ROI", "Savings", "Spend", "Retries"], roiRows, "No ROI candidates yet")}
+    ${renderSimpleMetricTable("Recent changes and measured effect", ["Date", "Cost", "Δ Cost", "Δ Tokens", "Cost/token"], recentEffectRows, "Need at least one day of data")}
+    ${renderSimpleMetricTable("Regressions introduced in last 7 days", ["Workflow", "Regression sessions", "Retries", "Retry loops", "Momentum"], regressionRows, "No regressions detected")}
+    ${renderSimpleMetricTable("Subagent ROI table", ["Workflow", "Delegations", "Spend", "Savings", "ROI"], subagentRows, "No delegated work inferred")}
+    ${renderSimpleMetricTable("Workflow cost breakdown", ["Workflow", "Sessions", "Tokens", "Cost", "Avg latency"], workflowRows, "No workflow data")}
+    ${renderSimpleMetricTable("Model routing efficiency table", ["Workflow", "Cost / session", "Tokens / session", "Downshift success", "Cache hit"], routingRows, "No routing data")}
+  `;
+}
+
 function renderSessionsCard(
   sessions: UsageSessionEntry[],
   selectedSessions: string[],
@@ -3141,6 +3674,8 @@ export function renderUsage(props: UsageProps) {
       displaySessionCount,
       totalSessions,
     )}
+
+    ${renderCostClawViews(aggregateSessions, displayTotals, activeAggregates, filteredDaily)}
 
     ${renderUsageMosaic(aggregateSessions, props.timeZone, props.selectedHours, props.onSelectHour)}
 
