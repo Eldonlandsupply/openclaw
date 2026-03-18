@@ -1,14 +1,21 @@
 import fs from "node:fs";
 import path from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { withTempHome } from "../../test/helpers/temp-home.js";
 import { ensureAuthProfileStore, listProfilesForProvider } from "../agents/auth-profiles.js";
 import {
   formatUsageReportLines,
   formatUsageSummaryLine,
+  __test,
   loadProviderUsageSummary,
   type UsageSummary,
 } from "./provider-usage.js";
+
+beforeEach(() => {
+  __test.providerUsageCache.clear();
+  vi.useRealTimers();
+  vi.clearAllMocks();
+});
 
 describe("provider usage formatting", () => {
   it("returns null when no usage is available", () => {
@@ -390,4 +397,110 @@ describe("provider usage loading", () => {
       }
     }
   });
+});
+
+it("caches default provider usage requests within TTL", async () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-01-07T00:00:00.000Z"));
+
+  const previousKey = process.env.MINIMAX_API_KEY;
+  process.env.MINIMAX_API_KEY = "minimax-test-token";
+  const originalFetch = globalThis.fetch;
+
+  const makeResponse = (status: number, body: unknown): Response => {
+    const payload = typeof body === "string" ? body : JSON.stringify(body);
+    const headers = typeof body === "string" ? undefined : { "Content-Type": "application/json" };
+    return new Response(payload, { status, headers });
+  };
+
+  globalThis.fetch = vi.fn<Parameters<typeof fetch>, ReturnType<typeof fetch>>(async () =>
+    makeResponse(200, {
+      base_resp: { status_code: 0, status_msg: "ok" },
+      data: {
+        total: 200,
+        remain: 50,
+        reset_at: "2026-01-07T05:00:00Z",
+        plan_name: "Coding Plan",
+      },
+    }),
+  );
+
+  try {
+    const a = await loadProviderUsageSummary({ providers: ["minimax"] });
+    const b = await loadProviderUsageSummary({ providers: ["minimax"] });
+
+    expect(a.providers[0]?.provider).toBe("minimax");
+    expect(b.providers[0]?.provider).toBe("minimax");
+    expect(vi.mocked(globalThis.fetch)).toHaveBeenCalledTimes(1);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (previousKey === undefined) {
+      delete process.env.MINIMAX_API_KEY;
+    } else {
+      process.env.MINIMAX_API_KEY = previousKey;
+    }
+  }
+});
+
+it("dedupes concurrent provider usage requests", async () => {
+  const previousKey = process.env.MINIMAX_API_KEY;
+  process.env.MINIMAX_API_KEY = "minimax-test-token";
+  const originalFetch = globalThis.fetch;
+
+  const makeResponse = (status: number, body: unknown): Response => {
+    const payload = typeof body === "string" ? body : JSON.stringify(body);
+    const headers = typeof body === "string" ? undefined : { "Content-Type": "application/json" };
+    return new Response(payload, { status, headers });
+  };
+
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+
+  globalThis.fetch = vi.fn<Parameters<typeof fetch>, ReturnType<typeof fetch>>(async () => {
+    await gate;
+    return makeResponse(200, {
+      base_resp: { status_code: 0, status_msg: "ok" },
+      data: {
+        total: 200,
+        remain: 50,
+        reset_at: "2026-01-07T05:00:00Z",
+        plan_name: "Coding Plan",
+      },
+    });
+  });
+
+  try {
+    const pending = Promise.all([
+      loadProviderUsageSummary({ providers: ["minimax"] }),
+      loadProviderUsageSummary({ providers: ["minimax"] }),
+    ]);
+
+    await Promise.resolve();
+    expect(vi.mocked(globalThis.fetch)).toHaveBeenCalledTimes(1);
+    release();
+    const [a, b] = await pending;
+    expect(a.providers[0]?.provider).toBe("minimax");
+    expect(b.providers[0]?.provider).toBe("minimax");
+    expect(vi.mocked(globalThis.fetch)).toHaveBeenCalledTimes(1);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (previousKey === undefined) {
+      delete process.env.MINIMAX_API_KEY;
+    } else {
+      process.env.MINIMAX_API_KEY = previousKey;
+    }
+  }
+});
+
+it("skips cache when request options need call-specific behavior", () => {
+  expect(__test.getProviderUsageCacheKey({ providers: ["minimax"] })).toBeDefined();
+  expect(
+    __test.getProviderUsageCacheKey({
+      auth: [{ provider: "minimax", token: "x" }],
+    }),
+  ).toBeNull();
+  expect(__test.getProviderUsageCacheKey({ agentDir: "/tmp/agent" })).toBeNull();
+  expect(__test.getProviderUsageCacheKey({ fetch: globalThis.fetch })).toBeNull();
 });
