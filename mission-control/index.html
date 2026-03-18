@@ -176,6 +176,30 @@
 .diff-b{background:rgba(232,76,61,.04);border:1px solid rgba(232,76,61,.15);border-radius:5px;padding:10px;font-size:10px;font-family:var(--mo);color:var(--t2);white-space:pre-wrap;max-height:160px;overflow-y:auto}
 .diff-a{background:rgba(39,174,96,.04);border:1px solid rgba(39,174,96,.15);border-radius:5px;padding:10px;font-size:10px;font-family:var(--mo);color:var(--t2);white-space:pre-wrap;max-height:160px;overflow-y:auto}
 .config-raw{background:var(--bg3);border:1px solid var(--bd);border-radius:5px;padding:12px;font-size:10px;font-family:var(--mo);color:var(--t2);white-space:pre-wrap;max-height:300px;overflow-y:auto;line-height:1.6}
+
+/* ── Phase 4 additions ── */
+.rl-item{display:flex;align-items:center;gap:8px;padding:6px 9px;background:var(--bg3);border:1px solid var(--bd);border-radius:5px}
+.rl-ts{font-size:9px;color:var(--t3);font-family:var(--mo);flex-shrink:0;min-width:80px}
+.rl-dur{font-size:9px;font-family:var(--mo);color:var(--t2);flex-shrink:0;min-width:45px;text-align:right}
+.rl-summary{font-size:10px;color:var(--t2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rl-err{font-size:9px;color:var(--acc);margin-top:1px}
+.bar-wrap{height:4px;background:var(--bd);border-radius:2px;overflow:hidden;margin-top:3px}
+.bar-fill{height:100%;border-radius:2px;transition:width .3s}
+.node-card{background:var(--bg3);border:1px solid var(--bd);border-radius:6px;padding:9px 11px;display:flex;align-items:flex-start;gap:9px;cursor:pointer;transition:border-color .12s}
+.node-card:hover{border-color:var(--b2)}.node-card.on{border-color:var(--acc)}
+.node-icon{width:30px;height:30px;background:var(--bg4);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.cap{font-size:8px;font-family:var(--mo);background:var(--bg4);color:var(--t2);border:1px solid var(--bd);border-radius:2px;padding:1px 4px}
+.log-wrap{background:var(--bg3);border:1px solid var(--bd);border-radius:5px;overflow:hidden}
+.log-bar{padding:7px 9px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.log-out{height:340px;overflow-y:auto;padding:7px 9px;font-family:var(--mo);font-size:10px;line-height:1.5}
+.log-out::-webkit-scrollbar{width:3px}.log-out::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+.ll{margin-bottom:1px;white-space:pre-wrap;word-break:break-all}
+.ll.info{color:var(--t2)}.ll.warn{color:var(--yw2)}.ll.error,.ll.fatal{color:var(--acc)}.ll.debug,.ll.trace{color:var(--t3)}
+.ll .ts{color:var(--t3);margin-right:5px}.ll .lv{margin-right:5px;font-weight:600}.ll .sub{color:var(--pu2);margin-right:5px}
+.daily-row{display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid var(--bd)}
+.d-date{font-size:9px;color:var(--t3);font-family:var(--mo);width:78px;flex-shrink:0}
+.d-cost{font-size:10px;font-family:var(--mo);width:65px;text-align:right;flex-shrink:0}
+.d-tok{font-size:9px;color:var(--t3);width:70px;text-align:right;flex-shrink:0}
 </style>
 </head>
 <body><div id="root"></div>
@@ -938,6 +962,8 @@ function CronEditModal({job,onClose,onUpdated,client,isDemo}){
       h('div',{className:'sep'}),
       h('div',{className:'field'},h('label',null,'Payload message/text'),h('textarea',{value:msg,onChange:e=>setMsg(e.target.value),rows:3})),
       h('div',{className:'row',style:{gap:10}},h('label',{className:'row',style:{gap:5,cursor:'pointer'}},h('input',{type:'checkbox',checked:en,onChange:e=>setEn(e.target.checked)}),h('span',{style:{fontSize:11}},'Enabled'))),
+      h('div',{style:{fontWeight:600,fontSize:10,color:'var(--t2)',fontFamily:'var(--sa)',margin:'8px 0 4px'}},'Run History'),
+      h(CronRunHistory,{jobId:job.id,client,isDemo}),
       h('div',{className:'br',style:{justifyContent:'space-between'}},
         h('div',{className:'br'},h('button',{className:'btn bto bts',onClick:run,disabled:ld},'▶ Run Now'),h('button',{className:'btn btd bts',onClick:remove,disabled:ld},'Delete')),
         h('div',{className:'br'},h('button',{className:'btn',onClick:onClose},'Cancel'),h('button',{className:'btn btp',onClick:save,disabled:ld},ld?'Saving…':'Save'))
@@ -1163,6 +1189,7 @@ function App(){
   const[auditLog,setAuditLog]=useState(ALOG);
   const[configRaw,setConfigRaw]=useState(null);const[configHash,setConfigHash]=useState(null);const[configLd,setConfigLd]=useState(false);
   const[configSchema,setConfigSchema]=useState(null);
+  const[nodes,setNodes]=useState([]);const[nodesLd,setNodesLd]=useState(false);
 
   useEffect(()=>{const t=setInterval(()=>setAuditLog([...ALOG]),2000);return()=>clearInterval(t);},[]);
 
@@ -1190,6 +1217,15 @@ function App(){
   const loadConfig=useCallback(async()=>{
     if(isDemo)return;if(!client)return;setConfigLd(true);
     try{const r=await client.req('config.get',{});setConfigRaw(r.raw||JSON.stringify(r.config||{}));setConfigHash(r.hash);}catch{}setConfigLd(false);
+  },[client,isDemo]);
+
+  const loadNodes=useCallback(async()=>{
+    setNodesLd(true);
+    if(isDemo){setNodes(MNODES);setNodesLd(false);return;}
+    if(!client){setNodesLd(false);return;}
+    try{const r=await client.req('node.list',{});setNodes(r.nodes||[]);}
+    catch{setNodes(MNODES);}
+    setNodesLd(false);
   },[client,isDemo]);
 
   const loadProjects=useCallback(async()=>{
@@ -1223,15 +1259,16 @@ function App(){
       gc.req('sessions.list',{limit:50}).then(r=>setSessions(r.sessions||[])).catch(()=>setSessions(MSESS)),
       gc.req('config.get',{}).then(r=>{setConfigRaw(r.raw||JSON.stringify(r.config||{}));setConfigHash(r.hash);}).catch(()=>{}),
       gc.req('config.schema',{}).then(r=>setConfigSchema(r)).catch(()=>{}),
+      gc.req('node.list',{}).then(r=>setNodes(r.nodes||[])).catch(()=>{}),
     ]);
   },[loadAgents]);
 
   const enterDemo=useCallback(()=>{
     setIsDemo(true);setGwSt('disconnected');setView('main');loadAgents(null,true);
-    setHealth(MHLTH);setCronJobs(MCRON);setSessions(MSESS);
+    setHealth(MHLTH);setCronJobs(MCRON);setSessions(MSESS);setNodes(MNODES);
   },[loadAgents]);
 
-  const doDisconnect=useCallback(()=>{client?.disconnect();setClient(null);setView('connect');setGwSt('disconnected');setAgents([]);setSelId(null);setHealth(null);setCronJobs([]);setSessions([]);setConfigRaw(null);setConfigHash(null);},[client]);
+  const doDisconnect=useCallback(()=>{client?.disconnect();setClient(null);setView('connect');setGwSt('disconnected');setAgents([]);setSelId(null);setHealth(null);setCronJobs([]);setSessions([]);setConfigRaw(null);setConfigHash(null);setNodes([]);},[client]);
 
   const filtered=useMemo(()=>{if(!filter.trim())return agents;const q=filter.toLowerCase();return agents.filter(a=>aLbl(a).toLowerCase().includes(q)||a.id.toLowerCase().includes(q));},[agents,filter]);
   const selAgent=useMemo(()=>agents.find(a=>a.id===selId)||null,[agents,selId]);
@@ -1244,11 +1281,13 @@ function App(){
     if(nav==='sessions')return sessions.map(s=>h('div',{key:s.key,className:'si'},h('div',{className:'sav'},'💬'),h('div',{className:'f1',style:{minWidth:0}},h('div',{className:'sn'},s.agentId||s.key),h('div',{className:'ss'},fmtT(s.updatedAt||s.updatedAtMs)))));
     if(nav==='projects')return (projects||[]).map(p=>h('div',{key:p.slug,className:'si'},h('div',{className:'sav'},'◉'),h('div',{className:'f1',style:{minWidth:0}},h('div',{className:'sn'},p.name||p.slug),h('div',{className:'ss'},p.slug))));
     if(nav==='topology')return agents.map(a=>h('div',{key:a.id,className:'si'},h('div',{className:'sav'},aEmoji(a)),h('div',{className:'f1',style:{minWidth:0}},h('div',{className:'sn'},aLbl(a)),h('div',{className:'ss'},'↔ all'))));
-    if(nav==='config')return[h('div',{key:'cfg',className:'si'},h('div',{className:'sav'},'⚙'),h('div',{className:'f1',style:{minWidth:0}},h('div',{className:'sn'},'Config Editor'),h('div',{className:'ss'},'schema form + raw patch')))];
+    if(nav==='nodes')return nodes.map(n=>h('div',{key:n.nodeId,className:'si'},h('div',{className:'sav'},nodePlatformIcon(n.platform)),h('div',{className:'f1',style:{minWidth:0}},h('div',{className:'sn'},n.displayName||n.nodeId),h('div',{className:'ss'},n.connected?'connected':'offline')),h('div',{className:`sd ${n.connected?'on':''}`})));
+    if(nav==='usage')return[h('div',{key:'c',className:'si'},h('div',{className:'sav'},'💰'),h('div',{className:'f1',style:{minWidth:0}},h('div',{className:'sn'},'Cost & Usage'),h('div',{className:'ss'},'usage.cost · usage.status'))),h('div',{key:'l',className:'si'},h('div',{className:'sav'},'📄'),h('div',{className:'f1',style:{minWidth:0}},h('div',{className:'sn'},'Gateway Logs'),h('div',{className:'ss'},'logs.tail live poll')))];
+        if(nav==='config')return[h('div',{key:'cfg',className:'si'},h('div',{className:'sav'},'⚙'),h('div',{className:'f1',style:{minWidth:0}},h('div',{className:'sn'},'Config Editor'),h('div',{className:'ss'},'schema form + raw patch')))];
     return[h('div',{key:'ov',className:'si'},h('div',{className:'sav'},'▤'),h('div',{className:'f1',style:{minWidth:0}},h('div',{className:'sn'},'Fleet Overview'),h('div',{className:'ss'},'stats, health, audit')))];
   };
 
-  const topTitle=nav==='agent'&&selAgent?aLbl(selAgent):nav==='topology'?'Topology':nav==='cron'?'Cron Jobs':nav==='sessions'?'Sessions':nav==='config'?'Config Editor':nav==='projects'?'Projects':nav==='fleet'?'Agent Fleet':'Overview';
+  const topTitle=nav==='agent'&&selAgent?aLbl(selAgent):nav==='topology'?'Topology':nav==='cron'?'Cron Jobs':nav==='sessions'?'Sessions':nav==='config'?'Config Editor':nav==='nodes'?'Nodes':nav==='usage'?'Usage & Logs':nav==='projects'?'Projects':nav==='fleet'?'Agent Fleet':'Overview';
 
   return h('div',{className:'shell'},
     h('div',{className:'rail'},
@@ -1258,13 +1297,15 @@ function App(){
       h('button',{className:`rb ${nav==='topology'?'on':''}`,title:'Topology',onClick:()=>setNav('topology')},'⬡'),
       h('button',{className:`rb ${nav==='cron'?'on':''}`,title:'Cron',onClick:()=>{setNav('cron');loadCron();}},'⏰'),
       h('button',{className:`rb ${nav==='sessions'?'on':''}`,title:'Sessions',onClick:()=>{setNav('sessions');loadSessions();}},'💬'),
-      h('button',{className:`rb ${nav==='config'?'on':''}`,title:'Config',onClick:()=>{setNav('config');}},'⚙'),
+      h('button',{className:`rb ${nav==='nodes'?'on':''}`,title:'Nodes',onClick:()=>{setNav('nodes');loadNodes();}},'📡'),
+      h('button',{className:`rb ${nav==='usage'?'on':''}`,title:'Usage & Logs',onClick:()=>setNav('usage')},'📊'),
+            h('button',{className:`rb ${nav==='config'?'on':''}`,title:'Config',onClick:()=>{setNav('config');}},'⚙'),
       h('div',{className:'rsp'}),
       h('button',{className:`rb ${nav==='projects'?'on':''}`,title:'Projects',onClick:()=>{setNav('projects');loadProjects();}},'◉'),
       h('button',{className:'rb',title:'Disconnect',onClick:doDisconnect},'⏏')
     ),
     h('div',{className:'sb'},
-      h('div',{className:'sbh'},h('div',{className:'sbht'},nav==='topology'?'Topology':nav==='sessions'?'Sessions':nav==='cron'?'Cron':nav==='config'?'Config':nav==='projects'?'Projects':nav==='overview'?'Overview':'Agents'),h('div',{className:'sbhc'},`${agents.length} agents · ${isDemo?'demo':'live'}`)),
+      h('div',{className:'sbh'},h('div',{className:'sbht'},nav==='topology'?'Topology':nav==='sessions'?'Sessions':nav==='cron'?'Cron':nav==='config'?'Config':nav==='nodes'?'Nodes':nav==='usage'?'Usage':nav==='projects'?'Projects':nav==='overview'?'Overview':'Agents'),h('div',{className:'sbhc'},`${agents.length} agents · ${isDemo?'demo':'live'}`)),
       (nav==='fleet'||nav==='agent')&&h('div',{className:'sbs'},h('input',{value:filter,onChange:e=>setFilter(e.target.value),placeholder:'Search agents…'})),
       h('div',{className:'sbl'},sbItems()),
       (nav==='fleet'||nav==='agent')&&h('button',{className:'sbadd',onClick:()=>setShowCreate(true)},'+ New Agent')
@@ -1283,12 +1324,374 @@ function App(){
         nav==='cron'?h(CronTab,{cronJobs,setCronJobs,loading:cronLd,onLoad:loadCron,agents,client,isDemo}):
         nav==='sessions'?h(SessionsTab,{sessions,loading:sessLd,onLoad:loadSessions,client,isDemo}):
         nav==='config'?h(ConfigSchemaForm,{configRaw,configHash,configSchema,client,isDemo,onRefresh:loadConfig}):
-        nav==='projects'?h(ProjectsTab,{projects,loading:projectsLd}):
+        nav==='nodes'?h(NodesTab,{nodes,loading:nodesLd,onLoad:loadNodes,client,isDemo}):
+        nav==='usage'?h(UsageLogsWrapper,{client,isDemo}):
+                nav==='projects'?h(ProjectsTab,{projects,loading:projectsLd}):
         h(OverviewTab,{agents,cronJobs,sessions,health,healthLoading:healthLd,onRefreshHealth:loadHealth,isDemo,auditLog})
       )
     ),
     showCreate&&h(CreateModal,{onClose:()=>setShowCreate(false),onCreate:a=>{setAgents(p=>[...p,a]);setSelId(a.id);setNav('agent');setShowCreate(false);},client,isDemo}),
     isDemo&&h('div',{className:'cbanner'},h('div',{className:'sdot yw'}),h('div',{className:'cbtx'},h('div',{style:{fontWeight:600,fontSize:11}},'Demo Mode'),h('div',{style:{fontSize:9,color:'var(--t3)',marginTop:2}},'Simulating gateway. Nothing persisted.')),h('button',{className:'cbcl',onClick:doDisconnect},'✕'))
+  );
+}
+
+// ── PHASE 4 MOCK DATA ────────────────────────────────────────────
+const MNODES=[
+  {nodeId:'node-iphone-a1b2',displayName:"Eldon's iPhone",platform:'ios',version:'1.2.0',connected:true,paired:true,connectedAtMs:Date.now()-3600000,caps:['camera','location','sms'],commands:['camera.capture','location.get']},
+  {nodeId:'node-pi-server',displayName:'Pi Home Server',platform:'linux-arm',version:'1.1.0',connected:false,paired:true,connectedAtMs:Date.now()-259200000,caps:['exec','screen'],commands:['exec.run']},
+];
+const MCRON_RUNS={
+  'job-001':[
+    {ts:Date.now()-86400000,jobId:'job-001',action:'finished',status:'ok',durationMs:4200,summary:'Briefing: 3 tasks, 2 calendar events, 1 PR needing review.',sessionKey:'main:main'},
+    {ts:Date.now()-172800000,jobId:'job-001',action:'finished',status:'ok',durationMs:3800,summary:'Briefing: 5 tasks, standup at 10am.',sessionKey:'main:main'},
+    {ts:Date.now()-259200000,jobId:'job-001',action:'finished',status:'error',error:'Agent timeout after 30s',durationMs:30000},
+    {ts:Date.now()-345600000,jobId:'job-001',action:'finished',status:'ok',durationMs:4100,summary:'Briefing delivered.'},
+  ],
+  'job-002':[
+    {ts:Date.now()-900000,jobId:'job-002',action:'finished',status:'ok',durationMs:1800,summary:'All systems healthy. Gateway 12ms.'},
+    {ts:Date.now()-1800000,jobId:'job-002',action:'finished',status:'ok',durationMs:1750},
+    {ts:Date.now()-2700000,jobId:'job-002',action:'finished',status:'ok',durationMs:1900},
+  ],
+  'job-003':[
+    {ts:Date.now()-172800000,jobId:'job-003',action:'finished',status:'ok',durationMs:9600,summary:'Reviewed 2 PRs. One issue found.'},
+  ],
+};
+const MUSAGE_MOCK={
+  updatedAt:Date.now(),days:14,
+  daily:Array.from({length:14},(_,i)=>{
+    const d=new Date(Date.now()-(13-i)*86400000);
+    const date=d.toISOString().slice(0,10);
+    const tok=Math.floor(Math.random()*80000+5000);
+    const cost=parseFloat((tok*0.000015).toFixed(4));
+    return{date,totalTokens:tok,totalCost:cost,input:Math.floor(tok*.7),output:Math.floor(tok*.3),inputCost:parseFloat((cost*.6).toFixed(4)),outputCost:parseFloat((cost*.4).toFixed(4)),cacheRead:0,cacheWrite:0,cacheReadCost:0,cacheWriteCost:0,missingCostEntries:0};
+  }),
+  totals:{totalTokens:850000,totalCost:12.75,input:595000,output:255000,inputCost:7.65,outputCost:5.10,cacheRead:0,cacheWrite:0,cacheReadCost:0,cacheWriteCost:0,missingCostEntries:2},
+};
+const MPROVIDER_MOCK={providers:[
+  {id:'anthropic',label:'Anthropic',requests:342,tokens:850000,cost:12.75,lastUsedAt:Date.now()-120000},
+]};
+const MLOG_LINES=[
+  '{"time":"2025-03-17T09:00:01.123Z","_meta":{"logLevelName":"INFO","name":"{\"subsystem\":\"gateway\"}"},"0":"Gateway started on :18789"}',
+  '{"time":"2025-03-17T09:00:02.001Z","_meta":{"logLevelName":"INFO","name":"{\"subsystem\":\"cron\"}"},"0":"Loaded 3 cron jobs"}',
+  '{"time":"2025-03-17T09:01:00.000Z","_meta":{"logLevelName":"INFO","name":"{\"subsystem\":\"agent\"}"},"0":"daily-brief started"}',
+  '{"time":"2025-03-17T09:01:04.200Z","_meta":{"logLevelName":"INFO","name":"{\"subsystem\":\"agent\"}"},"0":"daily-brief finished OK 4.2s"}',
+  '{"time":"2025-03-17T09:05:00.000Z","_meta":{"logLevelName":"WARN","name":"{\"subsystem\":\"health\"}"},"0":"Memory backend slow: 450ms"}',
+  '{"time":"2025-03-17T09:10:00.000Z","_meta":{"logLevelName":"DEBUG","name":"{\"subsystem\":\"ws\"}"},"0":"Client connected"}',
+];
+function parseLogLine(raw){
+  try{
+    const p=JSON.parse(raw);
+    const meta=p._meta||{};
+    let subsystem='';
+    try{const nm=JSON.parse(meta.name||'{}');subsystem=nm.subsystem||'';}catch{}
+    const level=(meta.logLevelName||'info').toLowerCase();
+    const msg=Object.keys(p).filter(k=>/^\d+$/.test(k)).map(k=>p[k]).join(' ')||p.message||raw;
+    const time=typeof p.time==='string'?p.time.slice(11,23):'';
+    return{raw,time,level,subsystem,message:msg};
+  }catch{return{raw,time:'',level:'info',subsystem:'',message:raw};}
+}
+const fmtCost=n=>(!n&&n!==0)?'-':'$'+n.toFixed(4);
+const fmtTok=n=>(!n&&n!==0)?'-':n>=1000000?`${(n/1000000).toFixed(1)}M`:n>=1000?`${(n/1000).toFixed(1)}K`:String(n);
+const nodePlatformIcon=p=>{if(!p)return'📱';const pl=p.toLowerCase();if(pl.includes('ios')||pl.includes('iphone'))return'📱';if(pl.includes('android'))return'🤖';if(pl.includes('mac'))return'💻';if(pl.includes('win'))return'🪟';return'📡';};
+
+// ── CSS additions for Phase 4 ─────────────────────────────────────
+
+// ══════════════════════════════════════════════════════════════════
+//  PHASE 4 COMPONENTS
+// ══════════════════════════════════════════════════════════════════
+
+// ── CronRunHistory — cron.runs {id, limit} → {entries} ───────────
+function CronRunHistory({jobId,client,isDemo}){
+  const[entries,setEntries]=useState(null);
+  const[loading,setLoading]=useState(false);
+  const load=useCallback(async()=>{
+    setLoading(true);
+    if(isDemo){setTimeout(()=>{setEntries(MCRON_RUNS[jobId]||[]);setLoading(false);},250);return;}
+    try{const r=await client.req('cron.runs',{id:jobId,limit:50});setEntries(r.entries||[]);}
+    catch{setEntries([]);}
+    setLoading(false);
+  },[jobId,client,isDemo]);
+  useEffect(()=>{load();},[load]);
+  if(loading&&entries===null)return h('div',{className:'row',style:{padding:8,gap:6}},h('span',{className:'spin'}),h('span',{style:{fontSize:10,color:'var(--t3)'}},'Loading run history…'));
+  if(!entries||entries.length===0)return h('div',{style:{fontSize:10,color:'var(--t3)',padding:'4px 0'}},'No run history yet.');
+  const maxDur=Math.max(...entries.map(e=>e.durationMs||0),1);
+  return h('div',{className:'col',style:{gap:5}},
+    h('div',{className:'row',style:{justifyContent:'space-between',marginBottom:2}},
+      h('span',{style:{fontSize:9,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'.07em'}},'Run History'),
+      h('button',{className:'btn btn-sm',onClick:load,disabled:loading},'Refresh')
+    ),
+    entries.map((e,i)=>h('div',{key:i,className:'rl-item'},
+      h('div',{className:`sdot ${e.status==='ok'?'on':e.status==='error'?'acc':'yellow'}`}),
+      h('div',{className:'rl-ts'},fmtT(e.ts)),
+      h('div',{className:'rl-dur',style:{color:e.status==='error'?'var(--acc)':e.status==='ok'?'var(--gr2)':'var(--t2)'}},e.durationMs?fmtMs(e.durationMs):'-'),
+      h('div',{style:{flex:1,minWidth:0}},
+        e.summary&&h('div',{className:'rl-summary',title:e.summary},e.summary),
+        e.error&&h('div',{className:'rl-err'},e.error),
+        e.durationMs&&h('div',{className:'bar-wrap'},h('div',{className:'bar-fill',style:{width:`${Math.round(e.durationMs/maxDur*100)}%`,background:e.status==='error'?'var(--acc)':e.status==='ok'?'var(--gr2)':'var(--yw2)'}}))
+      )
+    ))
+  );
+}
+
+// ── NodesTab — node.list + exec.approvals.node.get/set ─────────────
+function NodesTab({nodes,loading,onLoad,client,isDemo}){
+  const[sel,setSel]=useState(null);
+  const[snaps,setSnaps]=useState({});
+  const[snapLd,setSnapLd]=useState('');
+  const[snapMsg,setSnapMsg]=useState({});
+  const[newPat,setNewPat]=useState({});
+  const selNode=sel?nodes.find(n=>n.nodeId===sel):null;
+
+  const loadSnap=useCallback(async(nodeId)=>{
+    if(snaps[nodeId])return;
+    setSnapLd(nodeId);
+    if(isDemo){setSnaps(p=>({...p,[nodeId]:{path:'~/.openclaw/exec-approvals.json',exists:true,hash:'n0de456',file:{version:1,defaults:{security:'allowlist',ask:'on-miss'},agents:{}}}}));setSnapLd('');return;}
+    try{const r=await client.req('exec.approvals.node.get',{nodeId});setSnaps(p=>({...p,[nodeId]:r}));}
+    catch(e){setSnaps(p=>({...p,[nodeId]:{error:e.message}}));}
+    setSnapLd('');
+  },[client,isDemo,snaps]);
+
+  const savePat=(nodeId)=>{
+    const p=newPat[nodeId]||'';if(!p.trim())return;
+    setSnaps(prev=>{const s=prev[nodeId];if(!s||s.error)return prev;const f={...s.file,defaults:{...(s.file.defaults||{})}};const al=Array.isArray(f.defaults.allowlist)?[...f.defaults.allowlist]:[];f.defaults={...f.defaults,allowlist:[...al,{id:'p'+Date.now(),pattern:p.trim()}]};return{...prev,[nodeId]:{...s,file:f}};});
+    setNewPat(p=>({...p,[nodeId]:''}));
+  };
+  const rmPat=(nodeId,pat)=>{
+    setSnaps(prev=>{const s=prev[nodeId];if(!s||s.error)return prev;const f={...s.file,defaults:{...s.file.defaults,allowlist:(s.file.defaults?.allowlist||[]).filter(e=>e.pattern!==pat)}};return{...prev,[nodeId]:{...s,file:f}};});
+  };
+  const saveSnap=async(nodeId)=>{
+    const s=snaps[nodeId];if(!s||s.error)return;
+    setSnapLd(nodeId);
+    try{if(!isDemo&&client)await client.req('exec.approvals.node.set',{nodeId,file:s.file,baseHash:s.hash});pushA('update','exec.approvals.node.set',`${nodeId} updated`);setSnapMsg(m=>({...m,[nodeId]:'Saved ✓'}));}
+    catch(e){setSnapMsg(m=>({...m,[nodeId]:'Error: '+e.message}));}
+    setSnapLd('');
+  };
+
+  return h('div',{className:'g2',style:{alignItems:'start'}},
+    h('div',{className:'col',style:{gap:7}},
+      h('div',{className:'row',style:{justifyContent:'space-between'}},
+        h('span',{style:{fontSize:10,color:'var(--t3)'}},[`${nodes.filter(n=>n.connected).length} connected · ${nodes.length} paired`]),
+        h('button',{className:'btn btn-sm',onClick:onLoad,disabled:loading},'Refresh')
+      ),
+      nodes.length===0&&!loading?h('div',{className:'emp'},h('div',{className:'empi'},'📡'),h('div',{className:'empt'},'No nodes'),h('div',{className:'emps'},'Pair a device via openclaw devices pair'))
+      :nodes.map(node=>h('div',{key:node.nodeId,className:`node-card ${sel===node.nodeId?'on':''}`,onClick:()=>{setSel(sel===node.nodeId?null:node.nodeId);loadSnap(node.nodeId);}},
+        h('div',{className:'node-icon'},nodePlatformIcon(node.platform)),
+        h('div',{style:{flex:1,minWidth:0}},
+          h('div',{style:{fontSize:11,fontWeight:600,fontFamily:'var(--sa)'}},node.displayName||node.nodeId),
+          h('div',{style:{fontSize:9,color:'var(--t3)',fontFamily:'var(--mo)',marginTop:1}},node.nodeId.slice(0,22)+'…'),
+          h('div',{style:{display:'flex',gap:4,marginTop:4,flexWrap:'wrap'}},
+            h('span',{className:`pill ${node.connected?'po':'pd'}`},node.connected?'connected':'offline'),
+            node.platform&&h('span',{className:'pill pb'},node.platform),
+            node.version&&h('span',{className:'pill',style:{background:'var(--bg4)',color:'var(--t3)',border:'1px solid var(--bd)'}},node.version)
+          ),
+          node.caps?.length>0&&h('div',{style:{display:'flex',gap:3,marginTop:4,flexWrap:'wrap'}},node.caps.slice(0,4).map(c=>h('span',{key:c,className:'cap'},c)))
+        )
+      ))
+    ),
+    selNode?h('div',{className:'col',style:{gap:9}},
+      h('div',{className:'card'},
+        h('div',{className:'ch'},h('span',{className:'cht'},'Node Detail')),
+        h('div',{className:'cb'},h('div',{className:'kv'},
+          h('span',{className:'kl'},'Node ID'),h('span',{className:'kv-v'},selNode.nodeId),
+          h('span',{className:'kl'},'Platform'),h('span',{className:'kv-v'},selNode.platform||'-'),
+          h('span',{className:'kl'},'Version'),h('span',{className:'kv-v'},selNode.version||'-'),
+          h('span',{className:'kl'},'Remote IP'),h('span',{className:'kv-v'},selNode.remoteIp||'-'),
+          h('span',{className:'kl'},'Capabilities'),h('span',{className:'kv-v'},(selNode.caps||[]).join(', ')||'-'),
+          h('span',{className:'kl'},'Connected'),h('span',{className:'kv-v'},selNode.connectedAtMs?fmtT(selNode.connectedAtMs):(selNode.connected?'yes':'no'))
+        ))
+      ),
+      h('div',{className:'card'},
+        h('div',{className:'ch'},h('span',{className:'cht'},'Exec Approvals (Node)'),h('span',{className:'pill pb',style:{fontSize:9}},'exec.approvals.node.get/set')),
+        h('div',{className:'cb'},
+          (()=>{
+            const s=snaps[selNode.nodeId];
+            const msg=snapMsg[selNode.nodeId];
+            if(!s)return h('div',{style:{fontSize:10,color:'var(--t3)'}},'Loading…');
+            if(s.error)return h('div',{className:'callout err',style:{fontSize:10}},`Node unavailable: ${s.error}`);
+            const al=s.file?.defaults?.allowlist||[];
+            return h('div',{className:'col',style:{gap:9}},
+              msg&&h('div',{className:`callout ${msg.startsWith('Error')?'err':'ok'}`,style:{fontSize:10}},msg),
+              h('div',{className:'kv'},h('span',{className:'kl'},'Hash'),h('span',{className:'kv-v'},s.hash?.slice(0,12)||'-'),h('span',{className:'kl'},'Security'),h('span',{className:'kv-v'},s.file?.defaults?.security||'-')),
+              h('div',{style:{fontSize:10,fontWeight:600,color:'var(--t2)',fontFamily:'var(--sa)'}},'Allowlist Patterns'),
+              h('div',{className:'col',style:{gap:5}},al.map(e=>h('div',{key:e.id||e.pattern,className:'eal'},h('div',{style:{flex:1}},h('div',{className:'eap'},e.pattern)),h('button',{className:'btn btn-danger btn-sm',onClick:()=>rmPat(selNode.nodeId,e.pattern)},'✕')))),
+              h('div',{className:'row'},
+                h('input',{style:{flex:1,background:'var(--bg3)',border:'1px solid var(--bd)',borderRadius:4,padding:'5px 7px',color:'var(--tx)',fontFamily:'var(--mo)',fontSize:10,outline:'none'},value:newPat[selNode.nodeId]||'',onChange:e=>setNewPat(p=>({...p,[selNode.nodeId]:e.target.value})),placeholder:'e.g. git *',onKeyDown:e=>e.key==='Enter'&&savePat(selNode.nodeId)}),
+                h('button',{className:'btn btn-sm',onClick:()=>savePat(selNode.nodeId)},'+ Add')
+              ),
+              h('div',{className:'br',style:{justifyContent:'flex-end'}},h('button',{className:'btn btn-primary btn-sm',onClick:()=>saveSnap(selNode.nodeId),disabled:snapLd===selNode.nodeId},'Save'))
+            );
+          })()
+        )
+      )
+    ):h('div',{className:'card'},h('div',{className:'cb'},h('div',{className:'emp'},h('div',{className:'emps'},'← Select a node to inspect'))))
+  );
+}
+
+// ── LogsTab — logs.tail with cursor-based live polling ─────────────
+function LogsTab({client,isDemo}){
+  const[lines,setLines]=useState([]);
+  const[cursor,setCursor]=useState(null);
+  const[filePath,setFilePath]=useState('');
+  const[polling,setPolling]=useState(false);
+  const[filterTxt,setFilterTxt]=useState('');
+  const[levelFilter,setLevelFilter]=useState('');
+  const logRef=useRef(null);
+  const pollRef=useRef(null);
+  const autoScroll=useRef(true);
+
+  const fetchTail=useCallback(async(cur)=>{
+    if(isDemo){
+      const parsed=MLOG_LINES.map(parseLogLine);
+      setLines(parsed);setFilePath('~/.openclaw/openclaw.log');setCursor(999);return;
+    }
+    if(!client)return;
+    try{
+      const r=await client.req('logs.tail',{cursor:cur??undefined,limit:200,maxBytes:200000});
+      if(r.lines?.length>0){
+        const parsed=r.lines.map(parseLogLine);
+        setLines(prev=>cur===null?parsed:[...prev,...parsed].slice(-2000));
+        setCursor(r.cursor);setFilePath(r.file||'');
+        if(autoScroll.current&&logRef.current)logRef.current.scrollTop=logRef.current.scrollHeight;
+      }else{setCursor(r.cursor);}
+    }catch{}
+  },[client,isDemo]);
+
+  const start=()=>{setPolling(true);fetchTail(null);};
+  const stop=()=>{setPolling(false);if(pollRef.current)clearInterval(pollRef.current);};
+  useEffect(()=>{
+    if(polling){pollRef.current=setInterval(()=>fetchTail(cursor),3000);}
+    return()=>{if(pollRef.current)clearInterval(pollRef.current);};
+  },[polling,cursor,fetchTail]);
+
+  const shown=useMemo(()=>{
+    let l=lines;
+    if(levelFilter)l=l.filter(x=>x.level===levelFilter||x.level===levelFilter+'ing');
+    if(filterTxt.trim()){const q=filterTxt.toLowerCase();l=l.filter(x=>x.message.toLowerCase().includes(q)||x.subsystem.toLowerCase().includes(q));}
+    return l;
+  },[lines,levelFilter,filterTxt]);
+
+  const lvlCls=lv=>{const l=(lv||'').toLowerCase();if(l==='warn'||l==='warning')return'warn';if(l==='error'||l==='fatal')return'error';if(l==='debug'||l==='trace')return'debug';return'info';};
+
+  return h(Fragment,null,
+    h('div',{className:'log-wrap'},
+      h('div',{className:'log-bar'},
+        polling?h('button',{className:'btn btn-danger btn-sm',onClick:stop},'⏹ Stop'):h('button',{className:'btn btn-ok btn-sm',onClick:start},'▶ Live'),
+        h('button',{className:'btn btn-sm',onClick:()=>fetchTail(null)},'Reload'),
+        h('button',{className:'btn btn-sm',onClick:()=>{setLines([]);setCursor(null);}},  'Clear'),
+        h('input',{style:{flex:1,minWidth:100,background:'var(--bg-4,var(--bg3))',border:'1px solid var(--bd)',borderRadius:4,padding:'4px 7px',color:'var(--tx)',fontFamily:'var(--mo)',fontSize:10,outline:'none'},value:filterTxt,onChange:e=>setFilterTxt(e.target.value),placeholder:'Filter…'}),
+        h('select',{style:{background:'var(--bg3)',border:'1px solid var(--bd)',borderRadius:4,padding:'4px 6px',color:'var(--tx)',fontFamily:'var(--mo)',fontSize:10,outline:'none'},value:levelFilter,onChange:e=>setLevelFilter(e.target.value)},h('option',{value:''},'All levels'),['debug','info','warn','error'].map(v=>h('option',{key:v,value:v},v))),
+        polling&&h('span',{className:'row',style:{gap:4}},h('span',{className:'spin'}),h('span',{style:{fontSize:9,color:'var(--t3)'}},'3s')),
+        filePath&&h('span',{style:{fontSize:9,color:'var(--t3)',fontFamily:'var(--mo)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:160}},filePath)
+      ),
+      h('div',{ref:logRef,className:'log-out',onScroll:e=>{const el=e.target;autoScroll.current=el.scrollHeight-el.scrollTop-el.clientHeight<40;}},
+        shown.length===0
+          ?h('div',{style:{color:'var(--t3)',fontSize:10,padding:'4px 0'}},lines.length===0?'Click ▶ Live or Reload to load logs.':'No lines match filter.')
+          :shown.map((ln,i)=>h('div',{key:i,className:`ll ${lvlCls(ln.level)}`},
+            ln.time&&h('span',{className:'ts'},ln.time),
+            ln.level&&h('span',{className:'lv'},(ln.level||'').toUpperCase().slice(0,4)),
+            ln.subsystem&&h('span',{className:'sub'},ln.subsystem),
+            ln.message
+          ))
+      )
+    ),
+    h('div',{style:{fontSize:9,color:'var(--t3)',fontFamily:'var(--mo)',marginTop:4}},
+      `${lines.length} lines · cursor ${cursor??'none'} · ${shown.length} shown`
+    )
+  );
+}
+
+// ── UsageTab — usage.cost (sparkline + table) + usage.status ────────
+function UsageTab({client,isDemo}){
+  const[cost,setCost]=useState(null);
+  const[provider,setProvider]=useState(null);
+  const[loading,setLoading]=useState(false);
+  const[days,setDays]=useState('14');
+  const[subTab,setSubTab]=useState('cost');
+
+  const load=async()=>{
+    setLoading(true);
+    if(isDemo){setCost(MUSAGE_MOCK);setProvider(MPROVIDER_MOCK);setLoading(false);return;}
+    if(!client){setLoading(false);return;}
+    try{
+      const[c,p]=await Promise.all([
+        client.req('usage.cost',{days:parseInt(days)||14}),
+        client.req('usage.status',{}).catch(()=>null),
+      ]);
+      setCost(c);setProvider(p);
+    }catch{}
+    setLoading(false);
+  };
+  useEffect(()=>{load();},[]);
+
+  const daily=cost?.daily||[];
+  const totals=cost?.totals||{};
+  const maxCost=Math.max(...daily.map(d=>d.totalCost||0),0.0001);
+
+  return h(Fragment,null,
+    h('div',{className:'row',style:{justifyContent:'space-between',marginBottom:4}},
+      h('div',{className:'row',style:{gap:6}},
+        h('select',{className:'btn btn-sm',style:{cursor:'pointer'},value:days,onChange:e=>setDays(e.target.value)},
+          ['7','14','30','60'].map(v=>h('option',{key:v,value:v},`Last ${v}d`))
+        ),
+        h('button',{className:'btn btn-sm',onClick:load,disabled:loading},loading?h(Fragment,null,h('span',{className:'spin'}),' …'):'Load')
+      ),
+      cost&&h('span',{style:{fontSize:9,color:'var(--t3)'}},`Updated ${fmtT(cost.updatedAt)}`)
+    ),
+    cost&&h('div',{className:'g4'},
+      h('div',{className:'stat'},h('div',{className:'stat-label'},'Total Cost'),h('div',{className:'stat-value'},fmtCost(totals.totalCost)),h('div',{className:'stat-sub'},`${days}d`)),
+      h('div',{className:'stat'},h('div',{className:'stat-label'},'Total Tokens'),h('div',{className:'stat-value cbl'},fmtTok(totals.totalTokens))),
+      h('div',{className:'stat'},h('div',{className:'stat-label'},'Input Cost'),h('div',{className:'stat-value'},fmtCost(totals.inputCost)),h('div',{className:'stat-sub'},fmtTok(totals.input)+' tok')),
+      h('div',{className:'stat'},h('div',{className:'stat-label'},'Output Cost'),h('div',{className:'stat-value'},fmtCost(totals.outputCost)),h('div',{className:'stat-sub'},fmtTok(totals.output)+' tok'))
+    ),
+    cost&&daily.length>0&&h('div',{className:'card'},
+      h('div',{className:'ch'},h('span',{className:'cht'},'Daily Cost'),h('span',{style:{fontSize:9,color:'var(--t3)'}},`${daily.length} days`)),
+      h('div',{className:'cb'},
+        h('div',{style:{display:'flex',alignItems:'flex-end',gap:2,height:56,marginBottom:6}},
+          daily.map((d,i)=>{
+            const pct=Math.round(Math.max((d.totalCost/maxCost)*100,2));
+            const col=pct>70?'var(--acc)':pct>40?'var(--yw2)':'var(--bl2)';
+            return h('div',{key:d.date,style:{flex:1,height:`${pct}%`,background:col,borderRadius:'1px 1px 0 0',opacity:.85},title:`${d.date}: ${fmtCost(d.totalCost)}`});
+          })
+        ),
+        h('div',{style:{display:'flex',gap:2,marginBottom:6}},daily.map((d,i)=>h('div',{key:d.date,style:{flex:1,textAlign:'center',fontSize:8,color:'var(--t3)'}},i%3===0?d.date.slice(5):''))),
+        h('div',{style:{maxHeight:200,overflowY:'auto'}},
+          h('div',{className:'daily-row',style:{fontWeight:600}},h('div',{className:'d-date'},'Date'),h('div',{className:'d-cost'},'Cost'),h('div',{className:'d-tok'},'Tokens'),h('div',{style:{flex:1}})),
+          daily.slice().reverse().map(d=>h('div',{key:d.date,className:'daily-row'},
+            h('div',{className:'d-date'},d.date),
+            h('div',{className:'d-cost'},fmtCost(d.totalCost)),
+            h('div',{className:'d-tok'},fmtTok(d.totalTokens)),
+            h('div',{style:{flex:1}},
+              h('div',{style:{height:4,background:'var(--bd)',borderRadius:2,overflow:'hidden'}},
+                h('div',{style:{height:'100%',borderRadius:2,background:'var(--bl2)',width:`${Math.round((d.totalCost/maxCost)*100)}%`}})
+              )
+            )
+          ))
+        )
+      )
+    ),
+    provider&&h('div',{className:'card'},
+      h('div',{className:'ch'},h('span',{className:'cht'},'Provider Usage'),h('span',{className:'pill pb',style:{fontSize:9}},'usage.status')),
+      h('div',{className:'cb'},
+        h('div',{className:'col',style:{gap:6}},
+          (provider.providers||[]).map(p=>h('div',{key:p.id,style:{display:'flex',alignItems:'center',gap:10,padding:'6px 0',borderBottom:'1px solid var(--bd)'}},
+            h('div',{style:{flex:1}},h('div',{style:{fontSize:11,fontWeight:600,fontFamily:'var(--sa)'}},p.label||p.id),h('div',{style:{fontSize:9,color:'var(--t3)',fontFamily:'var(--mo)',marginTop:2}},`Last used ${fmtT(p.lastUsedAt)}`)),
+            h('div',{style:{textAlign:'right'}},h('div',{style:{fontSize:11,fontFamily:'var(--mo)'}},fmtCost(p.cost)),h('div',{style:{fontSize:9,color:'var(--t3)'}},`${p.requests||0} req · ${fmtTok(p.tokens)} tok`))
+          ))
+        )
+      )
+    )
+  );
+}
+
+
+function UsageLogsWrapper({client,isDemo}){
+  const[tab,setTab]=useState('cost');
+  return h(Fragment,null,
+    h('div',{className:'tr'},
+      h('button',{className:`ta ${tab==='cost'?'on':''}`,onClick:()=>setTab('cost')},'💰 Cost & Usage'),
+      h('button',{className:`ta ${tab==='logs'?'on':''}`,onClick:()=>setTab('logs')},'📄 Gateway Logs')
+    ),
+    tab==='cost'?h(UsageTab,{client,isDemo}):h(LogsTab,{client,isDemo})
   );
 }
 ReactDOM.createRoot(document.getElementById('root')).render(h(App));
