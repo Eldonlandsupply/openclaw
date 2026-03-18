@@ -23,7 +23,10 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s %(message)s",
 )
 
+
 if __name__ == "__main__":
+    from app.main import create_app
+
     port = int(os.getenv("GATEWAY_PORT", "8443"))
     host = os.getenv("GATEWAY_HOST", "0.0.0.0")
     print(f"Starting OpenClaw gateway on {host}:{port}")
