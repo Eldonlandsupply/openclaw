@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Parcels Feature Schema",
+  "type": "FeatureCollection",
+  "required_fields": ["id"],
+  "notes": "Lightweight schema used by scripts/validate_geojson.py"
+}

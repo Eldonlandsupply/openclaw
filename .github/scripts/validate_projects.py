@@ -4,7 +4,6 @@ Validate all projects/<slug>/project.yaml files against the project binding sche
 Runs in CI and locally: python3 .github/scripts/validate_projects.py
 """
 import sys
-import os
 import yaml
 import jsonschema
 from pathlib import Path

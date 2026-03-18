@@ -5,7 +5,7 @@ Concise operational format for message channels.
 
 from __future__ import annotations
 
-from .models import GatewayRequest, RiskLevel
+from .models import GatewayRequest
 
 
 def format_response(

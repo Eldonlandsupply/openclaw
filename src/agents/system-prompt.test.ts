@@ -103,6 +103,19 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain("Do not invent commands");
   });
 
+  it("does not duplicate task routing guidance", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/openclaw",
+    });
+
+    expect(prompt.match(/## Task Routing Order/g)).toHaveLength(1);
+    expect(
+      prompt.match(
+        /Use orchestration-first routing by default: API > n8n > MCP > repo edit > DB\/storage > CLI > browser\./g,
+      ),
+    ).toHaveLength(1);
+  });
+
   it("lists available tools when provided", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/openclaw",

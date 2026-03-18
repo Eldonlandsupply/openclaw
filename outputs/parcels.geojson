@@ -1,0 +1,35 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "id": "TX-KAUFMAN-002", "county": "Kaufman" },
+      "geometry": { "type": "Point", "coordinates": [-96.3086, 32.5893] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "TX-NOLAN-001", "county": "Nolan" },
+      "geometry": { "type": "Point", "coordinates": [-100.4059, 32.4454] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "TX-PECOS-003", "county": "Pecos" },
+      "geometry": { "type": "Point", "coordinates": [-102.8793, 30.7811] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "TX-STERLING-006", "county": "Sterling" },
+      "geometry": { "type": "Point", "coordinates": [-100.9868, 31.8359] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "TX-UPTON-004", "county": "Upton" },
+      "geometry": { "type": "Point", "coordinates": [-102.043, 31.365] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "TX-ECTOR-005", "county": "Ector" },
+      "geometry": { "type": "Point", "coordinates": [-102.3446, 31.8663] }
+    }
+  ]
+}

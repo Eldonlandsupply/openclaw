@@ -4,14 +4,11 @@ repo_memory_daemon.py — watches repos and keeps the index up to date.
 from __future__ import annotations
 
 import logging
-import os
 import signal
 import subprocess
 import sys
 import time
-from pathlib import Path
 
-import yaml
 
 from repo_indexer import discover_repos, index_repos, load_config
 

@@ -1,6 +1,7 @@
 """generate_checklist.py — auto-generate checklist items for incomplete actions."""
 from __future__ import annotations
-import json, uuid
+import json
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 

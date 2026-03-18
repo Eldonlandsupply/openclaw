@@ -1,0 +1,8 @@
+{
+  "input": "outputs/parcels.geojson",
+  "schema": "schemas/parcels.schema.json",
+  "features": 6,
+  "errors": [],
+  "warnings": [],
+  "valid": true
+}

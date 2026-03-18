@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 # ── OpenAI-compatible (OpenRouter) ────────────────────────────────────────────
 
 def _embed_openai(texts: List[str], cfg: dict) -> np.ndarray:
-    import httpx, json
+    import httpx
 
     api_key = os.environ.get("OPENROUTER_API_KEY") or os.environ.get("OPENAI_API_KEY", "")
     if not api_key:
