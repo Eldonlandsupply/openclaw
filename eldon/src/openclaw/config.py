@@ -147,6 +147,7 @@ class Secrets(BaseSettings):
     outlook_user: Optional[str] = None
     # CRM
     attio_api_key: Optional[str] = None
+    minimax_api_key: Optional[str] = None
     # Storage
     sqlite_path: str = "./data/openclaw.db"
 
@@ -257,6 +258,7 @@ class AppConfig:
                 "gmail_user": self.secrets.gmail_user or "NOT SET",
                 "notification_email": self.secrets.notification_email or "NOT SET",
                 "attio_api_key": "SET" if self.secrets.attio_api_key else "NOT SET",
+                "minimax_api_key": "SET" if self.secrets.minimax_api_key else "NOT SET",
                 "sqlite_path": self.secrets.sqlite_path,
             },
         }
