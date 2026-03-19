@@ -995,6 +995,7 @@
                 "pages": [
                   "automation/hooks",
                   "automation/task-routing",
+                  "automation/costclaw-operating-rhythm",
                   "automation/cron-jobs",
                   "automation/cron-vs-heartbeat",
                   "automation/troubleshooting",
