@@ -7,5 +7,12 @@ read_when:
 
 # BOOT.md
 
-Add short, explicit instructions for what OpenClaw should do on startup (enable `hooks.internal.enabled`).
-If the task sends a message, use the message tool and then reply with NO_REPLY.
+Keep this file tiny. Use it only for startup tasks that should run on gateway
+restart.
+
+Checklist rules:
+
+- keep it under a few short bullets
+- prefer direct tools over browser automation
+- if a task sends a message, use the message tool and then reply with `NO_REPLY`
+- write durable outcomes to memory files, not here
