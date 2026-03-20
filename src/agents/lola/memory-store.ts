@@ -1,3 +1,8 @@
+import fs from "node:fs/promises";
+import path from "node:path";
+import type { ApprovalQueueItem } from "./schemas/approval-queue.js";
+import type { AuditRecord } from "./schemas/audit-record.js";
+import type { DraftRecord as SchemaDraftRecord } from "./schemas/draft.js";
 import type { MemoryFact } from "./schemas/memory-fact.js";
 import type { OpenLoop } from "./schemas/open-loop.js";
 
@@ -12,13 +17,8 @@ export type DraftRecord = {
   updatedAt: string;
 };
 
-export type MemoryFactRecord = MemoryFact & {
-  createdAt: string;
-};
-
-export type OpenLoopRecord = OpenLoop & {
-  createdAt: string;
-};
+export type MemoryFactRecord = MemoryFact & { createdAt: string };
+export type OpenLoopRecord = OpenLoop & { createdAt: string };
 
 export class MemoryStore {
   #drafts: DraftRecord[] = [];
@@ -57,24 +57,29 @@ export class MemoryStore {
     return record;
   }
 
-  listDrafts(): DraftRecord[] {
+  listDrafts() {
     return [...this.#drafts];
   }
 
-  listMemories(): MemoryFactRecord[] {
+  listMemories() {
     return [...this.#memories];
   }
 
-  listOpenLoops(): OpenLoopRecord[] {
+  listOpenLoops() {
     return [...this.#openLoops];
   }
-import fs from "node:fs/promises";
-import path from "node:path";
-import type { ApprovalQueueItem } from "./schemas/approval-queue.js";
-import type { AuditRecord } from "./schemas/audit-record.js";
-import type { DraftRecord } from "./schemas/draft.js";
-import type { MemoryFact } from "./schemas/memory-fact.js";
-import type { OpenLoop } from "./schemas/open-loop.js";
+}
+
+export type ExternalActionRecord = {
+  id: string;
+  actionType: string;
+  provider: string;
+  payloadSummary: string;
+  payloadRef?: string;
+  reason?: string;
+  status?: string;
+  createdAt?: string;
+};
 
 export type LolaAuditLogRecord = {
   at: string;
@@ -90,13 +95,14 @@ export type LolaAuditLogRecord = {
 };
 
 type LolaDataStore = {
-  version: 2;
-  drafts: DraftRecord[];
+  version: 3;
+  drafts: SchemaDraftRecord[];
   approvalQueue: ApprovalQueueItem[];
   memoryFacts: MemoryFact[];
   openLoops: OpenLoop[];
   auditRecords: AuditRecord[];
   auditLog: LolaAuditLogRecord[];
+  externalActions: ExternalActionRecord[];
 };
 
 function assertWithinRoot(root: string, target: string) {
@@ -109,7 +115,7 @@ function assertWithinRoot(root: string, target: string) {
 export function resolveLolaStorePaths(workspaceDir: string) {
   const root = path.resolve(workspaceDir);
   const dataDir = path.resolve(root, ".lola");
-  const storePath = path.resolve(dataDir, "phase2-store.json");
+  const storePath = path.resolve(dataDir, "phase3-store.json");
   assertWithinRoot(root, dataDir);
   assertWithinRoot(root, storePath);
   return { root, dataDir, storePath };
@@ -118,24 +124,26 @@ export function resolveLolaStorePaths(workspaceDir: string) {
 function normalizeStore(raw: unknown): LolaDataStore {
   if (!raw || typeof raw !== "object") {
     return {
-      version: 2,
+      version: 3,
       drafts: [],
       approvalQueue: [],
       memoryFacts: [],
       openLoops: [],
       auditRecords: [],
       auditLog: [],
+      externalActions: [],
     };
   }
   const candidate = raw as Partial<LolaDataStore>;
   return {
-    version: 2,
+    version: 3,
     drafts: Array.isArray(candidate.drafts) ? candidate.drafts : [],
     approvalQueue: Array.isArray(candidate.approvalQueue) ? candidate.approvalQueue : [],
     memoryFacts: Array.isArray(candidate.memoryFacts) ? candidate.memoryFacts : [],
     openLoops: Array.isArray(candidate.openLoops) ? candidate.openLoops : [],
     auditRecords: Array.isArray(candidate.auditRecords) ? candidate.auditRecords : [],
     auditLog: Array.isArray(candidate.auditLog) ? candidate.auditLog : [],
+    externalActions: Array.isArray(candidate.externalActions) ? candidate.externalActions : [],
   };
 }
 
@@ -164,7 +172,7 @@ async function writeStore(workspaceDir: string, store: LolaDataStore) {
 async function updateStore<T>(
   workspaceDir: string,
   updater: (store: LolaDataStore) => T | Promise<T>,
-): Promise<T> {
+) {
   const store = await loadStore(workspaceDir);
   const result = await updater(store);
   await writeStore(workspaceDir, store);
@@ -195,7 +203,7 @@ export async function listApprovalQueue(workspaceDir: string) {
   );
 }
 
-export async function saveDraft(workspaceDir: string, draft: DraftRecord) {
+export async function saveDraft(workspaceDir: string, draft: SchemaDraftRecord) {
   return updateStore(workspaceDir, (store) => {
     store.drafts = upsertById(store.drafts, draft);
     return draft;
@@ -248,4 +256,15 @@ export async function appendAuditLog(workspaceDir: string, record: LolaAuditLogR
 
 export async function listAuditLog(workspaceDir: string) {
   return (await loadStore(workspaceDir)).auditLog;
+}
+
+export async function saveExternalAction(workspaceDir: string, action: ExternalActionRecord) {
+  return updateStore(workspaceDir, (store) => {
+    store.externalActions = upsertById(store.externalActions, action);
+    return action;
+  });
+}
+
+export async function listExternalActions(workspaceDir: string) {
+  return (await loadStore(workspaceDir)).externalActions;
 }
