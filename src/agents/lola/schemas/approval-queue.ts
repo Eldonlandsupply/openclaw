@@ -10,4 +10,6 @@ export interface ApprovalQueueItem {
   requiresHumanApproval?: boolean;
   status?: "pending" | "approved" | "rejected" | "expired";
   createdAt?: string;
+  updatedAt?: string;
+  resolvedAt?: string;
 }

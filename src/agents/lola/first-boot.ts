@@ -10,7 +10,7 @@ export type LolaFirstBootState = {
 export function initializeLolaPhaseOne(): LolaFirstBootState {
   return {
     config: LOLA_DEFAULTS,
-    dashboard: registerLola(),
+    dashboard: registerLola({ writeEnabled: LOLA_DEFAULTS.writeEnabled }),
     externalEffectsBlocked: true,
   };
 }
