@@ -3,6 +3,8 @@ export type LolaDashboardRegistration = {
   name: string;
   enabled: boolean;
   readOnly: boolean;
+  panels: string[];
+  approvalQueueEnabled: boolean;
 };
 
 export function registerLola(): LolaDashboardRegistration {
@@ -10,6 +12,14 @@ export function registerLola(): LolaDashboardRegistration {
     id: "LOLA",
     name: "LOLA",
     enabled: true,
-    readOnly: true,
+    readOnly: false,
+    panels: [
+      "Drafts awaiting approval",
+      "Approval queue",
+      "Memory updates",
+      "Open loops",
+      "Audit log",
+    ],
+    approvalQueueEnabled: true,
   };
 }

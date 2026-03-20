@@ -6,7 +6,10 @@ export interface MemoryFact {
   confidence?: number;
   sourceRefs?: string[];
   durability?: "ephemeral" | "session" | "durable";
-  reviewStatus?: "proposed" | "approved" | "rejected";
+  reviewStatus?: "proposed" | "approved" | "rejected" | "written";
+  sourceAgent?: string;
+  approvalId?: string;
+  redactionApplied?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }

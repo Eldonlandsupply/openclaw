@@ -906,6 +906,7 @@
                 "pages": [
                   "concepts/architecture",
                   "architecture/lola-phase-1",
+                  "architecture/lola-phase-2",
                   "concepts/agent",
                   "concepts/agent-loop",
                   "concepts/system-prompt",
@@ -1269,7 +1270,12 @@
             "groups": [
               {
                 "group": "Help",
-                "pages": ["help/index", "help/troubleshooting", "help/faq"]
+                "pages": [
+                  "help/index",
+                  "help/troubleshooting",
+                  "help/lola-phase-2-runbook",
+                  "help/faq"
+                ]
               },
               {
                 "group": "Community",
