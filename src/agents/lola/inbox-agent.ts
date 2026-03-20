@@ -1,4 +1,4 @@
-import type { DraftRecord, MemoryStore } from "./memory-store.js";
+import type { DraftRecord as MemoryDraftRecord, MemoryStore } from "./memory-store.js";
 import type { DraftRecord } from "./schemas/draft.js";
 import type { InboxTriageItem } from "./schemas/inbox-triage.js";
 
@@ -13,7 +13,7 @@ export class InboxAgent {
     }));
   }
 
-  draftFromTriaged(items: InboxTriageItem[], now = new Date()): DraftRecord[] {
+  draftFromTriaged(items: InboxTriageItem[], now = new Date()): MemoryDraftRecord[] {
     if (!this.memory) {
       return items.map((item) => ({
         id: item.id,
@@ -36,6 +36,8 @@ export class InboxAgent {
         now,
       ),
     );
+  }
+
   draftReply(item: InboxTriageItem, body: string): DraftRecord {
     return {
       id: `draft:${item.id}`,

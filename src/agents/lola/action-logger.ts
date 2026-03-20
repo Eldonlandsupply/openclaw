@@ -1,3 +1,16 @@
+import type { ApprovalQueueItem } from "./schemas/approval-queue.js";
+import { appendAuditLog } from "./memory-store.js";
+
+const REDACTED_KEYS = new Set([
+  "body",
+  "value",
+  "notes",
+  "payload",
+  "content",
+  "subject",
+  "sender",
+]);
+
 export function logAction(action: string, payload: Record<string, unknown>) {
   const redacted = { ...payload };
   if ("subject" in redacted) {
@@ -8,10 +21,7 @@ export function logAction(action: string, payload: Record<string, unknown>) {
   }
   console.log(`ACTION:${action} ${JSON.stringify(redacted)}`);
   return true;
-import type { ApprovalQueueItem } from "./schemas/approval-queue.js";
-import { appendAuditLog } from "./memory-store.js";
-
-const REDACTED_KEYS = new Set(["body", "value", "notes", "payload", "content"]);
+}
 
 export type LolaActionLogEntry = {
   at?: string;
@@ -20,7 +30,9 @@ export type LolaActionLogEntry = {
     | "approval_requested"
     | "approval_decided"
     | "write_applied"
-    | "write_blocked";
+    | "write_blocked"
+    | "external_action_executed"
+    | "external_action_blocked";
   agent: string;
   queueId?: string;
   targetType?: string;
@@ -46,10 +58,7 @@ function redactValue(value: unknown): unknown {
   return value;
 }
 
-export function redactDetails(details: Record<string, unknown> | undefined): {
-  details: Record<string, unknown> | undefined;
-  redactionApplied: boolean;
-} {
+export function redactDetails(details: Record<string, unknown> | undefined) {
   if (!details) {
     return { details: undefined, redactionApplied: false };
   }
