@@ -1,9 +1,10 @@
 ---
 title: "Memory"
-summary: "How OpenClaw memory works (workspace files + automatic memory flush)"
+summary: "How OpenClaw memory works with daily logs, durable memory, and automatic memory flush"
 read_when:
   - You want the memory file layout and workflow
   - You want to tune the automatic pre-compaction memory flush
+  - You want a low-cost daily logging pattern for recall
 ---
 
 # Memory
@@ -20,20 +21,75 @@ The default workspace layout uses two memory layers:
 
 - `memory/YYYY-MM-DD.md`
   - Daily log (append-only).
+  - Create one file per day.
   - Read today + yesterday at session start.
+  - Cheap place to store fresh decisions, open loops, and context fragments.
 - `MEMORY.md` (optional)
   - Curated long-term memory.
+  - Distilled from the daily logs.
   - **Only load in the main, private session** (never in group contexts).
 
 These files live under the workspace (`agents.defaults.workspace`, default
 `~/.openclaw/workspace`). See [Agent workspace](/concepts/agent-workspace) for the full layout.
+
+## Recommended workflow
+
+Use a simple two-stage memory loop:
+
+1. During the day, append notes to `memory/YYYY-MM-DD.md`.
+2. On a recurring schedule, distill durable facts into `MEMORY.md`.
+
+This keeps memory cheap and searchable without turning `MEMORY.md` into sludge.
+
+### Daily log pattern
+
+Create `memory/YYYY-MM-DD.md` every day. Good entries include:
+
+- decisions that changed execution
+- constraints or non-negotiable rules
+- preferences the human asked to remember
+- blockers, unknowns, and retry state
+- links to artifacts, commits, or docs worth revisiting
+
+Keep entries short and timestamped when useful. Example:
+
+```markdown
+# 2026-03-20
+
+- 09:10Z. User wants child agents to return artifacts by default.
+- 09:25Z. Added router-at-task-start rule to AGENTS.md guidance.
+- 10:00Z. UNKNOWN: whether task-record MCP server is available in this env.
+```
+
+### Nightly distiller pattern
+
+Run a lightweight review pass, manually or by automation, that:
+
+1. reads recent `memory/YYYY-MM-DD.md` files,
+2. promotes durable facts into `MEMORY.md`,
+3. drops stale or superseded entries from `MEMORY.md`,
+4. leaves the daily files as the raw audit trail.
+
+Good `MEMORY.md` content:
+
+- durable preferences
+- stable operating constraints
+- long-running project context
+- recurring failure modes and fixes
+
+Bad `MEMORY.md` content:
+
+- one-off chatter
+- temporary logs
+- stale TODO lists
+- raw transcripts duplicated from session files
 
 ## When to write memory
 
 - Decisions, preferences, and durable facts go to `MEMORY.md`.
 - Day-to-day notes and running context go to `memory/YYYY-MM-DD.md`.
 - If someone says "remember this," write it down (do not keep it in RAM).
-- This area is still evolving. It helps to remind the model to store memories; it will know what to do.
+- If a lesson should change future behavior, encode it in `AGENTS.md`, `TOOLS.md`, or a skill, then log the update in memory.
 - If you want something to stick, **ask the bot to write it** into memory.
 
 ## Automatic memory flush (pre-compaction ping)

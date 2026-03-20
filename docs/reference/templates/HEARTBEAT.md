@@ -7,6 +7,13 @@ read_when:
 
 # HEARTBEAT.md
 
-# Keep this file empty (or with only comments) to skip heartbeat API calls.
+Keep this file empty, or comments only, to skip heartbeat API calls.
 
-# Add tasks below when you want the agent to check something periodically.
+When you do add tasks, keep them tiny and repeatable.
+
+Suggested pattern:
+
+- check one or two sources
+- log anything durable to `memory/YYYY-MM-DD.md`
+- update `MEMORY.md` only during a distillation pass
+- reply with `HEARTBEAT_OK` if nothing needs action

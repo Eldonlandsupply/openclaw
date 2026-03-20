@@ -1,8 +1,9 @@
 ---
-summary: "Agent workspace: location, layout, and backup strategy"
+summary: "Agent workspace: location, layout, bootstrap file roles, and backup strategy"
 read_when:
   - You need to explain the agent workspace or its file layout
   - You want to back up or migrate an agent workspace
+  - You want to understand which bootstrap file owns which rule
 title: "Agent Workspace"
 ---
 
@@ -66,7 +67,8 @@ These are the standard files OpenClaw expects inside the workspace:
 - `AGENTS.md`
   - Operating instructions for the agent and how it should use memory.
   - Loaded at the start of every session.
-  - Good place for rules, priorities, and "how to behave" details.
+  - Best place for non-negotiable rules, routing order, child-agent policy,
+    artifact requirements, risk tiers, and compaction rules.
 
 - `SOUL.md`
   - Persona, tone, and boundaries.
@@ -96,6 +98,7 @@ These are the standard files OpenClaw expects inside the workspace:
   - One-time first-run ritual.
   - Only created for a brand-new workspace.
   - Delete it after the ritual is complete.
+  - Do not store durable operating policy here.
 
 - `memory/YYYY-MM-DD.md`
   - Daily memory log (one file per day).
@@ -119,6 +122,15 @@ the session and continues. Large bootstrap files are truncated when injected;
 adjust the limit with `agents.defaults.bootstrapMaxChars` (default: 20000).
 `openclaw setup` can recreate missing defaults without overwriting existing
 files.
+
+For more reliable child-agent behavior, keep bootstrap files well below the hard
+limit:
+
+- `AGENTS.md` under 8 KB
+- `SOUL.md` and `USER.md` under 4 KB each
+- `TOOLS.md` under 6 KB
+- `BOOTSTRAP.md` under 4 KB and delete it after use
+- `BOOT.md` and `HEARTBEAT.md` under 1 KB each
 
 ## What is NOT in the workspace
 
