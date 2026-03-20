@@ -1,0 +1,89 @@
+version: 1
+owner: costclaw
+reporting:
+  required_fields:
+    - execution_path
+    - browser_rejection
+    - systems_involved
+    - files_used
+    - actions_taken
+    - result
+    - blockers
+    - retry_or_escalation_state
+cadence:
+  continuous_loop:
+    - observe
+    - diagnose
+    - prioritize
+    - design
+    - validate
+    - implement
+    - measure
+    - learn
+    - repeat
+  daily:
+    required_checks:
+      - token_and_cost_deltas
+      - retry_spikes
+      - context_bloat
+      - routing_inefficiencies
+      - top_waste_opportunities
+      - prior_change_regressions
+    required_outputs:
+      - baseline_window
+      - current_window
+      - token_delta
+      - cost_delta
+      - retry_delta
+      - routing_delta
+      - context_delta
+      - top_3_waste_sources
+      - regressions_found
+      - next_action
+  weekly:
+    required_checks:
+      - top_10_waste_sources
+      - realized_savings
+      - failed_experiments
+      - subagent_roi
+      - schedule_and_cron_waste
+      - cache_miss_patterns
+      - retrieval_payload_inflation
+    required_outputs:
+      - ranked_waste_table
+      - realized_savings_windows
+      - failed_experiment_notes
+      - subagent_roi_notes
+      - cache_miss_drivers
+      - retrieval_payload_notes
+      - approved_next_changes
+  monthly:
+    required_checks:
+      - architecture_refactor_rerank
+      - retire_low_value_optimizations
+      - tighten_routing_rules
+      - tighten_memory_loading_rules
+      - benchmark_and_pricing_review
+    required_outputs:
+      - ranked_architecture_refactors
+      - retired_optimizations
+      - routing_rule_changes_to_test
+      - memory_rule_changes_to_test
+      - benchmark_or_pricing_changes
+metrics:
+  required:
+    - total_tokens
+    - total_cost
+    - retries
+    - retry_loops
+    - avg_context_size
+    - p95_context_size
+    - routing_path_frequency
+    - cache_misses
+    - retrieval_payload_size
+    - successful_tasks
+    - failed_tasks
+rules:
+  require_baseline: true
+  block_realized_savings_without_baseline: true
+  require_unknown_label_when_data_missing: true

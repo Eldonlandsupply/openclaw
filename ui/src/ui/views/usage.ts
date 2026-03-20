@@ -1540,7 +1540,7 @@ const buildCostClawWorkflowMetrics = (sessions: UsageSessionEntry[]): CostClawWo
     metrics.verboseOutputs += likelyVerbose;
     metrics.delegationCount += delegationCount;
     metrics.subagentSpend += usage.totalCost * (delegationCount > 0 ? 0.35 : 0);
-    metrics.subagentSavings += usage.cacheReadCost + usage.cacheWriteCost;
+    metrics.subagentSavings += (usage.cacheReadCost ?? 0) + (usage.cacheWriteCost ?? 0);
     metrics.scheduledJobs += scheduledJob;
     metrics.regressionSessions += errorCount > 0 ? 1 : 0;
     metrics.changeMomentum += usage.totalCost * (errorCount === 0 ? 1 : -1);
