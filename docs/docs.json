@@ -905,6 +905,7 @@
                 "group": "Fundamentals",
                 "pages": [
                   "concepts/architecture",
+                  "architecture/lola-phase-1",
                   "concepts/agent",
                   "concepts/agent-loop",
                   "concepts/system-prompt",
