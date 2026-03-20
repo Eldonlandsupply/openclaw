@@ -15,4 +15,7 @@ export interface OpenLoop {
   lastTouchAt?: string;
   nextTouchAt?: string;
   riskIfMissed?: string;
+  sourceAgent?: string;
+  approvalId?: string;
+  writeStatus?: "proposed" | "approved" | "rejected" | "written";
 }

@@ -10,6 +10,10 @@ export interface MemoryFact {
   durability?: "ephemeral" | "session" | "durable";
   reviewStatus?: "proposed" | "approved" | "rejected";
   writeStatus?: "pending_approval" | "approved" | "rejected" | "applied";
+  reviewStatus?: "proposed" | "approved" | "rejected" | "written";
+  sourceAgent?: string;
+  approvalId?: string;
+  redactionApplied?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
