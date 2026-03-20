@@ -82,3 +82,11 @@ The Phase 1 scaffold stays repo-native and aligns with existing OpenClaw systems
 1. Confirm the Phase 1 scope.
 2. Wire the scaffold into the next approved execution path.
 3. Add explicit approval-backed write flows in a later phase.
+
+## Phase 2 runbook scaffold
+
+- Execution path: repo edit. No API, n8n, or MCP task integration is available in this workspace, so the Phase 2 scaffold stays local.
+- Browser rejection: browser automation is not needed because the change is fully repo-native and deterministic.
+- Approval-backed writes: internal drafts, memory facts, and open loops can be written only through the in-memory approval scaffold added in Phase 2.
+- Dashboard wiring: the LOLA registration now advertises approval-required write surfaces for internal operators.
+- Remaining blocker: persistence is still in-memory only. A later phase should bind these flows to the existing durable store.
