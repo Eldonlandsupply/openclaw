@@ -1259,6 +1259,7 @@
                   "experiments/onboarding-config-protocol",
                   "experiments/plans/cron-add-hardening",
                   "experiments/plans/group-policy-hardening",
+                  "experiments/plans/self-improvement-loops",
                   "experiments/research/memory",
                   "experiments/proposals/model-config"
                 ]
