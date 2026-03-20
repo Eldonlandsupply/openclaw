@@ -5,9 +5,12 @@ export type LolaDashboardRegistration = {
   readOnly: boolean;
   approvalRequired: boolean;
   writeSurfaces: string[];
+  surfaces: Array<"drafts" | "approvalQueue" | "memoryUpdates" | "openLoops">;
+  panels: string[];
+  approvalQueueEnabled: boolean;
 };
 
-export function registerLola(): LolaDashboardRegistration {
+export function registerLola(params?: { writeEnabled?: boolean }): LolaDashboardRegistration {
   return {
     id: "LOLA",
     name: "LOLA",
@@ -15,5 +18,16 @@ export function registerLola(): LolaDashboardRegistration {
     readOnly: false,
     approvalRequired: true,
     writeSurfaces: ["drafts", "memory", "open_loops"],
+    readOnly: !(params?.writeEnabled ?? false),
+    surfaces: ["drafts", "approvalQueue", "memoryUpdates", "openLoops"],
+    readOnly: false,
+    panels: [
+      "Drafts awaiting approval",
+      "Approval queue",
+      "Memory updates",
+      "Open loops",
+      "Audit log",
+    ],
+    approvalQueueEnabled: true,
   };
 }

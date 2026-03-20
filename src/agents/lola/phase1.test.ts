@@ -48,6 +48,8 @@ describe("lola phase 1 scaffold", () => {
     expect(state.externalEffectsBlocked).toBe(true);
     expect(state.dashboard.approvalRequired).toBe(true);
     expect(state.dashboard).toEqual(registerLola());
+    expect(state.dashboard.readOnly).toBe(false);
+    expect(state.dashboard.panels).toContain("Approval queue");
     expect(state.config).toEqual(LOLA_CONFIG_DEFAULTS);
 
     const brief = new BriefingAgent().draftExecutiveBrief();

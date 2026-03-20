@@ -1,4 +1,5 @@
 import type { DraftRecord, MemoryStore } from "./memory-store.js";
+import type { DraftRecord } from "./schemas/draft.js";
 import type { InboxTriageItem } from "./schemas/inbox-triage.js";
 
 export class InboxAgent {
@@ -35,5 +36,17 @@ export class InboxAgent {
         now,
       ),
     );
+  draftReply(item: InboxTriageItem, body: string): DraftRecord {
+    return {
+      id: `draft:${item.id}`,
+      draftType: "reply",
+      title: item.subject,
+      body,
+      sourceRef: item.messageId,
+      sourceAgent: "inbox",
+      status: "proposed",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
   }
 }

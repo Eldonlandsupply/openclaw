@@ -3,10 +3,17 @@ export interface MemoryFact {
   factType: string;
   subject: string;
   value: string;
+  proposedByAgent?: string;
+  approvalId?: string;
   confidence?: number;
   sourceRefs?: string[];
   durability?: "ephemeral" | "session" | "durable";
   reviewStatus?: "proposed" | "approved" | "rejected";
+  writeStatus?: "pending_approval" | "approved" | "rejected" | "applied";
+  reviewStatus?: "proposed" | "approved" | "rejected" | "written";
+  sourceAgent?: string;
+  approvalId?: string;
+  redactionApplied?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
