@@ -19,6 +19,9 @@ Status: production-ready via WhatsApp Web (Baileys). Gateway owns linked session
   <Card title="Gateway configuration" icon="settings" href="/gateway/configuration">
     Full channel config patterns and examples.
   </Card>
+  <Card title="Execution layer" icon="workflow" href="/architecture/whatsapp-execution-layer">
+    Design the WhatsApp operator path for execution, approvals, and repo updates.
+  </Card>
 </CardGroup>
 
 ## Quick setup
