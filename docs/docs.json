@@ -906,6 +906,7 @@
                 "pages": [
                   "concepts/architecture",
                   "architecture/whatsapp-execution-layer",
+                  "architecture/lola-private-executive-messaging",
                   "architecture/lola-phase-1",
                   "architecture/lola-phase-2",
                   "concepts/agent",
