@@ -905,6 +905,7 @@
                 "group": "Fundamentals",
                 "pages": [
                   "concepts/architecture",
+                  "architecture/whatsapp-execution-layer",
                   "architecture/lola-phase-1",
                   "architecture/lola-phase-2",
                   "concepts/agent",

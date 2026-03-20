@@ -32,6 +32,15 @@ import { installUnhandledRejectionHandler } from "./infra/unhandled-rejections.j
 import { enableConsoleCapture } from "./logging.js";
 import { runCommandWithTimeout, runExec } from "./process/exec.js";
 import { assertWebChannel, normalizeE164, toWhatsappJid } from "./utils.js";
+import {
+  approvalRequiredForRepoRisk,
+  defaultExecutionTierForIntent,
+  repoChangeShouldOpenPr,
+  WhatsAppActionSchema,
+  WhatsAppApprovalRequestSchema,
+  WhatsAppExecutionLogSchema,
+  WhatsAppRepoChangeSchema,
+} from "./whatsapp/execution-layer.js";
 
 loadDotEnv({ quiet: true });
 normalizeEnv();
@@ -70,6 +79,13 @@ export {
   saveSessionStore,
   toWhatsappJid,
   waitForever,
+  approvalRequiredForRepoRisk,
+  defaultExecutionTierForIntent,
+  repoChangeShouldOpenPr,
+  WhatsAppActionSchema,
+  WhatsAppApprovalRequestSchema,
+  WhatsAppExecutionLogSchema,
+  WhatsAppRepoChangeSchema,
 };
 
 const isMain = isMainModule({
