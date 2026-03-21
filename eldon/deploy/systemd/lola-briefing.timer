@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Lola morning briefing at 07:00 daily
+Requires=lola-briefing.service
+
+[Timer]
+OnCalendar=*-*-* 07:00:00
+Persistent=true
+RandomizedDelaySec=60
+
+[Install]
+WantedBy=timers.target

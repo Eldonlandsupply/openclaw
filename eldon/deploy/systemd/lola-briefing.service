@@ -1,0 +1,13 @@
+[Unit]
+Description=Lola daily morning briefing to WhatsApp
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/openclaw
+EnvironmentFile=/opt/openclaw/.env
+ExecStart=/opt/openclaw/.venv/bin/python3 /opt/openclaw/eldon/gateway/scripts/lola_briefing.py
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=lola-briefing

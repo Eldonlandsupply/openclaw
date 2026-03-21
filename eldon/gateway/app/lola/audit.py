@@ -1,11 +1,10 @@
-"""Lola audit logger."""
+"""Lola audit logger — writes to SQLite (with JSONL fallback)."""
 
 from __future__ import annotations
-import os
-from pathlib import Path
-from .models_import import LolaAuditRecord
 
-_AUDIT_PATH = Path(os.getenv("LOLA_STORE_PATH", "/opt/openclaw/.lola")) / "audit.jsonl"
+import uuid
+from datetime import datetime, timezone
+from .models_import import LolaAuditRecord
 
 
 def record(user, channel, thread_id, message_id, intent, risk_tier, action_taken,
@@ -19,9 +18,17 @@ def record(user, channel, thread_id, message_id, intent, risk_tier, action_taken
         error=error, retry_count=retry_count, summary=summary,
     )
     try:
-        _AUDIT_PATH.parent.mkdir(parents=True, exist_ok=True)
-        with _AUDIT_PATH.open("a", encoding="utf-8") as f:
-            f.write(rec.model_dump_json() + "\n")
+        from . import db
+        db.insert_audit(rec.model_dump(mode="json"))
     except Exception:
-        pass
+        # Fallback to JSONL if DB not available
+        import os
+        from pathlib import Path
+        path = Path(os.getenv("LOLA_STORE_PATH", "/opt/openclaw/.lola")) / "audit.jsonl"
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with path.open("a", encoding="utf-8") as f:
+                f.write(rec.model_dump_json() + "\n")
+        except Exception:
+            pass
     return rec

@@ -1,36 +1,14 @@
-"""Lola memory layer — durable typed facts."""
+"""Lola memory layer — SQLite-backed typed facts with in-process cache."""
 
 from __future__ import annotations
+
 import os, threading
 from pathlib import Path
 from typing import Optional
 from .models_import import LolaMemoryFact
 
-_FACTS: list = []
+_CACHE: list = []
 _LOCK = threading.Lock()
-_MEM_PATH = Path(os.getenv("LOLA_STORE_PATH", "/opt/openclaw/.lola")) / "memory.jsonl"
-
-
-def _load_from_disk():
-    if not _MEM_PATH.exists():
-        return
-    try:
-        with _MEM_PATH.open("r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if line:
-                    _FACTS.append(LolaMemoryFact.model_validate_json(line))
-    except Exception:
-        pass
-
-
-def _persist(fact: LolaMemoryFact):
-    try:
-        _MEM_PATH.parent.mkdir(parents=True, exist_ok=True)
-        with _MEM_PATH.open("a", encoding="utf-8") as f:
-            f.write(fact.model_dump_json() + "\n")
-    except Exception:
-        pass
 
 
 def record_fact(source_channel, source_thread_id, fact_type, subject, content,
@@ -40,25 +18,43 @@ def record_fact(source_channel, source_thread_id, fact_type, subject, content,
         fact_type=fact_type, subject=subject, content=content,
         confidence=confidence, is_assumption=is_assumption, audit_source=audit_source,
     )
+    try:
+        from . import db
+        db.insert_fact(fact.model_dump(mode="json"))
+    except Exception:
+        # JSONL fallback
+        path = Path(os.getenv("LOLA_STORE_PATH", "/opt/openclaw/.lola")) / "memory.jsonl"
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with path.open("a", encoding="utf-8") as f:
+                f.write(fact.model_dump_json() + "\n")
+        except Exception:
+            pass
     with _LOCK:
-        _FACTS.append(fact)
-    _persist(fact)
+        _CACHE.append(fact)
     return fact
 
 
 def recall(subject: Optional[str] = None, fact_type: Optional[str] = None,
            limit: int = 10) -> list:
-    with _LOCK:
-        results = []
-        for fact in reversed(_FACTS):
-            if subject and subject.lower() not in fact.subject.lower() and subject.lower() not in fact.content.lower():
-                continue
-            if fact_type and fact.fact_type != fact_type:
-                continue
-            results.append(fact)
-            if len(results) >= limit:
-                break
-        return results
-
-
-_load_from_disk()
+    try:
+        from . import db
+        rows = db.search_facts(subject=subject, fact_type=fact_type, limit=limit)
+        return [LolaMemoryFact(**{
+            **r,
+            "source_thread_id": r.get("source_thread", r.get("source_thread_id", "")),
+            "is_assumption": bool(r.get("is_assumption", 0)),
+        }) for r in rows]
+    except Exception:
+        # In-process cache fallback
+        with _LOCK:
+            results = []
+            for fact in reversed(_CACHE):
+                if subject and subject.lower() not in fact.subject.lower() and subject.lower() not in fact.content.lower():
+                    continue
+                if fact_type and fact.fact_type != fact_type:
+                    continue
+                results.append(fact)
+                if len(results) >= limit:
+                    break
+            return results
