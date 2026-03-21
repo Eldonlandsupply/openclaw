@@ -185,6 +185,7 @@ type AgentConfigEntry = {
   agentDir?: string;
   model?: unknown;
   skills?: string[];
+  roleKit?: string;
   tools?: {
     profile?: string;
     allow?: string[];
@@ -195,7 +196,7 @@ type AgentConfigEntry = {
 
 type ConfigSnapshot = {
   agents?: {
-    defaults?: { workspace?: string; model?: unknown; models?: Record<string, { alias?: string }> };
+    defaults?: { workspace?: string; model?: unknown; models?: Record<string, { alias?: string }>; bootstrapMaxChars?: number };
     list?: AgentConfigEntry[];
   };
   tools?: {
@@ -276,6 +277,78 @@ function formatBytes(bytes?: number) {
     unitIndex += 1;
   }
   return `${size.toFixed(size < 10 ? 1 : 0)} ${units[unitIndex]}`;
+}
+
+const DEFAULT_BOOTSTRAP_MAX_CHARS = 20_000;
+
+function resolveBootstrapMaxChars(configForm: Record<string, unknown> | null): number {
+  const cfg = configForm as ConfigSnapshot | null;
+  const raw = cfg?.agents?.defaults?.bootstrapMaxChars;
+  if (typeof raw === "number" && Number.isFinite(raw) && raw > 0) {
+    return Math.floor(raw);
+  }
+  return DEFAULT_BOOTSTRAP_MAX_CHARS;
+}
+
+/** Approximate char count from bytes (UTF-8, mostly ASCII for AGENTS.md files). */
+function bytesToApproxChars(bytes?: number): number {
+  return bytes ?? 0;
+}
+
+function renderBootstrapBudget(files: Array<{ name: string; size?: number; missing: boolean }>, maxChars: number) {
+  if (files.length === 0) {
+    return nothing;
+  }
+  const BOOTSTRAP_NAMES = new Set(["AGENTS.md", "SOUL.md", "TOOLS.md", "IDENTITY.md", "USER.md", "HEARTBEAT.md", "BOOTSTRAP.md"]);
+  const bootstrapFiles = files.filter((f) => BOOTSTRAP_NAMES.has(f.name) && !f.missing);
+  if (bootstrapFiles.length === 0) {
+    return nothing;
+  }
+  const totalChars = bootstrapFiles.reduce((sum, f) => sum + bytesToApproxChars(f.size), 0);
+  const usedPct = Math.min(100, Math.round((totalChars / maxChars) * 100));
+  const overBudget = totalChars > maxChars;
+  const warnThreshold = 0.8;
+  const nearLimit = !overBudget && totalChars / maxChars >= warnThreshold;
+  const barColor = overBudget ? "var(--danger, #ff4d4d)" : nearLimit ? "var(--warn, #ffb347)" : "var(--accent, #00ff88)";
+  const statusLabel = overBudget
+    ? "over budget — truncation active"
+    : nearLimit
+      ? "near limit"
+      : "ok";
+  const statusClass = overBudget ? "danger" : nearLimit ? "warn" : "ok";
+
+  return html\`
+    <div class="bootstrap-budget" style="margin-top: 14px;">
+      <div class="row" style="justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+        <div class="label">Bootstrap Budget</div>
+        <div class="mono muted" style="font-size: 11px;">
+          ~${totalChars.toLocaleString()} / ${maxChars.toLocaleString()} chars
+          &nbsp;·&nbsp;
+          <span class="stat-value ${statusClass}" style="font-size: 11px;">${statusLabel}</span>
+        </div>
+      </div>
+      <div style="height: 6px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden;">
+        <div style="height: 100%; width: ${usedPct}%; background: ${barColor}; border-radius: 3px; transition: width 0.3s;"></div>
+      </div>
+      <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px;">
+        ${bootstrapFiles.map((f) => {
+          const chars = bytesToApproxChars(f.size);
+          const filePct = Math.min(100, Math.round((chars / maxChars) * 100));
+          const fileOver = chars > maxChars;
+          const chipColor = fileOver ? "var(--danger, #ff4d4d)" : "rgba(255,255,255,0.12)";
+          return html\`
+            <div style="
+              display: flex; align-items: center; gap: 5px;
+              background: ${chipColor}; border-radius: 4px;
+              padding: 3px 8px; font-size: 11px; font-family: var(--font-mono, monospace);">
+              <span>${f.name}</span>
+              <span class="muted">${chars.toLocaleString()}ch (${filePct}%)</span>
+            </div>
+          \`;
+        })}
+      </div>
+    </div>
+  \`;
 }
 
 function resolveAgentConfig(config: Record<string, unknown> | null, agentId: string) {
@@ -640,6 +713,7 @@ export function renderAgents(props: AgentsProps) {
                       onFileDraftChange: props.onFileDraftChange,
                       onFileReset: props.onFileReset,
                       onFileSave: props.onFileSave,
+                      bootstrapMaxChars: resolveBootstrapMaxChars(props.configForm),
                     })
                   : nothing
               }
@@ -868,6 +942,10 @@ function renderAgentOverview(params: {
         <div class="agent-kv">
           <div class="label">Skills Filter</div>
           <div>${skillFilter ? `${skillCount} selected` : "all skills"}</div>
+        </div>
+        <div class="agent-kv">
+          <div class="label">Role Kit</div>
+          <div class="mono">${config.entry?.roleKit ?? "-"}</div>
         </div>
       </div>
 
@@ -1295,6 +1373,7 @@ function renderAgentFiles(params: {
   onFileDraftChange: (name: string, content: string) => void;
   onFileReset: (name: string) => void;
   onFileSave: (name: string) => void;
+  bootstrapMaxChars?: number;
 }) {
   const list = params.agentFilesList?.agentId === params.agentId ? params.agentFilesList : null;
   const files = list?.files ?? [];
@@ -1303,6 +1382,7 @@ function renderAgentFiles(params: {
   const baseContent = active ? (params.agentFileContents[active] ?? "") : "";
   const draft = active ? (params.agentFileDrafts[active] ?? baseContent) : "";
   const isDirty = active ? draft !== baseContent : false;
+  const bootstrapMaxChars = params.bootstrapMaxChars ?? 20_000;
 
   return html`
     <section class="card">
@@ -1335,6 +1415,7 @@ function renderAgentFiles(params: {
               </div>
             `
           : html`
+              ${renderBootstrapBudget(files, bootstrapMaxChars)}
               <div class="agent-files-grid" style="margin-top: 16px;">
                 <div class="agent-files-list">
                   ${
@@ -1961,3 +2042,4 @@ function renderAgentSkillRow(
     </div>
   `;
 }
+
