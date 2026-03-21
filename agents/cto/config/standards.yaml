@@ -1,0 +1,26 @@
+version: 1
+execution_priority:
+  - api
+  - n8n
+  - mcp
+  - repo_edit
+  - db_storage
+  - cli
+  - provider_api
+  - browser
+report_requirements:
+  - execution_path
+  - browser_rejection
+  - files_used
+  - actions_taken
+  - result
+  - blockers
+  - retry_or_escalation_state
+status_values:
+  - GREEN
+  - YELLOW
+  - RED
+  - UNKNOWN
+unknown_tokens:
+  - UNKNOWN
+  - MISSING INTEGRATION
