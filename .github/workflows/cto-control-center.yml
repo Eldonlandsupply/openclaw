@@ -1,0 +1,49 @@
+name: CTO Control Center
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "agents/cto/**"
+      - ".github/workflows/cto-control-center.yml"
+      - "package.json"
+  schedule:
+    - cron: "17 6 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Refresh CTO control center
+        run: pnpm cto:refresh
+
+      - name: Validate CTO control center
+        run: pnpm cto:validate
+
+      - name: Upload CTO artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cto-control-center-${{ github.run_id }}
+          path: |
+            agents/cto/reports/
+            agents/cto/state/
+            agents/cto/repos/
