@@ -1,0 +1,64 @@
+version: 1
+generated_at: "2026-03-21T00:00:00Z"
+repositories:
+  - name: openclaw
+    owner: openclaw
+    repo: openclaw
+    path: /workspace/openclaw
+    purpose: >-
+      Command center and primary codebase for OpenClaw CLI, gateway, apps,
+      docs, channels, extensions, and orchestration tooling.
+    accessible_from_workspace: true
+    default_branch: UNKNOWN
+    active_branch: work
+    active_branches_observed:
+      - work
+    stack:
+      languages: [TypeScript, Swift, Kotlin, Shell]
+      runtimes: [Node.js, Bun]
+    package_manager:
+      primary: pnpm
+      secondary:
+        - bun
+    commands:
+      install: pnpm install
+      lint: pnpm check
+      typecheck: pnpm tsgo
+      build: pnpm build
+      test: pnpm test
+      coverage: pnpm test:coverage
+      deploy: UNKNOWN
+    ci_workflows:
+      - .github/workflows/auto-response.yml
+      - .github/workflows/ci.yml
+      - .github/workflows/docker-release.yml
+      - .github/workflows/formal-conformance.yml
+      - .github/workflows/install-smoke.yml
+      - .github/workflows/labeler.yml
+      - .github/workflows/stale.yml
+      - .github/workflows/validate-projects.yml
+      - .github/workflows/workflow-sanity.yml
+    required_secrets_or_env:
+      - GitHub Actions secrets, UNKNOWN exact names from local-only audit
+      - Notary auth variables for release workflows, if release scope is involved
+      - Channel/provider credentials under ~/.openclaw/credentials for live integrations
+    critical_paths:
+      - src/
+      - extensions/
+      - apps/
+      - docs/
+      - .github/workflows/
+      - scripts/
+    branch_protection_expectations:
+      - protected default branch
+      - required CI for merge
+      - no direct push to protected default branch without explicit approval
+    maintainers: UNKNOWN
+    priority_level: critical
+    production_impact: high
+    last_green_build: UNKNOWN
+    current_risk_status: yellow
+    risk_summary:
+      - Remote PR and CI state are unknown because no Git remote was configured locally.
+      - MCP task tracking integration is missing.
+      - Default branch could not be verified from local git metadata.

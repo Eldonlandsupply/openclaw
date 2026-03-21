@@ -1,0 +1,25 @@
+{
+  "repo": "openclaw/openclaw",
+  "last_scan": "2026-03-21T23:08:51Z",
+  "workflows": [
+    "auto-response",
+    "ci",
+    "docker-release",
+    "formal-conformance",
+    "install-smoke",
+    "labeler",
+    "stale",
+    "validate-projects",
+    "workflow-sanity"
+  ],
+  "recent_failures": [],
+  "failure_patterns": ["UNKNOWN, remote workflow history not available in local-only bootstrap"],
+  "flaky_tests": ["UNKNOWN"],
+  "median_run_time": "UNKNOWN",
+  "broken_steps": ["UNKNOWN"],
+  "remediation_notes": [
+    "Run local parity checks for the CTO module bootstrap changes.",
+    "Connect remote CI data before making assertions about workflow health."
+  ],
+  "next_action": "Populate recent failure history from the canonical CI provider and attach root-cause notes per broken workflow."
+}

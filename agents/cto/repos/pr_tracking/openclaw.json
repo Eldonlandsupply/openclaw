@@ -1,0 +1,16 @@
+{
+  "repo": "openclaw/openclaw",
+  "last_scan": "2026-03-21T23:08:51Z",
+  "integration_status": "MISSING INTEGRATION",
+  "open_prs": [],
+  "failing_prs": [],
+  "stale_prs": [],
+  "blocked_prs": [],
+  "merge_ready_prs": [],
+  "unknowns": [
+    "No Git remote was configured in the local checkout.",
+    "No authenticated GitHub query path was available during bootstrap."
+  ],
+  "next_action_per_pr": [],
+  "global_next_action": "Wire direct GitHub access, then hydrate this tracker with live PR metadata and per-PR remediation steps."
+}

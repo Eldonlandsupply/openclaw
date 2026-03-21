@@ -1,0 +1,28 @@
+{
+  "repo": "openclaw/openclaw",
+  "path": "/workspace/openclaw",
+  "status": "YELLOW",
+  "last_scan": "2026-03-21T23:08:51Z",
+  "default_branch": "UNKNOWN",
+  "active_branch": "work",
+  "last_green_ci": "UNKNOWN",
+  "open_failures": [
+    {
+      "id": "integration.github.remote_missing",
+      "severity": "medium",
+      "summary": "Git remotes were not configured in the local checkout, so upstream PR and CI state cannot be queried.",
+      "next_action": "Connect or fetch from the canonical Git remote, then populate CI and PR trackers from direct data sources."
+    },
+    {
+      "id": "integration.mcp.task_tracking_missing",
+      "severity": "medium",
+      "summary": "No MCP resources or templates were exposed in this workspace, so task records cannot be created yet.",
+      "next_action": "Add or enable the MCP task integration and wire the bootstrap scripts to emit task updates."
+    }
+  ],
+  "stale_pr_count": "UNKNOWN",
+  "security_concerns": ["UNKNOWN, remote scanning not available from this bootstrap context"],
+  "maintenance_priority": 1,
+  "next_action": "Establish GitHub and MCP integrations, then replace unknown CI and PR fields with observed data.",
+  "browser_rejection": "Browser automation was rejected because repo audit and control-center bootstrap could be completed through direct filesystem and CLI operations."
+}
