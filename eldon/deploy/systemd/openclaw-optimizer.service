@@ -1,0 +1,15 @@
+[Unit]
+Description=OpenClaw Nightly Optimizer
+After=network.target
+ConditionPathExists=/opt/openclaw/eldon/scripts/run_optimizer.py
+
+[Service]
+Type=oneshot
+User=pi
+WorkingDirectory=/opt/openclaw/eldon
+Environment=PYTHONPATH=src
+EnvironmentFile=/opt/openclaw/.env
+ExecStart=/opt/openclaw/.venv/bin/python scripts/run_optimizer.py --hours 24
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=openclaw-optimizer
