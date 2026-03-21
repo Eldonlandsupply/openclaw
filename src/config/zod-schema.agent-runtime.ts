@@ -477,6 +477,12 @@ export const AgentEntrySchema = z
      * Used by Mission Control and tooling to group agents by project.
      */
     projectSlug: z.string().optional(),
+    /**
+     * Optional role kit to inject into subagent bootstrap context.
+     * Identifies a lean AGENTS.md + TOOLS.md pair from src/agents/role-kits/.
+     * Valid values: "researcher" | "operator" | "auditor" | "repo-agent" | "chief-of-staff"
+     */
+    roleKit: z.string().optional(),
   })
   .strict();
 
@@ -577,3 +583,4 @@ export const ToolsSchema = z
     }
   })
   .optional();
+
