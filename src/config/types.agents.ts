@@ -69,6 +69,14 @@ export type AgentConfig = {
    * Used by Mission Control and tooling to group agents by project.
    */
   projectSlug?: string;
+  /**
+   * Optional role kit to inject into bootstrap context for this agent.
+   * Injects lean AGENTS.md + TOOLS.md files scoped to the role before
+   * the workspace files load. Effective for subagents that lack full
+   * workspace access.
+   * Valid values: "researcher" | "operator" | "auditor" | "repo-agent" | "chief-of-staff"
+   */
+  roleKit?: string;
 };
 
 export type AgentsConfig = {
@@ -86,3 +94,4 @@ export type AgentBinding = {
     teamId?: string;
   };
 };
+
