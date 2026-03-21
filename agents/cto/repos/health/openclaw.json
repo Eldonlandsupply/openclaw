@@ -2,7 +2,7 @@
   "repo": "openclaw/openclaw",
   "path": "/workspace/openclaw",
   "status": "YELLOW",
-  "last_scan": "2026-03-21T23:08:51Z",
+  "last_scan": "2026-03-21T23:21:52Z",
   "default_branch": "UNKNOWN",
   "active_branch": "work",
   "last_green_ci": "UNKNOWN",
@@ -10,19 +10,13 @@
     {
       "id": "integration.github.remote_missing",
       "severity": "medium",
-      "summary": "Git remotes were not configured in the local checkout, so upstream PR and CI state cannot be queried.",
-      "next_action": "Connect or fetch from the canonical Git remote, then populate CI and PR trackers from direct data sources."
-    },
-    {
-      "id": "integration.mcp.task_tracking_missing",
-      "severity": "medium",
-      "summary": "No MCP resources or templates were exposed in this workspace, so task records cannot be created yet.",
-      "next_action": "Add or enable the MCP task integration and wire the bootstrap scripts to emit task updates."
+      "summary": "Git remotes are not configured in the local checkout, so upstream PR and CI state cannot be queried directly.",
+      "next_action": "Connect the canonical Git remote, then hydrate PR and CI trackers from direct metadata."
     }
   ],
   "stale_pr_count": "UNKNOWN",
   "security_concerns": ["UNKNOWN, remote scanning not available from this bootstrap context"],
   "maintenance_priority": 1,
-  "next_action": "Establish GitHub and MCP integrations, then replace unknown CI and PR fields with observed data.",
-  "browser_rejection": "Browser automation was rejected because repo audit and control-center bootstrap could be completed through direct filesystem and CLI operations."
+  "next_action": "Connect direct GitHub access and rerun the refresh to replace unknown PR and CI fields with observed data.",
+  "browser_rejection": "Browser automation was rejected because the CTO control center can be audited and refreshed through direct filesystem, git, and CI workflow inspection."
 }
