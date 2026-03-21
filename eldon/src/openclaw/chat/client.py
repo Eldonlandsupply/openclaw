@@ -6,10 +6,12 @@ Async LLM chat client with:
   - System prompt loaded from config (config.llm.system_prompt or default)
   - Rate-limiting stub via configurable max_requests_per_minute
   - Injection pattern detection with warning log
+  - Hard asyncio timeout (LLM_REQUEST_TIMEOUT_SECONDS, default 30s)
 Supports OpenRouter, OpenAI, and xAI (Grok).
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 import time
@@ -24,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 _DEFAULT_SYSTEM_PROMPT = """You are OpenClaw, a secure AI orchestration gateway running on a Raspberry Pi at Eldon Land Supply. You are a trusted executive assistant to the CEO (Matthew Tynski).
 
-ROUTING TIERS — apply to every inbound message:
+ROUTING TIERS -- apply to every inbound message:
   1. CEO-LEVEL DECISION: Requires Matthew directly. Surface, do not act.
   2. DELEGATABLE: Can be completed by staff. Recommend delegation.
   3. DRAFTABLE: Draft a response for CEO review before sending.
@@ -53,6 +55,10 @@ _PROVIDER_BASE_URLS: dict[str, str] = {
     "openai":     "https://api.openai.com/v1",
     "xai":        "https://api.x.ai/v1",
 }
+
+# Hard wall: if the LLM has not responded within this many seconds,
+# cancel the request and return a clean error instead of blocking the message loop.
+_DEFAULT_REQUEST_TIMEOUT_SECONDS = 30
 
 
 class ChatClient:
@@ -84,35 +90,36 @@ class ChatClient:
             self._base_url = ""
             self._api_key  = ""
 
-        # Load system prompt from config if provided, else use default
         self._system_prompt: str = (
             getattr(cfg.llm, "system_prompt", None)
             or _DEFAULT_SYSTEM_PROMPT
         )
 
         self._history: list[dict] = []
-
-        # Persistent session — created lazily, closed in close()
         self._session: aiohttp.ClientSession | None = None
 
-        # Simple per-minute rate limiter
         self._rate_limit: int = getattr(cfg.llm, "max_requests_per_minute", 60)
         self._request_times: list[float] = []
+
+        # Hard asyncio-level timeout per request (config: llm.request_timeout_seconds)
+        self._request_timeout: int = int(
+            getattr(cfg.llm, "request_timeout_seconds", _DEFAULT_REQUEST_TIMEOUT_SECONDS)
+        )
 
         logger.info(
             "ChatClient init",
             extra={"provider": self._provider, "model": self._model,
-                   "rate_limit_rpm": self._rate_limit},
+                   "rate_limit_rpm": self._rate_limit,
+                   "request_timeout_s": self._request_timeout},
         )
 
-    # ── public ────────────────────────────────────────────────────────────
+    # -- public ------------------------------------------------------------
 
     async def chat(self, user_message: str) -> str:
         """Send a message and return the assistant reply."""
         if self._provider == "none" or not self._api_key:
             return f"[no LLM configured] echo: {user_message}"
 
-        # Injection detection
         if _INJECTION_PATTERNS.search(user_message):
             logger.warning(
                 "Potential prompt injection detected",
@@ -123,7 +130,6 @@ class ChatClient:
                 "prompt injection and will not be forwarded to the LLM."
             )
 
-        # Rate limiting
         now = time.monotonic()
         self._request_times = [t for t in self._request_times if now - t < 60]
         if len(self._request_times) >= self._rate_limit:
@@ -135,7 +141,20 @@ class ChatClient:
         self._trim_history()
 
         try:
-            reply = await self._call_api()
+            reply = await asyncio.wait_for(
+                self._call_api(),
+                timeout=self._request_timeout,
+            )
+        except asyncio.TimeoutError:
+            logger.error(
+                "LLM request timed out",
+                extra={"timeout_s": self._request_timeout, "provider": self._provider},
+            )
+            self._history.pop()
+            return (
+                f"[OpenClaw] LLM request timed out after {self._request_timeout}s. "
+                "The provider may be overloaded -- try again in a moment."
+            )
         except Exception as exc:
             logger.error("ChatClient error: %s", exc)
             self._history.pop()
@@ -154,7 +173,7 @@ class ChatClient:
             await self._session.close()
             self._session = None
 
-    # ── private ───────────────────────────────────────────────────────────
+    # -- private -----------------------------------------------------------
 
     def _get_session(self) -> aiohttp.ClientSession:
         if self._session is None or self._session.closed:
@@ -173,9 +192,10 @@ class ChatClient:
         payload  = {"model": self._model, "messages": messages}
         url      = f"{self._base_url}/chat/completions"
 
+        # HTTP timeout slightly under asyncio hard timeout so we get a clean aiohttp error first
+        http_timeout = aiohttp.ClientTimeout(total=max(self._request_timeout - 2, 10))
         session = self._get_session()
-        async with session.post(url, json=payload,
-                                timeout=aiohttp.ClientTimeout(total=60)) as resp:
+        async with session.post(url, json=payload, timeout=http_timeout) as resp:
             if resp.status != 200:
                 body = await resp.text()
                 raise RuntimeError(f"HTTP {resp.status}: {body[:200]}")
