@@ -75,6 +75,14 @@ class ConnectorTelegramConfig:
         self.enabled = raw if isinstance(raw, bool) else str(raw).lower() in ("true", "1", "yes")
 
 
+class ConnectorWhatsAppConfig:
+    def __init__(self, **data: Any) -> None:
+        raw = data.get("enabled", False)
+        self.enabled = raw if isinstance(raw, bool) else str(raw).lower() in ("true", "1", "yes")
+        self.bridge_url = str(data.get("bridge_url", "http://127.0.0.1:8181"))
+        self.poll_interval = int(data.get("poll_interval", 5))
+
+
 class ConnectorsConfig:
     def __init__(self, **data: Any) -> None:
         cli_raw = data.get("cli", {})
@@ -86,6 +94,11 @@ class ConnectorsConfig:
         if isinstance(tg_raw, (bool, str)):
             tg_raw = {"enabled": tg_raw}
         self.telegram = ConnectorTelegramConfig(**(tg_raw or {}))
+
+        wa_raw = data.get("whatsapp", {})
+        if isinstance(wa_raw, (bool, str)):
+            wa_raw = {"enabled": wa_raw}
+        self.whatsapp = ConnectorWhatsAppConfig(**(wa_raw or {}))
 
 
 class ActionsConfig:
@@ -136,6 +149,7 @@ class Secrets(BaseSettings):
     # Messaging
     telegram_bot_token: Optional[str] = None
     telegram_allowed_chat_ids: Optional[str] = None
+    whatsapp_allowed_numbers: Optional[str] = None
     # Email
     gmail_user: Optional[str] = None
     gmail_app_password: Optional[str] = None
@@ -156,6 +170,12 @@ class Secrets(BaseSettings):
         if not self.telegram_allowed_chat_ids:
             return []
         return [int(x.strip()) for x in self.telegram_allowed_chat_ids.split(",") if x.strip()]
+
+    @property
+    def whatsapp_allowed_numbers_list(self) -> list[str]:
+        if not self.whatsapp_allowed_numbers:
+            return []
+        return [x.strip() for x in self.whatsapp_allowed_numbers.split(",") if x.strip()]
 
 
 # ── Valid sets ─────────────────────────────────────────────────────────────
@@ -217,6 +237,8 @@ class AppConfig:
             self._fatal("llm.provider=xai but XAI_API_KEY is not set")
         if self.connectors.telegram.enabled and not self.secrets.telegram_bot_token:
             self._fatal("connectors.telegram.enabled=true but TELEGRAM_BOT_TOKEN is not set")
+        if self.connectors.whatsapp.enabled and not self.secrets.whatsapp_allowed_numbers:
+            self._fatal("connectors.whatsapp.enabled=true but WHATSAPP_ALLOWED_NUMBERS is not set")
         Path(self.runtime.data_dir).mkdir(parents=True, exist_ok=True)
 
     @staticmethod
@@ -240,6 +262,7 @@ class AppConfig:
             "connectors": {
                 "cli": self.connectors.cli.enabled,
                 "telegram": self.connectors.telegram.enabled,
+                "whatsapp": self.connectors.whatsapp.enabled,
             },
             "actions": {
                 "allowlist": self.actions.allowlist,
@@ -255,6 +278,7 @@ class AppConfig:
                 "openai_api_key": "SET" if self.secrets.openai_api_key else "NOT SET",
                 "openrouter_api_key": "SET" if self.secrets.openrouter_api_key else "NOT SET",
                 "telegram_bot_token": "SET" if self.secrets.telegram_bot_token else "NOT SET",
+                "whatsapp_allowed_numbers": "SET" if self.secrets.whatsapp_allowed_numbers else "NOT SET",
                 "gmail_user": self.secrets.gmail_user or "NOT SET",
                 "notification_email": self.secrets.notification_email or "NOT SET",
                 "attio_api_key": "SET" if self.secrets.attio_api_key else "NOT SET",

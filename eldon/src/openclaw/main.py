@@ -57,16 +57,12 @@ class MessageDeduplicator:
         self._seen: dict[str, float] = {}   # hash → timestamp
 
     def _key(self, connector: str, text: str) -> str:
-        # Include source connector so the same text on different connectors
-        # is NOT deduplicated (it could be intentional).
-        # Within the same connector, identical text within the window IS deduped.
         raw = f"{connector}:{text}"
         return hashlib.sha256(raw.encode()).hexdigest()
 
     def is_duplicate(self, connector: str, text: str) -> bool:
         now = time.monotonic()
         key = self._key(connector, text)
-        # Expire old entries
         self._seen = {k: v for k, v in self._seen.items() if now - v < self._window}
         if key in self._seen:
             return True
@@ -209,7 +205,6 @@ async def _message_loop(
         if not msg.text:
             continue
 
-        # Cross-connector deduplication
         if dedup.is_duplicate(connector.name, msg.text):
             logger.info(
                 "duplicate message suppressed",
@@ -326,10 +321,26 @@ async def run(yaml_path: str = "config.yaml") -> None:
         )
         await tg.start()
         connectors.append(tg)
-        admin_tg = tg   # use Telegram for admin alerts
+        admin_tg = tg
         tasks.append(asyncio.create_task(
             _message_loop(tg, dispatcher, dedup, con_health, admin_connector=tg)))
         logger.info("Telegram connector active", extra={"allowed_chat_ids": allowed})
+
+    if cfg.connectors.whatsapp.enabled:
+        from openclaw.connectors.whatsapp import WhatsAppConnector
+        wa = WhatsAppConnector(
+            allowed_numbers=cfg.secrets.whatsapp_allowed_numbers_list,
+            bridge_url=cfg.connectors.whatsapp.bridge_url,
+            poll_interval=cfg.connectors.whatsapp.poll_interval,
+        )
+        await wa.start()
+        connectors.append(wa)
+        tasks.append(asyncio.create_task(
+            _message_loop(wa, dispatcher, dedup, con_health, admin_connector=admin_tg)))
+        logger.info("WhatsApp connector active", extra={
+            "bridge_url": cfg.connectors.whatsapp.bridge_url,
+            "allowed_numbers": cfg.secrets.whatsapp_allowed_numbers_list,
+        })
 
     if cfg.secrets.gmail_user and cfg.secrets.gmail_app_password:
         from openclaw.connectors.gmail import GmailConnector
