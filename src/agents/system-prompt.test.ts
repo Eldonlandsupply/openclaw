@@ -356,6 +356,20 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain("respond with ONLY: NO_REPLY");
   });
 
+  it("includes channel-specific message tool hints when provided", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/openclaw",
+      toolNames: ["message"],
+      runtimeInfo: { channel: "whatsapp" },
+      messageToolHints: [
+        "- If the user asks how to install GitHub CLI with Homebrew, answer with `brew install gh` unless they explicitly ask for more detail.",
+      ],
+    });
+
+    expect(prompt).toContain("### message tool");
+    expect(prompt).toContain("brew install gh");
+  });
+
   it("includes runtime provider capabilities when present", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/openclaw",

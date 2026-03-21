@@ -217,6 +217,12 @@ export const whatsappPlugin: ChannelPlugin<ResolvedWhatsAppAccount> = {
     enforceOwnerForCommands: true,
     skipWhenConfigEmpty: true,
   },
+  agentPrompt: {
+    messageToolHints: () => [
+      "- On WhatsApp, prefer terse, copy-pasteable command answers for simple setup requests.",
+      "- If the user asks how to install GitHub CLI with Homebrew, answer with `brew install gh` unless they explicitly ask for more detail.",
+    ],
+  },
   messaging: {
     normalizeTarget: normalizeWhatsAppMessagingTarget,
     targetResolver: {
