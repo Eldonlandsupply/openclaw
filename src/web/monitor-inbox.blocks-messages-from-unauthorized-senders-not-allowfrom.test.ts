@@ -219,6 +219,70 @@ describe("web monitor inbox", () => {
     await listener.close();
   });
 
+  it("respects account-level dmPolicy open when root whatsapp policy is unset", async () => {
+    mockLoadConfig.mockReturnValue({
+      channels: {
+        whatsapp: {
+          accounts: {
+            work: {
+              dmPolicy: "open",
+              allowFrom: ["*"],
+            },
+          },
+        },
+      },
+      messages: {
+        messagePrefix: undefined,
+        responsePrefix: undefined,
+      },
+    });
+
+    const onMessage = vi.fn();
+    const listener = await monitorWebInbox({
+      verbose: false,
+      accountId: "work",
+      authDir,
+      onMessage,
+    });
+    const sock = await createWaSocket();
+
+    sock.ev.emit("messages.upsert", {
+      type: "notify",
+      messages: [
+        {
+          key: {
+            id: "account-open-1",
+            fromMe: false,
+            remoteJid: "15551230000@s.whatsapp.net",
+          },
+          message: { conversation: "hello from account-level open policy" },
+          messageTimestamp: nowSeconds(),
+        },
+      ],
+    });
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(onMessage).toHaveBeenCalledTimes(1);
+    expect(onMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accountId: "work",
+        from: "+15551230000",
+        body: "hello from account-level open policy",
+      }),
+    );
+    expect(sock.sendMessage).not.toHaveBeenCalled();
+
+    mockLoadConfig.mockReturnValue({
+      channels: { whatsapp: { allowFrom: ["*"] } },
+      messages: {
+        messagePrefix: undefined,
+        responsePrefix: undefined,
+      },
+    });
+
+    await listener.close();
+  });
+
   it("skips read receipts when disabled", async () => {
     const onMessage = vi.fn();
     const listener = await monitorWebInbox({

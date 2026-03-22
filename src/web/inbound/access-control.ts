@@ -1,5 +1,7 @@
 import { loadConfig } from "../../config/config.js";
 import { logVerbose } from "../../globals.js";
+import { getChildLogger } from "../../logging/logger.js";
+import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { buildPairingReply } from "../../pairing/pairing-messages.js";
 import {
   readChannelAllowFromStore,
@@ -16,6 +18,8 @@ export type InboundAccessControlResult = {
 };
 
 const PAIRING_REPLY_HISTORY_GRACE_MS = 30_000;
+const accessLogger = getChildLogger({ module: "web-inbound-access" });
+const accessConsoleLog = createSubsystemLogger("gateway/channels/whatsapp").child("access");
 
 export async function checkInboundAccessControl(params: {
   accountId: string;
@@ -38,7 +42,7 @@ export async function checkInboundAccessControl(params: {
     cfg,
     accountId: params.accountId,
   });
-  const dmPolicy = cfg.channels?.whatsapp?.dmPolicy ?? "pairing";
+  const dmPolicy = account.dmPolicy ?? "pairing";
   const configuredAllowFrom = account.allowFrom;
   const storeAllowFrom = await readChannelAllowFromStore("whatsapp").catch(() => []);
   // Without user config, default to self-only DM access so the owner can talk to themselves.
@@ -82,6 +86,19 @@ export async function checkInboundAccessControl(params: {
   const groupPolicy = account.groupPolicy ?? defaultGroupPolicy ?? "open";
   if (params.group && groupPolicy === "disabled") {
     logVerbose("Blocked group message (groupPolicy: disabled)");
+    accessLogger.info(
+      {
+        accountId: account.accountId,
+        remoteJid: params.remoteJid,
+        senderE164: params.senderE164,
+        policy: groupPolicy,
+        reason: "group-policy-disabled",
+      },
+      "blocked inbound WhatsApp message",
+    );
+    accessConsoleLog.info(
+      `Blocked inbound WhatsApp message: account=${account.accountId} reason=group-policy-disabled remoteJid=${params.remoteJid}`,
+    );
     return {
       allowed: false,
       shouldMarkRead: false,
@@ -92,6 +109,16 @@ export async function checkInboundAccessControl(params: {
   if (params.group && groupPolicy === "allowlist") {
     if (!groupAllowFrom || groupAllowFrom.length === 0) {
       logVerbose("Blocked group message (groupPolicy: allowlist, no groupAllowFrom)");
+      accessLogger.info(
+        {
+          accountId: account.accountId,
+          remoteJid: params.remoteJid,
+          senderE164: params.senderE164,
+          policy: groupPolicy,
+          reason: "group-allowlist-empty",
+        },
+        "blocked inbound WhatsApp message",
+      );
       return {
         allowed: false,
         shouldMarkRead: false,
@@ -105,6 +132,16 @@ export async function checkInboundAccessControl(params: {
     if (!senderAllowed) {
       logVerbose(
         `Blocked group message from ${params.senderE164 ?? "unknown sender"} (groupPolicy: allowlist)`,
+      );
+      accessLogger.info(
+        {
+          accountId: account.accountId,
+          remoteJid: params.remoteJid,
+          senderE164: params.senderE164,
+          policy: groupPolicy,
+          reason: "group-sender-not-allowed",
+        },
+        "blocked inbound WhatsApp message",
       );
       return {
         allowed: false,
@@ -128,6 +165,16 @@ export async function checkInboundAccessControl(params: {
     }
     if (dmPolicy === "disabled") {
       logVerbose("Blocked dm (dmPolicy: disabled)");
+      accessLogger.info(
+        {
+          accountId: account.accountId,
+          remoteJid: params.remoteJid,
+          from: params.from,
+          policy: dmPolicy,
+          reason: "dm-policy-disabled",
+        },
+        "blocked inbound WhatsApp message",
+      );
       return {
         allowed: false,
         shouldMarkRead: false,
@@ -144,6 +191,16 @@ export async function checkInboundAccessControl(params: {
         if (dmPolicy === "pairing") {
           if (suppressPairingReply) {
             logVerbose(`Skipping pairing reply for historical DM from ${candidate}.`);
+            accessLogger.info(
+              {
+                accountId: account.accountId,
+                remoteJid: params.remoteJid,
+                from: candidate,
+                policy: dmPolicy,
+                reason: "pairing-suppressed-history",
+              },
+              "blocked inbound WhatsApp message",
+            );
           } else {
             const { code, created } = await upsertChannelPairingRequest({
               channel: "whatsapp",
@@ -162,6 +219,16 @@ export async function checkInboundAccessControl(params: {
                     code,
                   }),
                 });
+                accessLogger.info(
+                  {
+                    accountId: account.accountId,
+                    remoteJid: params.remoteJid,
+                    from: candidate,
+                    policy: dmPolicy,
+                    reason: created ? "pairing-request-created" : "pairing-request-existing",
+                  },
+                  "sent WhatsApp pairing reply",
+                );
               } catch (err) {
                 logVerbose(`whatsapp pairing reply failed for ${candidate}: ${String(err)}`);
               }
@@ -169,6 +236,16 @@ export async function checkInboundAccessControl(params: {
           }
         } else {
           logVerbose(`Blocked unauthorized sender ${candidate} (dmPolicy=${dmPolicy})`);
+          accessLogger.info(
+            {
+              accountId: account.accountId,
+              remoteJid: params.remoteJid,
+              from: candidate,
+              policy: dmPolicy,
+              reason: "dm-sender-not-allowed",
+            },
+            "blocked inbound WhatsApp message",
+          );
         }
         return {
           allowed: false,
