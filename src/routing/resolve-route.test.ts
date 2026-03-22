@@ -227,6 +227,33 @@ describe("resolveAgentRoute", () => {
   });
 });
 
+test("routes a WhatsApp group binding to a dedicated agent session", () => {
+  const route = resolveAgentRoute({
+    cfg: {
+      agents: {
+        list: [{ id: "main" }, { id: "lola", name: "Lola" }],
+      },
+      bindings: [
+        {
+          agentId: "lola",
+          match: {
+            channel: "whatsapp",
+            peer: { kind: "group", id: "120363022222222222@g.us" },
+          },
+        },
+      ],
+    },
+    channel: "whatsapp",
+    accountId: "default",
+    peer: { kind: "group", id: "120363022222222222@g.us" },
+  });
+
+  expect(route.agentId).toBe("lola");
+  expect(route.sessionKey).toBe("agent:lola:whatsapp:group:120363022222222222@g.us");
+  expect(route.mainSessionKey).toBe("agent:lola:main");
+  expect(route.matchedBy).toBe("binding.peer");
+});
+
 test("dmScope=per-account-channel-peer isolates DM sessions per account, channel and sender", () => {
   const cfg: OpenClawConfig = {
     session: { dmScope: "per-account-channel-peer" },

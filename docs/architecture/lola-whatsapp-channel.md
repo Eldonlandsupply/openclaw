@@ -1,93 +1,154 @@
 ---
 title: "Lola WhatsApp Channel"
-description: "Production architecture for the dedicated Lola WhatsApp executive assistant channel."
+description: "Configuring a dedicated Lola-only WhatsApp surface in OpenClaw."
 ---
 
 # Lola WhatsApp Channel
 
-## Provider Decision
+OpenClaw does **not** currently support native per-thread subagent spawning inside a single WhatsApp chat.
 
-**Meta WhatsApp Cloud API.** Not Twilio (10x more expensive, no compensating benefit). Not Baileys (requires paired device, breaks on WhatsApp updates, no webhook, wrong for production).
+Best supported fallback: bind a dedicated WhatsApp group, for example `Lola | Executive Assistant`, to a dedicated agent id such as `lola`.
 
-## Architecture
+## Recommended design
 
+- Keep your main WhatsApp chat routed to the default `main` agent.
+- Create a dedicated WhatsApp group for Lola.
+- Bind that exact group JID to the `lola` agent.
+- Let OpenClaw persist Lola under the normal session store, using Lola's own agent-scoped session key.
+- Optionally use a separate WhatsApp account if you want the strongest operational separation.
+
+## Exact config
+
+Replace the placeholder phone numbers and group JID with your real values.
+
+```json5
+{
+  session: {
+    store: "~/.openclaw/sessions.json",
+    dmScope: "per-account-channel-peer",
+  },
+
+  agents: {
+    list: [
+      {
+        id: "main",
+        default: true,
+        name: "OpenClaw",
+      },
+      {
+        id: "lola",
+        name: "Lola",
+        workspace: "~/.openclaw/workspaces/lola",
+        identity: {
+          name: "Lola",
+        },
+        groupChat: {
+          mentionPatterns: ["lola", "@lola"],
+        },
+      },
+    ],
+  },
+
+  bindings: [
+    {
+      agentId: "lola",
+      match: {
+        channel: "whatsapp",
+        accountId: "default",
+        peer: {
+          kind: "group",
+          id: "120363022222222222@g.us",
+        },
+      },
+    },
+  ],
+
+  channels: {
+    whatsapp: {
+      dmPolicy: "pairing",
+      allowFrom: ["+15550001111"],
+      groupPolicy: "allowlist",
+      groupAllowFrom: ["+15550001111"],
+      responsePrefix: "",
+      accounts: {
+        default: {
+          name: "Personal WhatsApp",
+          groups: {
+            "120363022222222222@g.us": {
+              requireMention: false,
+              allowFrom: ["+15550001111", "+15550002222"],
+            },
+          },
+        },
+      },
+    },
+  },
+}
 ```
-Matthew WhatsApp
-  -> Meta Cloud API
-  -> POST /webhooks/lola/whatsapp
-  -> whatsapp_service.parse_inbound()
-  -> lola/pipeline.process()
-      dedupe -> auth -> normalize -> classify -> execute
-  -> whatsapp_service.send_message()
-  -> audit.record()
+
+## What this gives you
+
+- **Group routing**: the dedicated WhatsApp group is routed by `bindings[].match.peer`.
+- **Agent identity**: `agents.list[].name` and `agents.list[].identity.name` are set to `Lola`.
+- **Persistent isolation**: group messages land in `agent:lola:whatsapp:group:<jid>`, not in the main session.
+- **Reply behavior**: set `requireMention: false` for an always-on Lola group, or `true` if you want mention-gating.
+- **Allowed senders**: use `channels.whatsapp.accounts.<account>.groups.<jid>.allowFrom` for the Lola group-specific sender list.
+
+## Separate WhatsApp account option
+
+If you want harder operational separation, configure a second WhatsApp account and bind Lola there instead of using a group on your main account.
+
+Example changes:
+
+```json5
+{
+  bindings: [
+    {
+      agentId: "lola",
+      match: { channel: "whatsapp", accountId: "lola" },
+    },
+  ],
+  channels: {
+    whatsapp: {
+      accounts: {
+        lola: {
+          name: "Lola WhatsApp",
+          authDir: "~/.openclaw/credentials/whatsapp-lola",
+          dmPolicy: "allowlist",
+          allowFrom: ["+15550001111"],
+        },
+      },
+    },
+  },
+}
 ```
 
-## Files Added
+That is more reliable if you want zero chance of personal-chat overlap, at the cost of another linked WhatsApp identity.
 
-```
-eldon/gateway/app/gateway/lola_models.py
-eldon/gateway/app/lola/__init__.py
-eldon/gateway/app/lola/classifier.py
-eldon/gateway/app/lola/pipeline.py
-eldon/gateway/app/lola/executor.py
-eldon/gateway/app/lola/approvals.py
-eldon/gateway/app/lola/memory.py
-eldon/gateway/app/lola/audit.py
-eldon/gateway/app/lola/dedupe.py
-eldon/gateway/app/lola/system_prompt.md
-eldon/gateway/app/services/whatsapp_service.py
-eldon/gateway/app/main.py (updated)
-eldon/gateway/.env.lola.example
-eldon/gateway/tests/test_lola_pipeline.py
-docs/architecture/lola-whatsapp-channel.md
+## Restart commands
+
+```bash
+pkill -9 -f openclaw-gateway || true
+nohup openclaw gateway run --bind loopback --port 18789 --force > /tmp/openclaw-gateway.log 2>&1 &
+openclaw channels status --probe
+ss -ltnp | rg 18789
+tail -n 120 /tmp/openclaw-gateway.log
 ```
 
-## Permission Matrix
+## Test plan
 
-| Action | Auto | Approval | Blocked |
-|--------|------|----------|---------|
-| Read calendar | x | | |
-| Read inbox | x | | |
-| List tasks | x | | |
-| Status / health | x | | |
-| Daily briefing | x | | |
-| Draft email | x (draft only) | | |
-| Create reminder | x | | |
-| Log meeting note | x | | |
-| Create follow-up | x | | |
-| Send email | | x | |
-| Book / cancel meeting | | x | |
-| Update CRM | | x | |
-| Delegate to team | | x | |
-| Financial transactions | | | x |
-| Delete records | | | x |
-| Change prod config | | | x |
+1. Send a message in the `Lola | Executive Assistant` group.
+2. Confirm the inbound route resolves to agent `lola`.
+3. Confirm the reply is posted back into the same WhatsApp group.
+4. Send a message in your main OpenClaw WhatsApp DM or another group.
+5. Confirm that traffic still resolves to the default `main` agent/session.
+6. Restart the gateway.
+7. Send another Lola-group message and confirm the prior Lola context is still present.
 
-## Deployment Steps
+## Rollback
 
-1. `mkdir -p /opt/openclaw/.lola && chmod 700 /opt/openclaw/.lola`
-2. Add vars from `.env.lola.example` to `/opt/openclaw/.env`
-3. Create Meta App at developers.facebook.com, add WhatsApp product
-4. Set `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_WEBHOOK_VERIFY_TOKEN`
-5. Set `LOLA_ALLOWED_SENDERS` to your E.164 phone number
-6. Set `ENABLE_LOLA_WHATSAPP=true`
-7. `sudo systemctl restart openclaw`
-8. Register webhook with Meta: `https://<host>/webhooks/lola/whatsapp`
-9. Subscribe to `messages` event in Meta dashboard
-10. Send test message
-
-## v2 Roadmap
-
-- Outlook calendar + inbox read adapters
-- Email draft -> approved send flow
-- SQLite persistence (replace JSONL)
-- Attio CRM read + write with approval
-- Daily briefing cron (push to WhatsApp)
-
-## v3 Roadmap
-
-- Voice note transcription (Whisper on Pi)
-- PDF / document ingestion via WhatsApp attachment
-- Proactive follow-up alerts
-- Dashboard panel: pending approvals, memory, audit log
-- Multi-user with role scoping
+1. Remove the Lola `bindings` entry.
+2. Remove the Lola group entry from `channels.whatsapp.accounts.<account>.groups`.
+3. Optionally remove the `lola` agent definition.
+4. Restart the gateway.
+5. If you want to discard Lola-only history too, delete the matching `agent:lola:whatsapp:group:<jid>` session from your session store backup workflow, not by ad-hoc editing on a live system.

@@ -79,6 +79,8 @@ export type WhatsAppConfig = {
       requireMention?: boolean;
       tools?: GroupToolPolicyConfig;
       toolsBySender?: GroupToolPolicyBySenderConfig;
+      /** Optional sender allowlist override for this group only. */
+      allowFrom?: string[];
     }
   >;
   /** Acknowledgment reaction sent immediately upon message receipt. */
@@ -147,6 +149,8 @@ export type WhatsAppAccountConfig = {
       requireMention?: boolean;
       tools?: GroupToolPolicyConfig;
       toolsBySender?: GroupToolPolicyBySenderConfig;
+      /** Optional sender allowlist override for this group only. */
+      allowFrom?: string[];
     }
   >;
   /** Acknowledgment reaction sent immediately upon message receipt. */

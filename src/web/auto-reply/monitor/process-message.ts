@@ -19,6 +19,7 @@ import { finalizeInboundContext } from "../../../auto-reply/reply/inbound-contex
 import { dispatchReplyWithBufferedBlockDispatcher } from "../../../auto-reply/reply/provider-dispatcher.js";
 import { toLocationContext } from "../../../channels/location.js";
 import { createReplyPrefixOptions } from "../../../channels/reply-prefix.js";
+import { resolveChannelGroupPolicy } from "../../../config/group-policy.js";
 import { resolveMarkdownTableMode } from "../../../config/markdown-tables.js";
 import {
   readSessionUpdatedAt,
@@ -73,7 +74,17 @@ async function resolveWhatsAppCommandAuthorized(params: {
   }
 
   const configuredAllowFrom = params.cfg.channels?.whatsapp?.allowFrom ?? [];
+  const groupConfig = isGroup
+    ? resolveChannelGroupPolicy({
+        cfg: params.cfg,
+        channel: "whatsapp",
+        accountId: params.msg.accountId,
+        groupId: params.msg.chatId,
+      })
+    : undefined;
   const configuredGroupAllowFrom =
+    groupConfig?.groupConfig?.allowFrom ??
+    groupConfig?.defaultConfig?.allowFrom ??
     params.cfg.channels?.whatsapp?.groupAllowFrom ??
     (configuredAllowFrom.length > 0 ? configuredAllowFrom : undefined);
 
@@ -248,7 +259,10 @@ export async function processMessage(params: {
   let didLogHeartbeatStrip = false;
   let didSendReply = false;
   const commandAuthorized = shouldComputeCommandAuthorized(params.msg.body, params.cfg)
-    ? await resolveWhatsAppCommandAuthorized({ cfg: params.cfg, msg: params.msg })
+    ? await resolveWhatsAppCommandAuthorized({
+        cfg: params.cfg,
+        msg: params.msg,
+      })
     : undefined;
   const configuredResponsePrefix = params.cfg.messages?.responsePrefix;
   const { onModelSelected, ...prefixOptions } = createReplyPrefixOptions({
