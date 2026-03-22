@@ -9,6 +9,8 @@ export type ChannelGroupConfig = {
   requireMention?: boolean;
   tools?: GroupToolPolicyConfig;
   toolsBySender?: GroupToolPolicyBySenderConfig;
+  /** Optional sender allowlist override for this group only. */
+  allowFrom?: Array<string | number>;
 };
 
 export type ChannelGroupPolicy = {

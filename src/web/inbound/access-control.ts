@@ -1,4 +1,5 @@
 import { loadConfig } from "../../config/config.js";
+import { resolveChannelGroupPolicy } from "../../config/group-policy.js";
 import { logVerbose } from "../../globals.js";
 import { getChildLogger } from "../../logging/logger.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
@@ -52,7 +53,15 @@ export async function checkInboundAccessControl(params: {
   const defaultAllowFrom =
     combinedAllowFrom.length === 0 && params.selfE164 ? [params.selfE164] : undefined;
   const allowFrom = combinedAllowFrom.length > 0 ? combinedAllowFrom : defaultAllowFrom;
+  const { groupConfig, defaultConfig } = resolveChannelGroupPolicy({
+    cfg,
+    channel: "whatsapp",
+    accountId: account.accountId,
+    groupId: params.group ? params.remoteJid : undefined,
+  });
+  const groupAllowOverride = groupConfig?.allowFrom ?? defaultConfig?.allowFrom;
   const groupAllowFrom =
+    groupAllowOverride ??
     account.groupAllowFrom ??
     (configuredAllowFrom && configuredAllowFrom.length > 0 ? configuredAllowFrom : undefined);
   const isSamePhone = params.from === params.selfE164;
@@ -115,7 +124,10 @@ export async function checkInboundAccessControl(params: {
           remoteJid: params.remoteJid,
           senderE164: params.senderE164,
           policy: groupPolicy,
-          reason: "group-allowlist-empty",
+          reason:
+            typeof groupAllowOverride !== "undefined"
+              ? "group-override-allowlist-empty"
+              : "group-allowlist-empty",
         },
         "blocked inbound WhatsApp message",
       );
@@ -131,7 +143,7 @@ export async function checkInboundAccessControl(params: {
       (params.senderE164 != null && normalizedGroupAllowFrom.includes(params.senderE164));
     if (!senderAllowed) {
       logVerbose(
-        `Blocked group message from ${params.senderE164 ?? "unknown sender"} (groupPolicy: allowlist)`,
+        `Blocked group message from ${params.senderE164 ?? "unknown sender"} (groupPolicy: allowlist${typeof groupAllowOverride !== "undefined" ? ", group override" : ""})`,
       );
       accessLogger.info(
         {
