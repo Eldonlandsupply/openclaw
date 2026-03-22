@@ -1,13 +1,14 @@
 """
 OpenClaw Gateway.
+GET  /healthz              (alias)
 GET  /health
 POST /webhooks/telegram
 POST /webhooks/sms
 GET  /webhooks/lola/whatsapp    (Meta verification)
 POST /webhooks/lola/whatsapp    (inbound messages)
-GET  /lola/status               (dashboard panel)
-GET  /lola/approvals            (pending approvals)
-GET  /lola/audit                (recent audit log)
+GET  /lola/status
+GET  /lola/approvals
+GET  /lola/audit
 """
 
 from __future__ import annotations
@@ -31,7 +32,7 @@ _DASHBOARD_TOKEN = os.getenv("LOLA_DASHBOARD_TOKEN", "")
 
 def _verify_dashboard(request: web.Request) -> bool:
     if not _DASHBOARD_TOKEN:
-        return True  # if not configured, open (warn in logs)
+        return True
     return request.headers.get("X-Dashboard-Token", "") == _DASHBOARD_TOKEN
 
 
@@ -106,58 +107,83 @@ async def lola_whatsapp_verify(request: web.Request) -> web.Response:
     return web.Response(status=200, text=result)
 
 
+def _is_status_notification(payload: dict) -> bool:
+    try:
+        value = payload["entry"][0]["changes"][0]["value"]
+        return "statuses" in value and "messages" not in value
+    except (KeyError, IndexError, TypeError):
+        return False
+
+
 async def lola_whatsapp_webhook(request: web.Request) -> web.Response:
     if not _ENABLE_LOLA_WHATSAPP:
         return web.Response(status=404)
     body = await request.read()
+
+    sig = request.headers.get("X-Hub-Signature-256", "")
+    if not whatsapp_service.verify_signature(body, sig):
+        logger.warning("WhatsApp webhook signature mismatch — rejected")
+        return web.json_response({"error": "Invalid signature"}, status=401)
+
     try:
         payload = json.loads(body)
     except json.JSONDecodeError:
         return web.json_response({"error": "Bad JSON"}, status=400)
+
+    if _is_status_notification(payload):
+        return web.json_response({"ok": True})
+
     normalized = whatsapp_service.parse_inbound(payload)
     if not normalized:
         return web.json_response({"ok": True})
-    reply = await lola_process(
-        sender_phone=normalized["sender_phone"], thread_id=normalized["thread_id"],
-        message_id=normalized["message_id"], raw_text=normalized["text"], channel="whatsapp",
+
+    logger.info(
+        "WhatsApp inbound from=%s msg_id=%s type=%s",
+        normalized["sender_phone"], normalized["message_id"], normalized.get("msg_type"),
     )
+
+    try:
+        reply = await lola_process(
+            sender_phone=normalized["sender_phone"],
+            thread_id=normalized["thread_id"],
+            message_id=normalized["message_id"],
+            raw_text=normalized["text"],
+            channel="whatsapp",
+        )
+    except Exception as e:
+        logger.exception("lola_process raised: %s", e)
+        return web.json_response({"ok": True})
+
     if reply:
-        await whatsapp_service.send_message(normalized["sender_phone"], reply)
+        sent = await whatsapp_service.send_message(normalized["sender_phone"], reply)
+        if not sent:
+            logger.error("Failed to send WhatsApp reply to %s", normalized["sender_phone"])
+
     return web.json_response({"ok": True})
 
 
-# ── Dashboard endpoints ────────────────────────────────────────────────────
-
 async def lola_dashboard_status(request: web.Request) -> web.Response:
-    """GET /lola/status — Lola agent health for dashboard panel."""
     if not _verify_dashboard(request):
         return web.json_response({"error": "Unauthorized"}, status=401)
     try:
         from .lola import db
         stats = db.stats()
-        return web.json_response({
-            "agent": "lola",
-            "whatsapp_enabled": _ENABLE_LOLA_WHATSAPP,
-            "db_path": str(db._DB_PATH),
-            **stats,
-        })
+        return web.json_response({"agent": "lola", "whatsapp_enabled": _ENABLE_LOLA_WHATSAPP, "db_path": str(db._DB_PATH), **stats})
     except Exception as e:
         return web.json_response({"error": str(e)}, status=500)
 
 
 async def lola_dashboard_approvals(request: web.Request) -> web.Response:
-    """GET /lola/approvals — all pending approvals."""
     if not _verify_dashboard(request):
         return web.json_response({"error": "Unauthorized"}, status=401)
     try:
         from .lola import db
+        from datetime import datetime, timezone
         sender = request.rel_url.query.get("sender", "")
         if sender:
             rows = db.get_pending_approvals(sender)
         else:
-            # All pending
             c = db._get_conn()
-            from datetime import datetime, timezone
             now = datetime.now(timezone.utc).isoformat()
             cols = [r[1] for r in c.execute("PRAGMA table_info(approvals)").fetchall()]
             raw = c.execute(
@@ -171,7 +197,6 @@ async def lola_dashboard_approvals(request: web.Request) -> web.Response:
 
 
 async def lola_dashboard_audit(request: web.Request) -> web.Response:
-    """GET /lola/audit — recent audit records."""
     if not _verify_dashboard(request):
         return web.json_response({"error": "Unauthorized"}, status=401)
     try:
@@ -186,6 +211,7 @@ async def lola_dashboard_audit(request: web.Request) -> web.Response:
 def create_app() -> web.Application:
     app = web.Application()
     app.router.add_get("/health", health)
+    app.router.add_get("/healthz", health)
     app.router.add_post("/webhooks/telegram", telegram_webhook)
     app.router.add_post("/webhooks/sms", sms_webhook)
     app.router.add_get("/webhooks/lola/whatsapp", lola_whatsapp_verify)
@@ -198,5 +224,5 @@ def create_app() -> web.Application:
 
 if __name__ == "__main__":
     logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
-    port = int(os.getenv("GATEWAY_PORT", "8443"))
+    port = int(os.getenv("GATEWAY_PORT", "8000"))
     web.run_app(create_app(), port=port)
