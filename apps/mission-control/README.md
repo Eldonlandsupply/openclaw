@@ -11,6 +11,10 @@ Production-grade operator interface for the OpenClaw agent fleet.
 
 Or click **Demo Mode** to explore the UI without a running gateway.
 
+## ngrok note
+
+Mission Control does not need its own ngrok endpoint in normal OpenClaw deployments. Tunnel the OpenClaw Gateway instead, then connect Mission Control to that `wss://` endpoint. Use `docs/infrastructure/ngrok-raspberry-pi.md` as the canonical runbook.
+
 ## Features
 
 - **Fleet Overview** — all agents, status, audit trail

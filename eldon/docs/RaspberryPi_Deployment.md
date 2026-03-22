@@ -18,14 +18,14 @@ The core stack (Python 3.11+, asyncio, pydantic, pyyaml, aiohttp, sqlite3) is fu
 
 ## 2. Top Risks / Blockers
 
-| Risk | Severity | Fix |
-|---|---|---|
-| `dry_run: true` left in config | Silent failure — agent does nothing | Set `dry_run: false` in `config.yaml` |
-| `OPENAI_API_KEY` not set | Fatal startup error if `llm.provider=openai` | Set in `/etc/openclaw/openclaw.env` |
-| SD card wear from SQLite writes | Data corruption over months | Enable WAL mode (already done), consider tmpfs for logs |
-| No Telegram connector implemented | Warning only, not fatal | Do not enable `connectors.telegram.enabled: true` |
-| `require_confirm: true` on CLI | Blocks autonomous operation | Set to `false` for headless/autonomous mode |
-| Python < 3.11 on Pi | Syntax errors | Raspberry Pi OS Lite (Bookworm) ships 3.11 — use Bookworm |
+| Risk                              | Severity                                     | Fix                                                       |
+| --------------------------------- | -------------------------------------------- | --------------------------------------------------------- |
+| `dry_run: true` left in config    | Silent failure — agent does nothing          | Set `dry_run: false` in `config.yaml`                     |
+| `OPENAI_API_KEY` not set          | Fatal startup error if `llm.provider=openai` | Set in `/etc/openclaw/openclaw.env`                       |
+| SD card wear from SQLite writes   | Data corruption over months                  | Enable WAL mode (already done), consider tmpfs for logs   |
+| No Telegram connector implemented | Warning only, not fatal                      | Do not enable `connectors.telegram.enabled: true`         |
+| `require_confirm: true` on CLI    | Blocks autonomous operation                  | Set to `false` for headless/autonomous mode               |
+| Python < 3.11 on Pi               | Syntax errors                                | Raspberry Pi OS Lite (Bookworm) ships 3.11 — use Bookworm |
 
 ---
 
@@ -34,6 +34,7 @@ The core stack (Python 3.11+, asyncio, pydantic, pyyaml, aiohttp, sqlite3) is fu
 **Raspberry Pi OS Lite 64-bit (Bookworm, Debian 12)**
 
 Reasons:
+
 - Ships Python 3.11 natively — no manual Python install required
 - Smaller footprint than Ubuntu Server, better first-party Pi support
 - Better thermal and GPIO support (relevant for 24/7 hardware)
@@ -50,12 +51,14 @@ Use Ubuntu Server 24.04 LTS only if you need snaps, newer kernel features, or en
 ### A. Pre-flight Checklist
 
 **Required hardware:**
+
 - Raspberry Pi 4 (2GB minimum, 4GB recommended for headroom) or Pi 5
 - MicroSD card: **32GB minimum, A2-rated** (e.g., SanDisk Extreme Pro A2 or Samsung PRO Endurance)
 - USB-C power supply: **official Pi 4/5 supply (5V/3A)**. Underpowered PSUs cause random reboots.
 - Ethernet cable (preferred for stability) OR 2.4/5GHz Wi-Fi credentials
 
 **Optional but strongly recommended:**
+
 - Passive heatsink or fan case — required for sustained 24/7 load
 - UPS (CyberPower CP600LCD or similar) — protects against power loss corruption
 
@@ -66,9 +69,11 @@ Use Ubuntu Server 24.04 LTS only if you need snaps, newer kernel features, or en
 ### B. Flash the SD Card (from your Mac)
 
 **Step 1: Install Raspberry Pi Imager**
+
 ```
 brew install --cask raspberry-pi-imager
 ```
+
 Or download from: https://www.raspberrypi.com/software/
 
 **Step 2: Flash with preconfiguration**
@@ -89,18 +94,23 @@ Or download from: https://www.raspberrypi.com/software/
 **Step 3: Find the Pi on your network**
 
 Insert SD card, power on, wait 60 seconds, then from your Mac:
+
 ```bash
 ping openclaw.local
 ```
+
 Or scan your network:
+
 ```bash
 arp -a | grep -i raspberry
 ```
 
 **Step 4: SSH in**
+
 ```bash
 ssh pi@openclaw.local
 ```
+
 Accept the fingerprint, enter your password.
 
 ---
@@ -110,87 +120,113 @@ Accept the fingerprint, enter your password.
 Run these commands after first SSH login. Each command is on its own line — paste one at a time.
 
 **Update everything:**
+
 ```bash
 sudo apt update
 ```
+
 ```bash
 sudo apt upgrade -y
 ```
+
 ```bash
 sudo apt autoremove -y
 ```
 
 **Verify hostname and timezone:**
+
 ```bash
 hostname
 ```
+
 ```bash
 timedatectl
 ```
+
 ```bash
 sudo timedatectl set-timezone America/Chicago
 ```
+
 (Replace with your timezone. Find options with: `timedatectl list-timezones`)
 
 **Install essentials:**
+
 ```bash
 sudo apt install -y git curl wget nano unzip fail2ban ufw
 ```
 
 **Configure firewall (UFW):**
+
 ```bash
 sudo ufw default deny incoming
 ```
+
 ```bash
 sudo ufw default allow outgoing
 ```
+
 ```bash
 sudo ufw allow ssh
 ```
+
 ```bash
 sudo ufw allow 8080/tcp
 ```
+
 (Port 8080 is the health check endpoint. If you don't need external access to it, skip this line.)
+
 ```bash
 sudo ufw --force enable
 ```
+
 ```bash
 sudo ufw status
 ```
 
 **SSH hardening — edit sshd_config:**
+
 ```bash
 sudo nano /etc/ssh/sshd_config
 ```
+
 Find and set these lines (add if missing):
+
 ```
 PermitRootLogin no
 PasswordAuthentication yes
 MaxAuthTries 3
 ```
+
 Then:
+
 ```bash
 sudo systemctl restart ssh
 ```
 
 **fail2ban — protect against brute force:**
+
 ```bash
 sudo systemctl enable fail2ban
 ```
+
 ```bash
 sudo systemctl start fail2ban
 ```
+
 ```bash
 sudo fail2ban-client status sshd
 ```
 
 **Unattended security upgrades:**
+
 ```bash
 sudo apt install -y unattended-upgrades
 ```
+
 ```bash
 sudo dpkg-reconfigure -plow unattended-upgrades
 ```
+
 Select "Yes" when prompted.
 
 ---
@@ -199,22 +235,23 @@ Select "Yes" when prompted.
 
 **Confirmed from source inspection:**
 
-| Item | Finding |
-|---|---|
-| Language | Python 3.11+ |
-| Package manager | pip, no poetry/uv/npm required |
-| OS dependencies | None beyond Python stdlib + pip packages |
-| Docker | Optional, not required |
-| Virtual environment | Required (pip install into venv) |
-| ARM64 compatibility | ✅ All packages are pure-Python or have ARM64 wheels |
-| Required env vars | `OPENAI_API_KEY` (if provider=openai), config via `.env` |
-| Entry point | `python -m openclaw.main config.yaml` |
-| Config system | `src/openclaw/config.py` + `config.yaml.example` |
-| Health endpoint | `http://HOST:8080/health` |
-| SQLite | WAL mode enabled — write-safe |
-| Systemd service | `deploy/systemd/openclaw.service` — needs path edits |
+| Item                | Finding                                                  |
+| ------------------- | -------------------------------------------------------- |
+| Language            | Python 3.11+                                             |
+| Package manager     | pip, no poetry/uv/npm required                           |
+| OS dependencies     | None beyond Python stdlib + pip packages                 |
+| Docker              | Optional, not required                                   |
+| Virtual environment | Required (pip install into venv)                         |
+| ARM64 compatibility | ✅ All packages are pure-Python or have ARM64 wheels     |
+| Required env vars   | `OPENAI_API_KEY` (if provider=openai), config via `.env` |
+| Entry point         | `python -m openclaw.main config.yaml`                    |
+| Config system       | `src/openclaw/config.py` + `config.yaml.example`         |
+| Health endpoint     | `http://HOST:8080/health`                                |
+| SQLite              | WAL mode enabled — write-safe                            |
+| Systemd service     | `deploy/systemd/openclaw.service` — needs path edits     |
 
 **Missing from repo (you must provide):**
+
 - A real `.env` file with secrets
 - `config.yaml` with non-placeholder values
 - `OPENAI_API_KEY` if using OpenAI
@@ -224,95 +261,114 @@ Select "Yes" when prompted.
 ### E. Full Install Procedure
 
 **Create a dedicated user:**
+
 ```bash
 sudo useradd -r -s /bin/bash -m -d /opt/openclaw openclaw
 ```
 
 **Clone the repo:**
+
 ```bash
 sudo git clone https://github.com/Eldonlandsupply/EldonOpenClaw.git /opt/openclaw
 ```
 
 **Set ownership:**
+
 ```bash
 sudo chown -R openclaw:openclaw /opt/openclaw
 ```
 
 **Switch to the openclaw user:**
+
 ```bash
 sudo -u openclaw bash
 ```
 
 **Enter repo directory:**
+
 ```bash
 cd /opt/openclaw
 ```
 
 **Verify Python version:**
+
 ```bash
 python3 --version
 ```
+
 Expected: `Python 3.11.x` or higher.
 
 **Create virtual environment:**
+
 ```bash
 python3 -m venv .venv
 ```
 
 **Activate it:**
+
 ```bash
 source .venv/bin/activate
 ```
 
 **Install dependencies:**
+
 ```bash
 pip install --upgrade pip
 ```
+
 ```bash
 pip install -r requirements.txt
 ```
+
 ```bash
 pip install -e ".[dev]"
 ```
 
 **Create config.yaml from example:**
+
 ```bash
 cp config.yaml.example config.yaml
 ```
 
 **Edit config.yaml — required changes:**
+
 ```bash
 nano config.yaml
 ```
 
 Set these values:
+
 ```yaml
 llm:
-  provider: "openai"          # or "none" if no LLM needed yet
-  chat_model: "gpt-4o-mini"   # replace with your real model
+  provider: "openai" # or "none" if no LLM needed yet
+  chat_model: "gpt-4o-mini" # replace with your real model
 
 runtime:
-  dry_run: false               # SET THIS TO false WHEN READY
+  dry_run: false # SET THIS TO false WHEN READY
 
 connectors:
   cli:
     enabled: true
   telegram:
-    enabled: false             # keep false until implemented
+    enabled: false # keep false until implemented
 ```
 
 **Create the secrets directory and env file:**
+
 ```bash
 exit   # back to your sudo user
 ```
+
 ```bash
 sudo mkdir -p /etc/openclaw
 ```
+
 ```bash
 sudo nano /etc/openclaw/openclaw.env
 ```
 
 Add your secrets:
+
 ```bash
 OPENAI_API_KEY=sk-your-real-key-here
 SQLITE_PATH=/var/lib/openclaw/openclaw.db
@@ -321,14 +377,17 @@ SQLITE_PATH=/var/lib/openclaw/openclaw.db
 ```bash
 sudo chmod 600 /etc/openclaw/openclaw.env
 ```
+
 ```bash
 sudo chown openclaw:openclaw /etc/openclaw/openclaw.env
 ```
 
 **Create data directory:**
+
 ```bash
 sudo mkdir -p /var/lib/openclaw
 ```
+
 ```bash
 sudo chown openclaw:openclaw /var/lib/openclaw
 ```
@@ -338,20 +397,25 @@ sudo chown openclaw:openclaw /var/lib/openclaw
 ### F. First-Run Test (Manual)
 
 Switch to the openclaw user and run manually first:
+
 ```bash
 sudo -u openclaw bash
 ```
+
 ```bash
 cd /opt/openclaw
 ```
+
 ```bash
 source .venv/bin/activate
 ```
+
 ```bash
 python -m openclaw.main config.yaml
 ```
 
 **Healthy startup looks like:**
+
 ```json
 {"timestamp":"...","level":"INFO","logger":"openclaw.main","event":"openclaw starting","version":"0.1.0"}
 {"timestamp":"...","level":"INFO","logger":"openclaw.health","event":"health server started","host":"127.0.0.1","port":8080}
@@ -360,23 +424,26 @@ python -m openclaw.main config.yaml
 ```
 
 **Verify health endpoint (from another terminal):**
+
 ```bash
 curl http://127.0.0.1:8080/health
 ```
+
 Expected:
+
 ```json
-{"status": "ok", "uptime_s": 12, "last_tick": "...", "version": "0.1.0"}
+{ "status": "ok", "uptime_s": 12, "last_tick": "...", "version": "0.1.0" }
 ```
 
 **Common failure modes:**
 
-| Error | Cause | Fix |
-|---|---|---|
-| `FATAL CONFIG ERROR: llm.provider=openai but OPENAI_API_KEY is not set` | Key missing from env | Add to `/etc/openclaw/openclaw.env` |
-| `Config file not found: config.yaml` | Wrong working directory | `cd /opt/openclaw` first |
-| `ModuleNotFoundError: No module named 'openclaw'` | Venv not active or package not installed | `source .venv/bin/activate && pip install -e .` |
-| `Address already in use` on port 8080 | Another process using it | Change `health.port` in `config.yaml` |
-| `{"status":"degraded"}` from health | Main loop stalled > 60s | Check logs, likely startup error |
+| Error                                                                   | Cause                                    | Fix                                             |
+| ----------------------------------------------------------------------- | ---------------------------------------- | ----------------------------------------------- |
+| `FATAL CONFIG ERROR: llm.provider=openai but OPENAI_API_KEY is not set` | Key missing from env                     | Add to `/etc/openclaw/openclaw.env`             |
+| `Config file not found: config.yaml`                                    | Wrong working directory                  | `cd /opt/openclaw` first                        |
+| `ModuleNotFoundError: No module named 'openclaw'`                       | Venv not active or package not installed | `source .venv/bin/activate && pip install -e .` |
+| `Address already in use` on port 8080                                   | Another process using it                 | Change `health.port` in `config.yaml`           |
+| `{"status":"degraded"}` from health                                     | Main loop stalled > 60s                  | Check logs, likely startup error                |
 
 Stop with `Ctrl+C`, then `exit` back to your sudo user.
 
@@ -385,6 +452,7 @@ Stop with `Ctrl+C`, then `exit` back to your sudo user.
 ### G. systemd Service
 
 **Edit the included service file:**
+
 ```bash
 sudo nano /opt/openclaw/deploy/systemd/openclaw.service
 ```
@@ -427,28 +495,35 @@ WantedBy=multi-user.target
 ```
 
 **Install and enable the service:**
+
 ```bash
 sudo cp /opt/openclaw/deploy/systemd/openclaw.service /etc/systemd/system/openclaw.service
 ```
+
 ```bash
 sudo systemctl daemon-reload
 ```
+
 ```bash
 sudo systemctl enable openclaw
 ```
+
 ```bash
 sudo systemctl start openclaw
 ```
+
 ```bash
 sudo systemctl status openclaw
 ```
 
 **Watch live logs:**
+
 ```bash
 sudo journalctl -u openclaw -f
 ```
 
 **Check last 100 lines:**
+
 ```bash
 sudo journalctl -u openclaw -n 100
 ```
@@ -456,6 +531,8 @@ sudo journalctl -u openclaw -n 100
 ---
 
 ### H. Resilience and Operations
+
+If this Eldon deployment needs remote operator access through ngrok, do not create a second repo-specific tunnel standard. Reuse the canonical OpenClaw flow in `docs/infrastructure/ngrok-raspberry-pi.md`, then expose only the required service, such as the Gateway or a tightly scoped HTTP health surface.
 
 **Starts on boot:** `systemctl enable` handles this. Confirmed by the `WantedBy=multi-user.target` in the service file.
 
@@ -467,15 +544,19 @@ The biggest long-term risk for 24/7 Pi deployments is SD card wear from write-he
 ```bash
 sudo nano /etc/fstab
 ```
+
 Add a tmpfs for logs (reduces SD writes):
+
 ```
 tmpfs /tmp tmpfs defaults,noatime,nosuid,size=64m 0 0
 ```
 
 For a write-heavy agent, migrate to USB SSD:
+
 ```bash
 sudo apt install -y rpi-imager   # or use Raspberry Pi Imager on Mac to clone
 ```
+
 Then update `/boot/firmware/config.txt` and boot from USB. This eliminates SD card wear entirely.
 
 **Power loss protection:**
@@ -488,7 +569,9 @@ The sqlite WAL mode provides crash-safe writes. For additional protection:
 ```bash
 sudo nano /etc/systemd/system.conf
 ```
+
 Set:
+
 ```
 RuntimeWatchdogSec=15
 RebootWatchdogSec=2min
@@ -501,69 +584,88 @@ RebootWatchdogSec=2min
 ### I. Monitoring and Maintenance
 
 **Health check from anywhere on your network:**
+
 ```bash
 curl http://openclaw.local:8080/health
 ```
 
 **Disk usage:**
+
 ```bash
 df -h
 ```
+
 ```bash
 du -sh /var/lib/openclaw/
 ```
 
 **Memory and CPU:**
+
 ```bash
 free -h
 ```
+
 ```bash
 vcgencmd measure_temp
 ```
+
 (Temperature should stay below 80°C under load. Above 85°C = throttling.)
 
 **Service status:**
+
 ```bash
 sudo systemctl status openclaw
 ```
 
 **Pull latest changes and restart:**
+
 ```bash
 cd /opt/openclaw
 ```
+
 ```bash
 sudo git pull origin main
 ```
+
 ```bash
 sudo -u openclaw bash -c "cd /opt/openclaw && source .venv/bin/activate && pip install -e . -q"
 ```
+
 ```bash
 sudo systemctl restart openclaw
 ```
+
 ```bash
 sudo systemctl status openclaw
 ```
 
 **Log rotation** is handled automatically by journald. Default retention is 100MB or 2 weeks. To set explicitly:
+
 ```bash
 sudo nano /etc/systemd/journald.conf
 ```
+
 Add:
+
 ```
 SystemMaxUse=200M
 MaxRetentionSec=4week
 ```
+
 ```bash
 sudo systemctl restart systemd-journald
 ```
 
 **Config/secrets backup** — run from your Mac periodically:
+
 ```bash
 scp pi@openclaw.local:/etc/openclaw/openclaw.env ./openclaw.env.backup
 ```
+
 ```bash
 scp pi@openclaw.local:/opt/openclaw/config.yaml ./config.yaml.backup
 ```
+
 Store these encrypted, never in git.
 
 ---
@@ -571,6 +673,7 @@ Store these encrypted, never in git.
 ## 5. Exact Config Files to Create
 
 ### `/opt/openclaw/config.yaml`
+
 ```yaml
 llm:
   provider: "openai"
@@ -605,6 +708,7 @@ health:
 Note: Change `host` to `"0.0.0.0"` to allow health checks from other machines on your network. Keep `"127.0.0.1"` for localhost-only.
 
 ### `/etc/openclaw/openclaw.env`
+
 ```bash
 OPENAI_API_KEY=sk-your-real-key-here
 SQLITE_PATH=/var/lib/openclaw/openclaw.db
@@ -617,12 +721,15 @@ SQLITE_PATH=/var/lib/openclaw/openclaw.db
 ```bash
 sudo systemctl status openclaw
 ```
+
 ```bash
 curl http://openclaw.local:8080/health
 ```
+
 ```bash
 sudo journalctl -u openclaw -n 50
 ```
+
 ```bash
 sudo -u openclaw /opt/openclaw/.venv/bin/python scripts/doctor.py
 ```
@@ -631,17 +738,17 @@ sudo -u openclaw /opt/openclaw/.venv/bin/python scripts/doctor.py
 
 ## 7. Troubleshooting Table
 
-| Symptom | Likely Cause | Fix |
-|---|---|---|
-| Service fails to start | Bad config.yaml or missing env vars | `journalctl -u openclaw -n 30`, fix error shown |
-| `FATAL CONFIG ERROR` in logs | Missing or placeholder secrets | Edit `/etc/openclaw/openclaw.env` |
-| `/health` returns `{"status":"degraded"}` | Main loop stalled | Check logs for exception, restart service |
-| `/health` connection refused | Port 8080 not open or wrong host binding | Check `health.host` in config.yaml, check UFW |
-| Service starts then immediately stops | Python error at boot | Run manually first: `sudo -u openclaw bash -c "cd /opt/openclaw && source .venv/bin/activate && python -m openclaw.main config.yaml"` |
-| `ModuleNotFoundError` | Package not installed in venv | `sudo -u openclaw /opt/openclaw/.venv/bin/pip install -e /opt/openclaw` |
-| High CPU on Pi | Tick loop too fast | Increase `runtime.tick_seconds` in config.yaml |
-| SD card corruption after power loss | Write-heavy SQLite without protection | Enable WAL (already done), add UPS, consider USB SSD |
-| SSH locked out | UFW misconfigured or fail2ban ban | Connect via HDMI+keyboard, `sudo ufw allow ssh` or `sudo fail2ban-client unban YOUR_IP` |
+| Symptom                                   | Likely Cause                             | Fix                                                                                                                                   |
+| ----------------------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Service fails to start                    | Bad config.yaml or missing env vars      | `journalctl -u openclaw -n 30`, fix error shown                                                                                       |
+| `FATAL CONFIG ERROR` in logs              | Missing or placeholder secrets           | Edit `/etc/openclaw/openclaw.env`                                                                                                     |
+| `/health` returns `{"status":"degraded"}` | Main loop stalled                        | Check logs for exception, restart service                                                                                             |
+| `/health` connection refused              | Port 8080 not open or wrong host binding | Check `health.host` in config.yaml, check UFW                                                                                         |
+| Service starts then immediately stops     | Python error at boot                     | Run manually first: `sudo -u openclaw bash -c "cd /opt/openclaw && source .venv/bin/activate && python -m openclaw.main config.yaml"` |
+| `ModuleNotFoundError`                     | Package not installed in venv            | `sudo -u openclaw /opt/openclaw/.venv/bin/pip install -e /opt/openclaw`                                                               |
+| High CPU on Pi                            | Tick loop too fast                       | Increase `runtime.tick_seconds` in config.yaml                                                                                        |
+| SD card corruption after power loss       | Write-heavy SQLite without protection    | Enable WAL (already done), add UPS, consider USB SSD                                                                                  |
+| SSH locked out                            | UFW misconfigured or fail2ban ban        | Connect via HDMI+keyboard, `sudo ufw allow ssh` or `sudo fail2ban-client unban YOUR_IP`                                               |
 
 ---
 
