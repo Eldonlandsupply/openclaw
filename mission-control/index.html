@@ -318,6 +318,7 @@ const MAGS=[
   {id:'codebot',name:'CodeBot',isDefault:false,identity:{name:'CodeBot',emoji:'🤖',theme:'Code review and technical analysis'}},
   {id:'monitor',name:'Monitor',isDefault:false,identity:{name:'Monitor',emoji:'📊',theme:'System health and alerting'}},
   {id:'writer',name:'Writer',isDefault:false,identity:{name:'Writer',emoji:'✍️',theme:'Content creation and editorial'}},
+  {id:'lola',name:'Lola',isDefault:false,identity:{name:'Lola',emoji:'💼',theme:'Executive intelligence — inbox triage, memory, calendar, briefings, follow-through'}},
 ];
 const MFIL=[
   {name:'AGENTS.md',path:'~/.openclaw/workspace/AGENTS.md',missing:false,size:2048,updatedAtMs:Date.now()-3600000},
@@ -1112,6 +1113,106 @@ function AgentFilesTab({agentId,client,isDemo}){
     )
   );
 }
+// ── LOLA PANEL ───────────────────────────────────────────────────
+function LolaPanel({client,isDemo}){
+  const[queue,setQueue]=useState(null);const[ld,setLd]=useState(false);const[err,setErr]=useState('');
+  const load=useCallback(async()=>{
+    setLd(true);setErr('');
+    try{
+      if(isDemo){
+        setQueue({
+          drafts:[
+            {id:'d1',subject:'Re: Q2 Supply Review',to:'vendor@example.com',summary:'Confirm shipment schedule and pricing terms',createdAt:Date.now()-3600000},
+            {id:'d2',subject:'Follow-up: Site Visit',to:'ops@eldon.com',summary:'Schedule follow-up call after site inspection',createdAt:Date.now()-7200000},
+          ],
+          approvalQueue:[
+            {id:'a1',action:'send_email',target:'vendor@example.com',summary:'Price negotiation follow-up',riskLevel:'low',createdAt:Date.now()-1800000},
+            {id:'a2',action:'calendar_event',target:'Board Meeting',summary:'Create prep briefing for Thursday board meeting',riskLevel:'medium',createdAt:Date.now()-900000},
+          ],
+          memoryUpdates:[
+            {id:'m1',fact:'Vendor lead time extended to 6 weeks as of March',confidence:0.92,source:'inbox',createdAt:Date.now()-3600000},
+            {id:'m2',fact:'CFO prefers Slack for urgent items over email',confidence:0.87,source:'pattern',createdAt:Date.now()-86400000},
+          ],
+          openLoops:[
+            {id:'ol1',description:'No response from supplier on revised quote — follow up needed',daysOpen:3,priority:'high'},
+            {id:'ol2',description:'Board materials not yet distributed for Thursday meeting',daysOpen:1,priority:'medium'},
+          ],
+        });
+      } else if(client){
+        const r=await client.req('lola.status',{});
+        setQueue(r);
+      }
+    }catch(e){setErr(e.message);}
+    setLd(false);
+  },[client,isDemo]);
+  useEffect(()=>{load();},[load]);
+  if(ld)return h('div',{className:'emp'},h('div',{className:'empi'},'💼'),h('div',{className:'empt'},'Loading Lola…'));
+  if(err)return h('div',{className:'callout err'},err);
+  if(!queue)return null;
+  const fmt=ms=>new Date(ms).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  const fmtAge=ms=>{const s=Math.floor((Date.now()-ms)/1000);if(s<60)return `${s}s ago`;if(s<3600)return `${Math.floor(s/60)}m ago`;return `${Math.floor(s/3600)}h ago`;};
+  return h('div',{className:'col',style:{gap:11}},
+    h('div',{className:'row',style:{gap:8,flexWrap:'wrap'}},
+      h('div',{className:'stat'},h('div',{className:'stl'},'Drafts'),h('div',{className:'stv',style:{color:'var(--accent)'}},(queue.drafts||[]).length),h('div',{className:'stu'},'pending')),
+      h('div',{className:'stat'},h('div',{className:'stl'},'Approvals'),h('div',{className:'stv',style:{color:(queue.approvalQueue||[]).length>0?'var(--cyw)':'var(--cgr)'}},(queue.approvalQueue||[]).length),h('div',{className:'stu'},'queued')),
+      h('div',{className:'stat'},h('div',{className:'stl'},'Memory'),h('div',{className:'stv'},(queue.memoryUpdates||[]).length),h('div',{className:'stu'},'updates')),
+      h('div',{className:'stat'},h('div',{className:'stl'},'Open Loops'),h('div',{className:'stv',style:{color:(queue.openLoops||[]).filter(o=>o.priority==='high').length>0?'var(--cre)':'inherit'}},(queue.openLoops||[]).length),h('div',{className:'stu'},'tracked')),
+    ),
+    (queue.approvalQueue||[]).length>0&&h('div',{className:'card'},
+      h('div',{className:'ch'},h('span',{className:'cht'},'Approval Queue'),h('span',{className:'pill po'},`${(queue.approvalQueue||[]).length} pending`)),
+      h('div',{className:'cb'},h('div',{className:'col',style:{gap:6}},
+        (queue.approvalQueue||[]).map(item=>h('div',{key:item.id,className:'ci',style:{background:'var(--bg3)',border:'1px solid var(--wire2)',borderRadius:'var(--r1)',padding:'10px 12px'}},
+          h('div',{className:'row',style:{justifyContent:'space-between',marginBottom:4}},
+            h('div',{style:{fontFamily:'var(--sa)',fontSize:11,fontWeight:600}},item.action),
+            h('span',{className:`pill ${item.riskLevel==='high'?'pe':item.riskLevel==='medium'?'po':'ps'}`},item.riskLevel)
+          ),
+          h('div',{style:{fontSize:11,color:'var(--t2)',marginBottom:6}},item.summary),
+          h('div',{className:'row',style:{gap:6}},
+            h('button',{className:'btn bts bto',style:{fontSize:10,padding:'3px 10px'},onClick:async()=>{if(!isDemo&&client)try{await client.req('lola.approve',{id:item.id});}catch(e){setErr(e.message);}load();}},'✓ Approve'),
+            h('button',{className:'btn bts btd',style:{fontSize:10,padding:'3px 10px'},onClick:async()=>{if(!isDemo&&client)try{await client.req('lola.reject',{id:item.id});}catch(e){setErr(e.message);}load();}},'✕ Reject'),
+          )
+        ))
+      ))
+    ),
+    (queue.drafts||[]).length>0&&h('div',{className:'card'},
+      h('div',{className:'ch'},h('span',{className:'cht'},'Drafts Awaiting Approval')),
+      h('div',{className:'cb'},h('div',{className:'col',style:{gap:6}},
+        (queue.drafts||[]).map(d=>h('div',{key:d.id,className:'ci',style:{background:'var(--bg3)',border:'1px solid var(--wire2)',borderRadius:'var(--r1)',padding:'10px 12px'}},
+          h('div',{style:{fontFamily:'var(--sa)',fontSize:11,fontWeight:600,marginBottom:2}},d.subject),
+          h('div',{style:{fontSize:10,color:'var(--t3)',marginBottom:4}},`To: ${d.to} · ${fmtAge(d.createdAt)}`),
+          h('div',{style:{fontSize:11,color:'var(--t2)'}},d.summary),
+        ))
+      ))
+    ),
+    (queue.openLoops||[]).length>0&&h('div',{className:'card'},
+      h('div',{className:'ch'},h('span',{className:'cht'},'Open Loops')),
+      h('div',{className:'cb'},h('div',{className:'col',style:{gap:6}},
+        (queue.openLoops||[]).map(o=>h('div',{key:o.id,className:'ci',style:{background:'var(--bg3)',border:'1px solid var(--wire2)',borderRadius:'var(--r1)',padding:'10px 12px'}},
+          h('div',{className:'row',style:{justifyContent:'space-between',marginBottom:2}},
+            h('div',{style:{fontSize:11,color:'var(--t1)'}},o.description),
+            h('span',{className:`pill ${o.priority==='high'?'pe':o.priority==='medium'?'po':'ps'}`},o.priority)
+          ),
+          h('div',{style:{fontSize:10,color:'var(--t3)'}},`${o.daysOpen}d open`),
+        ))
+      ))
+    ),
+    (queue.memoryUpdates||[]).length>0&&h('div',{className:'card'},
+      h('div',{className:'ch'},h('span',{className:'cht'},'Memory Updates')),
+      h('div',{className:'cb'},h('div',{className:'col',style:{gap:6}},
+        (queue.memoryUpdates||[]).map(m=>h('div',{key:m.id,className:'ci',style:{background:'var(--bg3)',border:'1px solid var(--wire2)',borderRadius:'var(--r1)',padding:'10px 12px'}},
+          h('div',{style:{fontSize:11,color:'var(--t1)',marginBottom:2}},m.fact),
+          h('div',{className:'row',style:{gap:8}},
+            h('span',{style:{fontSize:10,color:'var(--t3)'}},`source: ${m.source}`),
+            h('span',{style:{fontSize:10,color:'var(--accent)'}},`${Math.round(m.confidence*100)}% confidence`),
+          )
+        ))
+      ))
+    ),
+    h('div',{style:{textAlign:'right',marginTop:4}},
+      h('button',{className:'btn bts',style:{fontSize:10},onClick:load},'↻ Refresh')
+    )
+  );
+}
 // ── AGENT DETAIL ─────────────────────────────────────────────────
 function AgentDetail({agent,client,isDemo,onUpdated,configRaw,configHash,configLoading,onConfigRefresh,cronJobs,setCronJobs,onCronLoad,cronLoading,configSchema}){
   const[tab,setTab]=useState('overview');
@@ -1125,7 +1226,7 @@ function AgentDetail({agent,client,isDemo,onUpdated,configRaw,configHash,configL
       setSaved(true);setTimeout(()=>setSaved(false),2500);if(onUpdated)onUpdated();
     }catch(e){setErr(e.message);}setSaving(false);};
   const agentCron=cronJobs.filter(j=>j.agentId===agent.id);
-  const TABS=[{id:'overview',l:'Overview'},{id:'files',l:'Files'},{id:'tools',l:'Tools'},{id:'cron',l:`Cron (${agentCron.length})`},{id:'skills',l:'Skills'},{id:'approvals',l:'Exec Approvals'},{id:'policy',l:'Policy'}];
+  const TABS=[{id:'overview',l:'Overview'},{id:'files',l:'Files'},{id:'tools',l:'Tools'},{id:'cron',l:`Cron (${agentCron.length})`},{id:'skills',l:'Skills'},{id:'approvals',l:'Exec Approvals'},{id:'policy',l:'Policy'},...(agent.id==='lola'?[{id:'lola',l:'💼 Lola'}]:[])];  
   return h('div',{className:'col',style:{gap:11}},
     h('div',{className:'card'},h('div',{className:'cb',style:{display:'flex',alignItems:'center',gap:13}},h('div',{className:'sav',style:{width:42,height:42,fontSize:20,borderRadius:9}},aEmoji(agent)),h('div',{style:{flex:1}},h('div',{style:{fontFamily:'var(--sa)',fontSize:16,fontWeight:700}},aLbl(agent)),h('div',{style:{fontSize:10,color:'var(--t3)',fontFamily:'var(--mo)',marginTop:2}},agent.id),agent.identity?.theme&&h('div',{style:{fontSize:11,color:'var(--t2)',marginTop:4}},agent.identity.theme)),agent.isDefault&&h('span',{className:'pill pde'},'default'),h('span',{className:'pill po'},'active'))),
     h('div',{className:'tr'},TABS.map(t=>h('button',{key:t.id,className:`ta ${tab===t.id?'on':''}`,onClick:()=>setTab(t.id)},t.l))),
@@ -1148,6 +1249,7 @@ function AgentDetail({agent,client,isDemo,onUpdated,configRaw,configHash,configL
     ),
     tab==='skills'&&h(SkillsPanel,{agentId:agent.id,client,isDemo}),
     tab==='approvals'&&h(ExecApprovalsPanel,{agentId:agent.id,client,isDemo}),
+    tab==='lola'&&h(LolaPanel,{client,isDemo}),
     tab==='policy'&&h('div',{className:'card'},h('div',{className:'ch'},h('span',{className:'cht'},'Governance & Guardrails')),h('div',{className:'cb'},h('div',{className:'col',style:{gap:14}},h('div',{className:'field'},h('label',null,'Human Approval Required'),h('select',null,h('option',{value:'off'},'Off'),h('option',{value:'exec'},'For exec/shell'),h('option',{value:'external'},'For external actions'),h('option',{value:'all'},'For all actions'))),h('div',{className:'field'},h('label',null,'Sandbox Mode'),h('select',null,h('option',{value:'off'},'Off'),h('option',{value:'non-main'},'Non-main agents'),h('option',{value:'all'},'All agents'))),h('div',{className:'callout info',style:{fontSize:10}},'Writes via ',h('code',null,'config.patch'),' using ',h('code',null,'buildAgentPatch'),' to safely update sandbox/approval settings.'),h('div',{className:'br',style:{justifyContent:'flex-end'}},h('button',{className:'btn btp bts',onClick:saveAgent},'Save Policy')))))
   );
 }
