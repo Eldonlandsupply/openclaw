@@ -8,7 +8,6 @@
 # Schema: see projects/_schema.yaml
 
 projects:
-
   - slug: mission-control
     name: "OpenClaw Mission Control"
     path: projects/mission-control
@@ -42,3 +41,19 @@ projects:
     related_source: eldon/
     created: "2026-03-15"
     updated: "2026-03-15"
+
+  - slug: lola-whatsapp-gateway
+    name: "Lola WhatsApp Gateway"
+    path: projects/lola-whatsapp-gateway
+    status: proposed
+    priority: high
+    description: >
+      Repo-ready implementation plan for a Lola-specific WhatsApp gateway
+      inside Eldonlandsupply/openclaw, including provider auth, message
+      normalization, dedupe, routing, packaging, and Raspberry Pi deployment.
+    owner: Eldonlandsupply
+    tags: [python, whatsapp, gateway, twilio, meta, raspberry-pi, proposed]
+    operating_mode: on-demand
+    related_source: openclaw/
+    created: "2026-03-22"
+    updated: "2026-03-22"

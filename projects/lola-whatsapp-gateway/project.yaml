@@ -1,0 +1,47 @@
+slug: lola-whatsapp-gateway
+name: "Lola WhatsApp Gateway"
+status: proposed
+priority: high
+owner: Eldonlandsupply
+created: "2026-03-22"
+updated: "2026-03-22"
+operating_mode: on-demand
+
+description: >
+  Repo-ready implementation plan for a Lola-specific WhatsApp gateway inside
+  Eldonlandsupply/openclaw. Defines Python app boundaries, provider adapters,
+  config surfaces, packaging, and test coverage for Raspberry Pi or container
+  deployment.
+
+tags:
+  - python
+  - whatsapp
+  - gateway
+  - twilio
+  - meta
+  - raspberry-pi
+  - proposed
+
+related_source: openclaw/
+
+related_agents:
+  - lola
+
+related_workflows:
+  - normalize-whatsapp-webhook
+  - verify-provider-signature
+  - dedupe-inbound-message
+  - route-to-lola
+  - send-outbound-reply
+
+external_systems:
+  - Twilio WhatsApp API
+  - Meta WhatsApp Cloud API
+  - Raspberry Pi systemd
+  - Docker
+
+status_note: >
+  Planning only. No runtime files have been scaffolded yet. The plan assumes a
+  Python-first Lola gateway isolated inside this repository with a narrow
+  contract surface to avoid coupling with the existing TypeScript WhatsApp
+  channel implementation.
