@@ -411,6 +411,31 @@ Behavior notes:
 
   </Accordion>
 
+  <Accordion title="Inbound DM never reaches the model">
+    Symptom: WhatsApp is linked and connected, but a DM never produces a usable OpenClaw reply.
+
+    Check the exact account that owns the linked session:
+
+    - `channels.whatsapp.accounts.<id>.dmPolicy`
+    - `channels.whatsapp.accounts.<id>.allowFrom`
+    - pairing state (`openclaw pairing list whatsapp`)
+
+    Smoke-test the access decision against your current config:
+
+    ```bash
+    bun scripts/whatsapp-access-smoke.ts --account work --from +15551230000
+    ```
+
+    Expected result:
+
+    - `"allowed": true` means the message can reach routing/reply generation
+    - `"allowed": false` means OpenClaw is blocking the turn before model execution
+
+    If you use account-level overrides, verify them there first. Root-level `channels.whatsapp.*`
+    defaults do not prove that `accounts.<id>` is configured correctly.
+
+  </Accordion>
+
   <Accordion title="Bun runtime warning">
     WhatsApp gateway runtime should use Node. Bun is flagged as incompatible for stable WhatsApp/Telegram gateway operation.
   </Accordion>
@@ -471,7 +496,7 @@ High-signal WhatsApp fields:
 
 - access: `dmPolicy`, `allowFrom`, `groupPolicy`, `groupAllowFrom`, `groups`
 - delivery: `textChunkLimit`, `chunkMode`, `mediaMaxMb`, `sendReadReceipts`, `ackReaction`
-- multi-account: `accounts.<id>.enabled`, `accounts.<id>.authDir`, account-level overrides
+- multi-account: `accounts.<id>.enabled`, `accounts.<id>.authDir`, `accounts.<id>.dmPolicy`, `accounts.<id>.allowFrom`, other account-level overrides
 - operations: `configWrites`, `debounceMs`, `web.enabled`, `web.heartbeatSeconds`, `web.reconnect.*`
 - session behavior: `session.dmScope`, `historyLimit`, `dmHistoryLimit`, `dms.<id>.historyLimit`
 
