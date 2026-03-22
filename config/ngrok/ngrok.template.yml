@@ -1,0 +1,16 @@
+# OpenClaw ngrok template
+# Copy this to ~/.config/ngrok/ngrok.yml or point NGROK_CONFIG_PATH at a local-only copy.
+# Do not commit a live authtoken.
+version: 3
+agent:
+  authtoken: REPLACE_WITH_NGROK_AUTHTOKEN
+
+endpoints:
+  - name: openclaw-gateway
+    description: OpenClaw Gateway WebSocket and Control UI
+    upstream:
+      url: http://127.0.0.1:__OPENCLAW_HTTP_PORT__
+
+# Add reserved endpoints only when you need durable addresses.
+# Example HTTP endpoint snippet: config/ngrok/endpoints/http-service.template.yml
+# Example TCP SSH endpoint snippet: config/ngrok/endpoints/tcp-ssh.template.yml

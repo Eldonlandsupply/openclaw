@@ -786,6 +786,14 @@
     {
       "source": "/platforms/northflank",
       "destination": "/install/northflank"
+    },
+    {
+      "source": "/remote-access",
+      "destination": "/operations/remote-access"
+    },
+    {
+      "source": "/ngrok-raspberry-pi",
+      "destination": "/infrastructure/ngrok-raspberry-pi"
     }
   ],
   "navigation": {
@@ -1070,7 +1078,8 @@
                   "platforms/linux",
                   "platforms/windows",
                   "platforms/android",
-                  "platforms/ios"
+                  "platforms/ios",
+                  "platforms/raspberry-pi"
                 ]
               },
               {
@@ -1154,7 +1163,13 @@
               },
               {
                 "group": "Remote access",
-                "pages": ["gateway/remote", "gateway/remote-gateway-readme", "gateway/tailscale"]
+                "pages": [
+                  "operations/remote-access",
+                  "gateway/remote",
+                  "gateway/remote-gateway-readme",
+                  "gateway/tailscale",
+                  "infrastructure/ngrok-raspberry-pi"
+                ]
               },
               {
                 "group": "Security",

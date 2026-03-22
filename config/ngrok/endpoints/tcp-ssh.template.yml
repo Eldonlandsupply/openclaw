@@ -1,0 +1,7 @@
+# Example ngrok TCP SSH endpoint.
+# Merge this into your local ngrok.yml endpoints list.
+- name: service-ssh
+  description: Replace with the Raspberry Pi SSH tunnel name
+  url: tcp://1.tcp.ngrok.io:12345
+  upstream:
+    url: 22

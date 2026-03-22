@@ -3,7 +3,7 @@
 **Canonical project home:** `projects/mission-control/`  
 **Source files:** `mission-control/` (root of repo)  
 **Status:** Active — Production  
-**Owner:** Eldonlandsupply  
+**Owner:** Eldonlandsupply
 
 ---
 
@@ -30,34 +30,37 @@ humans — without requiring CLI commands, raw JSON, or script-writing.
 
 ## What Systems It Touches
 
-| System | How |
-|--------|-----|
-| OpenClaw Gateway | WebSocket (ws:// or wss://) — native protocol frames |
-| Agent configs | Via `agents.list`, `agents.create`, `agents.update`, `agents.delete` |
-| Agent files (prompts, skills) | Via `agents.files.list`, `agents.files.get`, `agents.files.set` |
-| Sessions | Via `sessions.list`, `sessions.preview`, `sessions.reset`, `sessions.delete` |
-| Channels | Via `channels.status` |
-| Cron jobs | Via `cron.list`, `cron.add`, `cron.run`, `cron.remove` |
-| Models | Via `models.list` |
-| Gateway config | Via `config.get`, `config.set` |
-| Logs | Via `logs.tail` |
-| Nodes | Via `nodes.list` |
-| Exec Approvals | Via `execApprovals.list`, `execApprovals.approve`, `execApprovals.reject` |
-| Skills | Via `skills.list`, `skills.update` |
-| Devices | Via `devices.list` |
-| Usage/cost | Via `usage.sessions` |
+| System                        | How                                                                          |
+| ----------------------------- | ---------------------------------------------------------------------------- |
+| OpenClaw Gateway              | WebSocket (ws:// or wss://) — native protocol frames                         |
+| Agent configs                 | Via `agents.list`, `agents.create`, `agents.update`, `agents.delete`         |
+| Agent files (prompts, skills) | Via `agents.files.list`, `agents.files.get`, `agents.files.set`              |
+| Sessions                      | Via `sessions.list`, `sessions.preview`, `sessions.reset`, `sessions.delete` |
+| Channels                      | Via `channels.status`                                                        |
+| Cron jobs                     | Via `cron.list`, `cron.add`, `cron.run`, `cron.remove`                       |
+| Models                        | Via `models.list`                                                            |
+| Gateway config                | Via `config.get`, `config.set`                                               |
+| Logs                          | Via `logs.tail`                                                              |
+| Nodes                         | Via `nodes.list`                                                             |
+| Exec Approvals                | Via `execApprovals.list`, `execApprovals.approve`, `execApprovals.reject`    |
+| Skills                        | Via `skills.list`, `skills.update`                                           |
+| Devices                       | Via `devices.list`                                                           |
+| Usage/cost                    | Via `usage.sessions`                                                         |
 
 ---
 
 ## How to Run It
 
 ### Local (no server required)
+
 ```bash
 open mission-control/index.html
 ```
+
 Enter gateway URL (default `ws://127.0.0.1:18789`), token, and password.
 
 ### Static server
+
 ```bash
 cd mission-control
 python3 -m http.server 8080
@@ -65,7 +68,10 @@ python3 -m http.server 8080
 ```
 
 ### Remote gateway
+
 Use `wss://your-host:18789` for TLS-secured remote gateways.
+
+If the gateway is hosted on a Raspberry Pi and exposed through ngrok, keep the static Mission Control files local and tunnel only the Gateway. Canonical setup lives in `docs/infrastructure/ngrok-raspberry-pi.md`.
 
 ---
 
@@ -83,17 +89,17 @@ agent entity, not this interface itself.
 
 ## Authoritative Files
 
-| File | Purpose |
-|------|---------|
-| `mission-control/index.html` | DOM structure and shell layout |
-| `mission-control/mc.css` | Design system, component styles |
-| `mission-control/mc.js` | Gateway client + all view logic |
-| `mission-control/README.md` | User-facing readme |
-| `projects/mission-control/project.yaml` | Project identity and metadata |
-| `projects/mission-control/README.md` | This operator runbook |
-| `projects/mission-control/context/capabilities.md` | Gateway API surface used |
-| `projects/mission-control/runbooks/` | Operational runbooks |
-| `projects/mission-control/links/index.md` | Issues, PRs, external references |
+| File                                               | Purpose                          |
+| -------------------------------------------------- | -------------------------------- |
+| `mission-control/index.html`                       | DOM structure and shell layout   |
+| `mission-control/mc.css`                           | Design system, component styles  |
+| `mission-control/mc.js`                            | Gateway client + all view logic  |
+| `mission-control/README.md`                        | User-facing readme               |
+| `projects/mission-control/project.yaml`            | Project identity and metadata    |
+| `projects/mission-control/README.md`               | This operator runbook            |
+| `projects/mission-control/context/capabilities.md` | Gateway API surface used         |
+| `projects/mission-control/runbooks/`               | Operational runbooks             |
+| `projects/mission-control/links/index.md`          | Issues, PRs, external references |
 
 ---
 

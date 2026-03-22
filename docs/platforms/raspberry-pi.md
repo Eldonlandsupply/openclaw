@@ -155,6 +155,8 @@ journalctl -u openclaw -f
 
 ## 9) Access the Dashboard
 
+Prefer SSH forwarding or Tailscale for day-to-day operator access. If you need reboot-safe controlled exposure from a Pi, follow the canonical [ngrok on Raspberry Pi](/infrastructure/ngrok-raspberry-pi) standard instead of inventing a one-off tunnel flow.
+
 Since the Pi is headless, use an SSH tunnel:
 
 ```bash

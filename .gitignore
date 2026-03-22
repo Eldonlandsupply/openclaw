@@ -83,3 +83,8 @@ USER.md
 .agent/*.json
 !.agent/workflows/
 local/
+
+# local ngrok state
+.ngrok2/
+config/ngrok/*.local.yml
+config/ngrok/*.local.yaml

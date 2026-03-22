@@ -36,26 +36,30 @@ python3 -m http.server 8080
 ### Option 3 — From Docker / VPS
 
 If your OpenClaw gateway is running on a remote host, use:
+
 ```
 ws://your-host:18789
 ```
+
 For TLS-secured gateways: `wss://your-host:18789`
+
+If the gateway is hosted on a Raspberry Pi behind ngrok, expose the Gateway endpoint, not the static Mission Control files. Follow the canonical guide at `docs/infrastructure/ngrok-raspberry-pi.md`. Mission Control only needs the resulting `wss://` URL plus the normal gateway token or password.
 
 ---
 
 ## Features
 
-| View | What it does |
-|------|-------------|
-| **Overview** | Live gateway snapshot: uptime, connected clients, agent count |
-| **Agents** | Create, edit, delete agents; browse and edit agent files |
-| **Sessions** | Browse sessions with search, preview transcripts, reset/delete |
-| **Channels** | Live status of all configured channel integrations |
-| **Cron** | View, trigger, and remove scheduled jobs |
-| **Models** | All available models from configured providers |
-| **Config** | Live config editor — get, edit, and save the gateway config JSON |
-| **Logs** | Real-time log tail with follow mode |
-| **Nodes** | Paired remote nodes overview |
+| View         | What it does                                                     |
+| ------------ | ---------------------------------------------------------------- |
+| **Overview** | Live gateway snapshot: uptime, connected clients, agent count    |
+| **Agents**   | Create, edit, delete agents; browse and edit agent files         |
+| **Sessions** | Browse sessions with search, preview transcripts, reset/delete   |
+| **Channels** | Live status of all configured channel integrations               |
+| **Cron**     | View, trigger, and remove scheduled jobs                         |
+| **Models**   | All available models from configured providers                   |
+| **Config**   | Live config editor — get, edit, and save the gateway config JSON |
+| **Logs**     | Real-time log tail with follow mode                              |
+| **Nodes**    | Paired remote nodes overview                                     |
 
 ---
 
@@ -65,6 +69,7 @@ Mission Control speaks the standard OpenClaw Gateway WebSocket protocol.
 All operations use typed request/response frames (`type: "request"` / `type: "response"`).
 
 Key commands used:
+
 - `connect` — handshake and auth
 - `agents.list`, `agents.create`, `agents.update`, `agents.delete`
 - `agents.files.list`, `agents.files.get`, `agents.files.set`

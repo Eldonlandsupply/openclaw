@@ -232,6 +232,26 @@ It’s perfectly fine to run the Gateway on a small Linux instance. Clients (mac
 
 Details: [Remote access](https://docs.openclaw.ai/gateway/remote) · [Nodes](https://docs.openclaw.ai/nodes) · [Security](https://docs.openclaw.ai/gateway/security)
 
+## Remote access and tunneling
+
+OpenClaw should stay loopback-bound by default. Reach it remotely with the narrowest tool that fits the job:
+
+- Preferred: [SSH forwarding](https://docs.openclaw.ai/gateway/remote)
+- Tailnet-only: [Tailscale Serve/Funnel](https://docs.openclaw.ai/gateway/tailscale)
+- Raspberry Pi or controlled edge exposure: [ngrok on Raspberry Pi](https://docs.openclaw.ai/infrastructure/ngrok-raspberry-pi)
+
+The ngrok standard in this repo is script-first, secret-safe, and reboot-aware:
+
+```bash
+scripts/ngrok/install_rpi.sh
+export NGROK_AUTHTOKEN='replace-me'
+scripts/ngrok/configure.sh
+scripts/ngrok/validate.sh
+OPENCLAW_TUNNEL_PORT=18789 scripts/ngrok/start_http_tunnel.sh
+```
+
+For durable Raspberry Pi access after reboot, define endpoints in a local `ngrok.yml`, then install service mode with `scripts/ngrok/install_service.sh`. For raw shell access, use `scripts/ngrok/start_tcp_ssh_tunnel.sh` only when SSH exposure is explicitly required and locked down.
+
 ## macOS permissions via the Gateway protocol
 
 The macOS app can run in **node mode** and advertises its capabilities + permission map over the Gateway WebSocket (`node.list` / `node.describe`). Clients can then execute local actions via `node.invoke`:

@@ -1,0 +1,7 @@
+# Example ngrok HTTP endpoint for an OpenClaw-adjacent service.
+# Merge this into your local ngrok.yml endpoints list.
+- name: service-http
+  description: Replace with the service name
+  url: https://replace-with-your-reserved-domain.ngrok.app
+  upstream:
+    url: http://127.0.0.1:3000

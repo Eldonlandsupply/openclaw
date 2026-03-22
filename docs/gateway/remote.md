@@ -114,6 +114,10 @@ The macOS menu bar app can drive the same setup end-to-end (remote status checks
 
 Runbook: [macOS remote access](/platforms/mac/remote).
 
+## ngrok on Raspberry Pi
+
+Use ngrok only when SSH forwarding or Tailscale are not the right fit for the deployment. For Raspberry Pi setups, OpenClaw now keeps the canonical ngrok standard in [ngrok on Raspberry Pi](/infrastructure/ngrok-raspberry-pi). That runbook covers install, authtoken setup, HTTP and TCP tunnels, validation, service mode, and recovery after reboot.
+
 ## Security rules (remote/VPN)
 
 Short version: **keep the Gateway loopback-only** unless you’re sure you need a bind.
