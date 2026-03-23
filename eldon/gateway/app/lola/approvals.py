@@ -38,7 +38,6 @@ def resolve(approval_id, sender_id, grant) -> Optional[LolaApprovalRequest]:
                 from . import db
                 row = db.get_approval(approval_id)
                 if row and row["sender_id"] == sender_id and row["status"] == "pending":
-                    from .models_import import LolaApprovalStatus
                     req = LolaApprovalRequest(**{
                         **row,
                         "action_payload": __import__("json").loads(row.get("action_payload", "{}")),
