@@ -213,7 +213,7 @@ describe("gateway-status command", () => {
       });
       discoverGatewayBeacons.mockResolvedValueOnce([
         { tailnetDns: "-V" },
-        { tailnetDns: "goodhost" },
+        { tailnetDns: "goodhost", host: "goodhost.local", port: 18789 },
       ]);
 
       startSshPortForward.mockClear();

@@ -87,4 +87,9 @@ describe("splitMediaFromOutput", () => {
     const result = splitMediaFromOutput("MEDIA:screenshot");
     expect(result.mediaUrls).toBeUndefined();
   });
+
+  it("returns plain text unchanged when no media or audio markers exist", () => {
+    const input = "Just a normal reply with no directives.";
+    expect(splitMediaFromOutput(input)).toEqual({ text: input });
+  });
 });
