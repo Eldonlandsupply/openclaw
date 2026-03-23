@@ -1,0 +1,67 @@
+name: Upstream Watch
+
+on:
+  schedule:
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Optional upstream tag to review instead of the latest release
+        required: false
+        type: string
+      create_prs:
+        description: Create or update PRs when worthwhile changes exist
+        required: false
+        default: true
+        type: boolean
+  repository_dispatch:
+    types: [upstream-release]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: upstream-watch
+  cancel-in-progress: false
+
+jobs:
+  review-upstream:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node environment
+        uses: ./.github/actions/setup-node-env
+        with:
+          install-bun: "false"
+
+      - name: Review upstream release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.event.client_payload.release_tag || '' }}
+          CREATE_PRS: ${{ github.event_name == 'workflow_dispatch' && inputs.create_prs || github.event.client_payload.create_prs || 'true' }}
+        run: |
+          set -euo pipefail
+          args=()
+          if [ -n "${RELEASE_TAG}" ]; then
+            args+=(--release-tag "${RELEASE_TAG}")
+          fi
+          if [ "${CREATE_PRS}" != "true" ]; then
+            args+=(--no-pr)
+          fi
+          node --import tsx scripts/upstream-watch.ts "${args[@]}"
+
+      - name: Upload report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: upstream-watch-report
+          path: .artifacts/upstream-watch/
+          retention-days: 14

@@ -1,0 +1,96 @@
+{
+  "upstreamRepo": "openclaw/openclaw",
+  "upstreamRemoteName": "upstream-watch",
+  "defaultBaseBranch": "main",
+  "stateIssueTitle": "Upstream watch state",
+  "reportOutputDir": ".artifacts/upstream-watch",
+  "reportTemplatePath": ".github/upstream-watch/report-template.md",
+  "labels": {
+    "upstream-sync": "upstream-sync",
+    "safe-port": "safe-port",
+    "needs-review": "needs-review",
+    "breaking-risk": "breaking-risk",
+    "rejected-by-policy": "rejected-by-policy"
+  },
+  "classification": {
+    "categoryKeywords": {
+      "security": [
+        "security",
+        "cve",
+        "vulnerability",
+        "auth",
+        "token",
+        "secret",
+        "sanitize",
+        "escape",
+        "permission"
+      ],
+      "bug fix": ["fix", "bug", "regression", "correct", "repair", "handle", "prevent"],
+      "reliability": [
+        "retry",
+        "stability",
+        "reliable",
+        "resilience",
+        "recover",
+        "timeout",
+        "guardrail",
+        "fallback"
+      ],
+      "performance": ["performance", "faster", "latency", "throughput", "cache", "optimize"],
+      "cost efficiency": ["cost", "cheaper", "reduce", "fewer requests", "batch", "cache hit"],
+      "developer experience": [
+        "docs",
+        "lint",
+        "typing",
+        "typescript",
+        "test",
+        "cli",
+        "developer experience",
+        "refactor"
+      ],
+      "UI/dashboard": ["ui", "dashboard", "web", "control-ui", "layout", "button", "view"],
+      "breaking change": ["breaking", "deprecate", "rename", "migration", "major", "remove"],
+      "opinionated/nonessential": ["cleanup", "style", "wording", "copy", "rename only", "comment"]
+    },
+    "fitWeights": {
+      "security": 7,
+      "bug fix": 5,
+      "reliability": 5,
+      "performance": 4,
+      "cost efficiency": 4,
+      "developer experience": 1,
+      "UI/dashboard": 1,
+      "breaking change": -8,
+      "opinionated/nonessential": -4
+    },
+    "strongFitThreshold": 6,
+    "possibleFitThreshold": 2,
+    "maxSafeFiles": 8,
+    "maxSafeInsertions": 220,
+    "maxSafeDeletions": 140,
+    "riskyFileThreshold": 20
+  },
+  "policy": {
+    "rejectPathPrefixes": [
+      "apps/",
+      "docs/zh-CN/",
+      "docs/ja-JP/",
+      "src/agents/role-kits/",
+      "src/agents/",
+      "extensions/",
+      "node_modules/"
+    ],
+    "manualReviewPathPrefixes": [".github/workflows/", "docs/", "src/gateway/", "src/web/", "ui/"],
+    "preferPathPrefixes": ["scripts/", "src/commands/", "src/infra/", "src/cron/", "src/cli/"],
+    "rejectSubjectKeywords": [
+      "breaking",
+      "deprecate",
+      "remove",
+      "rename",
+      "rewrite",
+      "drop support"
+    ],
+    "riskySubjectKeywords": ["refactor", "dashboard", "ui", "workflow", "generator", "migration"],
+    "forceSafeSubjectKeywords": ["fix", "security", "regression", "guardrail", "reliability"]
+  }
+}

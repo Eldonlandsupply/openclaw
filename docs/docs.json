@@ -1014,7 +1014,8 @@
                   "automation/webhook",
                   "automation/gmail-pubsub",
                   "automation/poll",
-                  "automation/auth-monitoring"
+                  "automation/auth-monitoring",
+                  "automation/upstream-watch"
                 ]
               },
               {
