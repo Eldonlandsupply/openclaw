@@ -19,6 +19,33 @@ export type GatewayBonjourBeacon = {
   txt?: Record<string, string>;
 };
 
+export type GatewayDiscoveryResolvedEndpoint = {
+  host: string;
+  port: number;
+  gatewayTls: boolean;
+  scheme: "ws" | "wss";
+  wsUrl: string;
+};
+
+export function resolveGatewayDiscoveryEndpoint(
+  beacon: GatewayBonjourBeacon,
+): GatewayDiscoveryResolvedEndpoint | null {
+  const host = beacon.host?.trim();
+  const port = beacon.port;
+  if (!host || typeof port !== "number" || !Number.isFinite(port) || port <= 0) {
+    return null;
+  }
+  const gatewayTls = beacon.gatewayTls === true;
+  const scheme = gatewayTls ? "wss" : "ws";
+  return {
+    host,
+    port,
+    gatewayTls,
+    scheme,
+    wsUrl: `${scheme}://${host}:${port}`,
+  };
+}
+
 export type GatewayBonjourDiscoverOpts = {
   timeoutMs?: number;
   domains?: string[];

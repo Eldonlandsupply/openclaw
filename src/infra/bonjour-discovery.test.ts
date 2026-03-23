@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { runCommandWithTimeout } from "../process/exec.js";
-import { discoverGatewayBeacons } from "./bonjour-discovery.js";
+import { discoverGatewayBeacons, resolveGatewayDiscoveryEndpoint } from "./bonjour-discovery.js";
 
 const WIDE_AREA_DOMAIN = "openclaw.internal.";
 
@@ -307,5 +307,17 @@ describe("bonjour-discovery", () => {
 
     expect(calls.filter((c) => c[1] === "-B")).toHaveLength(1);
     expect(calls.filter((c) => c[1] === "-B")[0]?.[3]).toBe("local.");
+  });
+
+  it("fails closed when discovery only has TXT host hints without a resolved endpoint", () => {
+    expect(
+      resolveGatewayDiscoveryEndpoint({
+        instanceName: "Studio",
+        displayName: "Studio",
+        lanHost: "studio.local",
+        tailnetDns: "studio.tailnet.ts.net",
+        gatewayPort: 18789,
+      }),
+    ).toBeNull();
   });
 });

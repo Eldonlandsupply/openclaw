@@ -2,7 +2,10 @@ import type { RuntimeEnv } from "../runtime.js";
 import { withProgress } from "../cli/progress.js";
 import { loadConfig, resolveGatewayPort } from "../config/config.js";
 import { probeGateway } from "../gateway/probe.js";
-import { discoverGatewayBeacons } from "../infra/bonjour-discovery.js";
+import {
+  discoverGatewayBeacons,
+  resolveGatewayDiscoveryEndpoint,
+} from "../infra/bonjour-discovery.js";
 import { resolveSshConfig } from "../infra/ssh-config.js";
 import { parseSshTarget, startSshPortForward } from "../infra/ssh-tunnel.js";
 import { resolveWideAreaDiscoveryDomain } from "../infra/widearea-dns.js";
@@ -238,11 +241,7 @@ export async function gatewayStatusCommand(
               tailnetDns: b.tailnetDns ?? null,
               gatewayPort: b.gatewayPort ?? null,
               sshPort: b.sshPort ?? null,
-              wsUrl: (() => {
-                const host = b.tailnetDns || b.lanHost || b.host;
-                const port = b.gatewayPort ?? 18789;
-                return host ? `ws://${host}:${port}` : null;
-              })(),
+              wsUrl: resolveGatewayDiscoveryEndpoint(b)?.wsUrl ?? null,
             })),
           },
           targets: probed.map((p) => ({
