@@ -1,0 +1,14 @@
+[Unit]
+Description=Lola WhatsApp Gateway
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/openclaw/eldon/gateway
+EnvironmentFile=/opt/openclaw/eldon/gateway/configs/lola.env
+ExecStart=/usr/bin/env uvicorn apps.lola_whatsapp_gateway.main:app --host 0.0.0.0 --port 8080
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
