@@ -163,7 +163,10 @@ export function createHooksRequestHandler(
     const expired = !current || nowMs - current.windowStartedAtMs >= HOOK_AUTH_FAILURE_WINDOW_MS;
     const next: HookAuthFailure = expired
       ? { count: 1, windowStartedAtMs: nowMs }
-      : { count: current.count + 1, windowStartedAtMs: current.windowStartedAtMs };
+      : {
+          count: current.count + 1,
+          windowStartedAtMs: current.windowStartedAtMs,
+        };
     hookAuthFailures.set(clientKey, next);
     if (next.count <= HOOK_AUTH_FAILURE_LIMIT) {
       return { throttled: false };
@@ -350,6 +353,7 @@ export function createGatewayHttpServer(opts: {
   openResponsesEnabled: boolean;
   openResponsesConfig?: import("../config/types.gateway.js").GatewayHttpResponsesConfig;
   handleHooksRequest: HooksRequestHandler;
+  handleWebhookRequest?: HooksRequestHandler;
   handlePluginRequest?: HooksRequestHandler;
   resolvedAuth: ResolvedGatewayAuth;
   tlsOptions?: TlsOptions;
@@ -364,6 +368,7 @@ export function createGatewayHttpServer(opts: {
     openResponsesEnabled,
     openResponsesConfig,
     handleHooksRequest,
+    handleWebhookRequest,
     handlePluginRequest,
     resolvedAuth,
   } = opts;
@@ -386,6 +391,9 @@ export function createGatewayHttpServer(opts: {
       const trustedProxies = configSnapshot.gateway?.trustedProxies ?? [];
       const requestPath = new URL(req.url ?? "/", "http://localhost").pathname;
       if (await handleHooksRequest(req, res)) {
+        return;
+      }
+      if (handleWebhookRequest && (await handleWebhookRequest(req, res))) {
         return;
       }
       if (
