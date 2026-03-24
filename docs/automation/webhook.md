@@ -173,6 +173,131 @@ curl -X POST http://127.0.0.1:18789/hooks/gmail \
   If you must disable this for a specific hook, set `allowUnsafeExternalContent: true`
   in that hook's mapping (dangerous).
 
+## Inbound provider webhooks: WhatsApp and Microsoft Graph
+
+The Gateway also exposes provider-focused inbound routes on the same HTTP listener:
+
+- `GET /webhooks/whatsapp` for Meta webhook verification
+- `POST /webhooks/whatsapp` for Meta webhook events (HMAC signature validation)
+- `POST /webhooks/microsoft-graph` for Graph subscription validation and change notifications
+
+### Required environment variables
+
+```bash
+WHATSAPP_VERIFY_TOKEN=replace-with-meta-verify-token
+WHATSAPP_APP_SECRET=replace-with-meta-app-secret
+GRAPH_WEBHOOK_CLIENT_STATE=replace-with-graph-client-state
+```
+
+Recommended hardening and deployment variables:
+
+```bash
+WEBHOOK_BASE_URL=https://hooks.example.com
+TRUST_PROXY=true
+LOG_WEBHOOK_PAYLOADS=false
+WEBHOOK_MAX_BODY_BYTES=262144
+RATE_LIMIT_WEBHOOK_WINDOW_MS=60000
+RATE_LIMIT_WEBHOOK_MAX=120
+GRAPH_ALLOWED_TENANTS=00000000-0000-0000-0000-000000000000
+```
+
+`GRAPH_ALLOWED_TENANTS` accepts a comma-separated tenant allowlist.
+
+### WhatsApp setup (Meta)
+
+1. In Meta App Dashboard, configure webhook callback URL:
+   `https://<public-host>/webhooks/whatsapp`
+2. Set Verify Token in Meta to exactly `WHATSAPP_VERIFY_TOKEN`.
+3. Subscribe to the fields you need (messages, statuses, and related events).
+4. Keep `WHATSAPP_APP_SECRET` private and rotate it if leaked.
+
+Verification request behavior:
+
+- Valid token and `hub.mode=subscribe`: `200` and raw `hub.challenge`.
+- Invalid token: `403`.
+
+Event request behavior:
+
+- Valid `X-Hub-Signature-256`: `200`.
+- Invalid or missing signature: `401`.
+
+### Microsoft Graph setup
+
+1. Create subscriptions with notification URL:
+   `https://<public-host>/webhooks/microsoft-graph`
+2. Set subscription `clientState` to `GRAPH_WEBHOOK_CLIENT_STATE`.
+3. Renew subscriptions before expiration. Most Graph resources require short expirations.
+4. Optional: enforce tenant allowlist with `GRAPH_ALLOWED_TENANTS`.
+
+Validation request behavior:
+
+- `POST /webhooks/microsoft-graph?validationToken=...` returns plain text token with `200`.
+
+Notification behavior:
+
+- Valid `clientState` and allowed tenant: `202`.
+- Invalid `clientState`: `403`.
+- Tenant not in `GRAPH_ALLOWED_TENANTS`: `403`.
+
+### Microsoft Graph subscription helper
+
+Use helper `src/webhooks/microsoft-graph-subscriptions.ts` to build subscription payloads and renewal windows:
+
+- `buildGraphSubscriptionRequest(...)`
+- `nextGraphSubscriptionRenewalDate(...)`
+
+### Nginx reverse proxy example
+
+Use `config/nginx/openclaw-webhooks.nginx.conf.example` as a baseline:
+
+- terminate TLS in nginx
+- forward `X-Forwarded-For`, `X-Real-IP`, `X-Forwarded-Proto`
+- proxy `/webhooks/` and normal Gateway traffic to OpenClaw
+
+### ngrok development flow
+
+```bash
+# terminal 1
+pnpm dev
+
+# terminal 2
+ngrok http 18789
+```
+
+Set:
+
+- `WEBHOOK_BASE_URL` to your ngrok HTTPS URL
+- Meta callback URL to `<ngrok-url>/webhooks/whatsapp`
+- Graph notification URL to `<ngrok-url>/webhooks/microsoft-graph`
+
+### Firewall and allowlist notes
+
+- Allow inbound 443 only to your reverse proxy or tunnel endpoint.
+- Restrict direct Gateway listener exposure when running behind nginx.
+- If you enable `TRUST_PROXY=true`, only do so behind proxies you control.
+
+### Smoke test commands
+
+WhatsApp verify:
+
+```bash
+curl -i "http://127.0.0.1:18789/webhooks/whatsapp?hub.mode=subscribe&hub.verify_token=${WHATSAPP_VERIFY_TOKEN}&hub.challenge=abc123"
+```
+
+Graph validation:
+
+```bash
+curl -i -X POST "http://127.0.0.1:18789/webhooks/microsoft-graph?validationToken=graph-test-token"
+```
+
+### Troubleshooting
+
+- `500 Webhook misconfigured`: missing required env variables.
+- `401 Invalid signature`: Meta `X-Hub-Signature-256` does not match `WHATSAPP_APP_SECRET`.
+- `403 Invalid clientState`: Graph subscription `clientState` does not match runtime config.
+- `413 Payload too large`: request exceeds `WEBHOOK_MAX_BODY_BYTES`.
+- `429 Rate limit exceeded`: reduce burst rate or raise `RATE_LIMIT_WEBHOOK_MAX`.
+
 ## LOLA preset event envelope
 
 For executive logistics workflows, use a normalized event envelope and map it to `hooks/agent`.

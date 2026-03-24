@@ -13,6 +13,10 @@ import type { GatewayTlsRuntime } from "./server/tls.js";
 import type { GatewayWsClient } from "./server/ws-types.js";
 import { CANVAS_HOST_PATH } from "../canvas-host/a2ui.js";
 import { type CanvasHostHandler, createCanvasHostHandler } from "../canvas-host/server.js";
+import {
+  createInboundWebhookRequestHandler,
+  resolveInboundWebhookConfig,
+} from "../webhooks/inbound.js";
 import { resolveGatewayListenHosts } from "./net.js";
 import { createGatewayBroadcaster } from "./server-broadcast.js";
 import {
@@ -108,7 +112,9 @@ export async function createGatewayRuntimeState(params: {
   }
 
   const clients = new Set<GatewayWsClient>();
-  const { broadcast, broadcastToConnIds } = createGatewayBroadcaster({ clients });
+  const { broadcast, broadcastToConnIds } = createGatewayBroadcaster({
+    clients,
+  });
 
   const handleHooksRequest = createGatewayHooksRequestHandler({
     deps: params.deps,
@@ -121,6 +127,11 @@ export async function createGatewayRuntimeState(params: {
   const handlePluginRequest = createGatewayPluginRequestHandler({
     registry: params.pluginRegistry,
     log: params.logPlugins,
+  });
+  const webhookConfig = resolveInboundWebhookConfig(process.env);
+  const handleWebhookRequest = createInboundWebhookRequestHandler({
+    config: webhookConfig,
+    log: params.logPlugins.child("webhooks"),
   });
 
   const bindHosts = await resolveGatewayListenHosts(params.bindHost);
@@ -137,6 +148,7 @@ export async function createGatewayRuntimeState(params: {
       openResponsesEnabled: params.openResponsesEnabled,
       openResponsesConfig: params.openResponsesConfig,
       handleHooksRequest,
+      handleWebhookRequest,
       handlePluginRequest,
       resolvedAuth: params.resolvedAuth,
       tlsOptions: params.gatewayTls?.enabled ? params.gatewayTls.tlsOptions : undefined,
