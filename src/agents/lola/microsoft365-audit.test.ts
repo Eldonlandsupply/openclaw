@@ -88,6 +88,22 @@ describe("lola microsoft 365 audit", () => {
     ).toBe(true);
   });
 
+  it("accepts M365_* aliases for tenant, client, mailbox, and scopes", () => {
+    const env = resolveLolaMicrosoft365Env({
+      M365_TENANT_ID: "tenant-xyz",
+      M365_CLIENT_ID: "client-xyz",
+      M365_CLIENT_SECRET: "secret-xyz",
+      M365_USER_EMAIL: "ceo@example.com",
+      M365_SCOPES: "Mail.Read Mail.Send",
+    });
+
+    expect(env.tenantId).toBe("tenant-xyz");
+    expect(env.clientId).toBe("client-xyz");
+    expect(env.clientSecret).toBe("secret-xyz");
+    expect(env.mailboxUpn).toBe("ceo@example.com");
+    expect(env.delegatedScopes).toContain("Mail.Read");
+    expect(env.delegatedScopes).toContain("Mail.Send");
+  });
   it("keeps permission matrix grounded in exact capability IDs", () => {
     expect(LOLA_MICROSOFT_365_CAPABILITY_MATRIX.map((entry) => entry.id)).toEqual([
       "mail.read",

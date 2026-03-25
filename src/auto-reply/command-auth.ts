@@ -4,6 +4,10 @@ import type { OpenClawConfig } from "../config/config.js";
 import type { MsgContext } from "./templating.js";
 import { getChannelDock, listChannelDocks } from "../channels/dock.js";
 import { normalizeAnyChannelId } from "../channels/registry.js";
+import {
+  isAuthorizedWhatsAppCommandSender,
+  isWhatsAppStrictAuthorizationRequired,
+} from "../security/authorized-numbers.js";
 
 export type CommandAuthorization = {
   providerId?: ChannelId;
@@ -11,6 +15,8 @@ export type CommandAuthorization = {
   senderId?: string;
   senderIsOwner: boolean;
   isAuthorizedSender: boolean;
+  unauthorizedReason?: string;
+  authorizedLabel?: string;
   from?: string;
   to?: string;
 };
@@ -301,6 +307,9 @@ export function resolveCommandAuthorization(params: {
         ? senderIsOwner
         : allowAll || ownerCandidatesForCommands.length === 0 || Boolean(matchedCommandOwner);
 
+  let unauthorizedReason: string | undefined;
+  let authorizedLabel: string | undefined;
+
   // If commands.allowFrom is configured, use it for command authorization
   // Otherwise, fall back to existing behavior (channel allowFrom + owner checks)
   let isAuthorizedSender: boolean;
@@ -316,12 +325,24 @@ export function resolveCommandAuthorization(params: {
     isAuthorizedSender = commandAuthorized && isOwnerForCommands;
   }
 
+  if (providerId === "whatsapp" && isWhatsAppStrictAuthorizationRequired(process.env)) {
+    const strictAuth = isAuthorizedWhatsAppCommandSender({ senderCandidates, env: process.env });
+    isAuthorizedSender = strictAuth.authorized && isAuthorizedSender;
+    if (!strictAuth.authorized) {
+      unauthorizedReason = strictAuth.reason ?? "sender is not authorized";
+    } else {
+      authorizedLabel = strictAuth.entry?.label;
+    }
+  }
+
   return {
     providerId,
     ownerList,
     senderId: senderId || undefined,
     senderIsOwner,
     isAuthorizedSender,
+    unauthorizedReason,
+    authorizedLabel,
     from: from || undefined,
     to: to || undefined,
   };

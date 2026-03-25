@@ -63,6 +63,24 @@ export async function handleCommands(params: HandleCommandsParams): Promise<Comm
     ];
   }
   const resetMatch = params.command.commandBodyNormalized.match(/^\/(new|reset)(?:\s|$)/);
+
+  const slashCommandRequested = /^\/\S+/.test(params.command.commandBodyNormalized);
+  if (slashCommandRequested && !params.command.isAuthorizedSender) {
+    const sender = params.command.senderId || "<unknown>";
+    const reason = params.command.unauthorizedReason
+      ? ` (${params.command.unauthorizedReason})`
+      : "";
+    logVerbose(`Blocked command from unauthorized sender: ${sender}${reason}`);
+    if (params.command.channelId === "whatsapp") {
+      return {
+        shouldContinue: false,
+        reply: {
+          text: "Unauthorized command sender. Ask an admin to add your E.164 number to WHATSAPP_ALLOWED_NUMBERS or WHATSAPP_AUTHORIZED_ASSISTANTS.",
+        },
+      };
+    }
+    return { shouldContinue: false };
+  }
   const resetRequested = Boolean(resetMatch);
   if (resetRequested && !params.command.isAuthorizedSender) {
     logVerbose(

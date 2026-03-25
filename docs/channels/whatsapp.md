@@ -126,6 +126,18 @@ OpenClaw recommends running WhatsApp on a separate number when possible. (The ch
   </Accordion>
 </AccordionGroup>
 
+## LOLA command authorization hardening
+
+For executive LOLA deployments, slash-command execution is additionally gated by environment allowlists:
+
+- `WHATSAPP_CEO_PRIMARY_NUMBER` (required when `LOLA_ENABLED=true`)
+- `WHATSAPP_AUTHORIZED_ASSISTANTS` (optional)
+- `WHATSAPP_ALLOWED_NUMBERS` (optional additional authorized numbers)
+
+All entries are normalized to E.164 before comparison. Optional labels are supported using `Label|+15555550123`.
+
+When a non-authorized sender issues a slash command, OpenClaw denies execution and returns an unauthorized response in chat.
+
 ## Runtime model
 
 - Gateway owns the WhatsApp socket and reconnect loop.

@@ -88,3 +88,21 @@ local/
 .ngrok2/
 config/ngrok/*.local.yml
 config/ngrok/*.local.yaml
+
+
+# Secret env and credential artifacts
+.env.local
+.env.*
+!.env.example
+*.secret
+*.secrets
+*.credentials
+*.token
+*.tokens
+*.key
+*.pem
+*.pfx
+*.p12
+**/token-cache.json
+**/token-cache.enc.json
+~/.openclaw/credentials/

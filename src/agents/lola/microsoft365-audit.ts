@@ -248,23 +248,29 @@ function collectStringArray(value: unknown): string[] {
 export function resolveLolaMicrosoft365Env(
   env: NodeJS.ProcessEnv = process.env,
 ): LolaMicrosoft365Env {
-  const token = env.LOLA_M365_GRAPH_ACCESS_TOKEN?.trim();
+  const token = (env.M365_GRAPH_ACCESS_TOKEN ?? env.LOLA_M365_GRAPH_ACCESS_TOKEN)?.trim();
   const claims = token ? decodeJwtClaims(token) : undefined;
   const delegatedScopes = unique([
-    ...splitPermissionList(env.LOLA_M365_DELEGATED_SCOPES),
+    ...splitPermissionList(env.M365_SCOPES ?? env.LOLA_M365_DELEGATED_SCOPES),
     ...collectStringArray(claims?.scp),
   ]);
   const applicationRoles = unique([
-    ...splitPermissionList(env.LOLA_M365_APPLICATION_ROLES),
+    ...splitPermissionList(env.M365_APPLICATION_ROLES ?? env.LOLA_M365_APPLICATION_ROLES),
     ...collectStringArray(claims?.roles),
   ]);
-  const botScopes = unique(splitPermissionList(env.LOLA_M365_TEAMS_BOT_SCOPES));
+  const botScopes = unique(
+    splitPermissionList(env.M365_TEAMS_BOT_SCOPES ?? env.LOLA_M365_TEAMS_BOT_SCOPES),
+  );
 
   const authModeHints: GraphPermissionMode[] = [];
   if (delegatedScopes.length > 0) {
     authModeHints.push("delegated");
   }
-  if (applicationRoles.length > 0 || (env.LOLA_M365_CLIENT_ID && env.LOLA_M365_CLIENT_SECRET)) {
+  if (
+    applicationRoles.length > 0 ||
+    ((env.M365_CLIENT_ID ?? env.LOLA_M365_CLIENT_ID) &&
+      (env.M365_CLIENT_SECRET ?? env.LOLA_M365_CLIENT_SECRET))
+  ) {
     authModeHints.push("application");
   }
   if (botScopes.length > 0 || env.MSTEAMS_APP_ID || env.MSTEAMS_APP_PASSWORD) {
@@ -272,13 +278,17 @@ export function resolveLolaMicrosoft365Env(
   }
 
   return {
-    tenantId: env.LOLA_M365_TENANT_ID?.trim() || env.MSTEAMS_TENANT_ID?.trim(),
-    clientId: env.LOLA_M365_CLIENT_ID?.trim(),
-    clientSecret: env.LOLA_M365_CLIENT_SECRET?.trim(),
-    mailboxUpn: env.LOLA_M365_MAILBOX_UPN?.trim(),
+    tenantId:
+      (env.M365_TENANT_ID ?? env.LOLA_M365_TENANT_ID)?.trim() || env.MSTEAMS_TENANT_ID?.trim(),
+    clientId: (env.M365_CLIENT_ID ?? env.LOLA_M365_CLIENT_ID)?.trim(),
+    clientSecret: (env.M365_CLIENT_SECRET ?? env.LOLA_M365_CLIENT_SECRET)?.trim(),
+    mailboxUpn: (env.M365_USER_EMAIL ?? env.LOLA_M365_MAILBOX_UPN)?.trim(),
     expectedUserPrincipalName:
-      env.LOLA_M365_EXPECTED_UPN?.trim() || env.LOLA_M365_MAILBOX_UPN?.trim(),
-    expectedTenantId: env.LOLA_M365_EXPECTED_TENANT_ID?.trim() || env.LOLA_M365_TENANT_ID?.trim(),
+      (env.M365_EXPECTED_UPN ?? env.LOLA_M365_EXPECTED_UPN)?.trim() ||
+      (env.M365_USER_EMAIL ?? env.LOLA_M365_MAILBOX_UPN)?.trim(),
+    expectedTenantId:
+      (env.M365_EXPECTED_TENANT_ID ?? env.LOLA_M365_EXPECTED_TENANT_ID)?.trim() ||
+      (env.M365_TENANT_ID ?? env.LOLA_M365_TENANT_ID)?.trim(),
     delegatedScopes,
     applicationRoles,
     botScopes,
