@@ -14,6 +14,8 @@ export type CommandContext = {
   ownerList: string[];
   senderIsOwner: boolean;
   isAuthorizedSender: boolean;
+  unauthorizedReason?: string;
+  authorizedLabel?: string;
   senderId?: string;
   abortKey?: string;
   rawBodyNormalized: string;

@@ -91,4 +91,14 @@ describe("redactSensitiveText", () => {
     });
     expect(output).toBe(input);
   });
+
+  it("redacts Microsoft Graph client secret env assignments", () => {
+    const input = "M365_CLIENT_SECRET=super-secret-value-123456";
+    const output = redactSensitiveText(input, {
+      mode: "tools",
+      patterns: defaults,
+    });
+    expect(output).not.toContain("super-secret-value-123456");
+    expect(output).toMatch(/M365_CLIENT_SECRET=/);
+  });
 });

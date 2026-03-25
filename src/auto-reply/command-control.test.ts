@@ -387,6 +387,52 @@ describe("resolveCommandAuthorization", () => {
       expect(auth.isAuthorizedSender).toBe(true);
     });
   });
+
+  describe("strict WhatsApp authorized numbers", () => {
+    const savedEnv = { ...process.env };
+
+    afterEach(() => {
+      process.env = { ...savedEnv };
+    });
+
+    it("blocks sender outside WHATSAPP allowed list", () => {
+      process.env = {
+        ...savedEnv,
+        LOLA_ENABLED: "true",
+        WHATSAPP_CEO_PRIMARY_NUMBER: "+15550000001",
+      };
+      const cfg = { channels: { whatsapp: { allowFrom: ["*"] } } } as OpenClawConfig;
+      const ctx = {
+        Provider: "whatsapp",
+        Surface: "whatsapp",
+        From: "whatsapp:+15559999999",
+        SenderE164: "+15559999999",
+      } as MsgContext;
+
+      const auth = resolveCommandAuthorization({ ctx, cfg, commandAuthorized: true });
+      expect(auth.isAuthorizedSender).toBe(false);
+      expect(auth.unauthorizedReason).toMatch(/not in WHATSAPP allowed list/i);
+    });
+
+    it("allows CEO number and carries friendly label", () => {
+      process.env = {
+        ...savedEnv,
+        LOLA_ENABLED: "true",
+        WHATSAPP_CEO_PRIMARY_NUMBER: "CEO|+15550000001",
+      };
+      const cfg = { channels: { whatsapp: { allowFrom: ["*"] } } } as OpenClawConfig;
+      const ctx = {
+        Provider: "whatsapp",
+        Surface: "whatsapp",
+        From: "whatsapp:+15550000001",
+        SenderE164: "+15550000001",
+      } as MsgContext;
+
+      const auth = resolveCommandAuthorization({ ctx, cfg, commandAuthorized: true });
+      expect(auth.isAuthorizedSender).toBe(true);
+      expect(auth.authorizedLabel).toBe("CEO");
+    });
+  });
 });
 
 describe("control command parsing", () => {

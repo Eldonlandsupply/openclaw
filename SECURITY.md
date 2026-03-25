@@ -97,3 +97,21 @@ Run locally:
 pip install detect-secrets==1.5.0
 detect-secrets scan --baseline .secrets.baseline
 ```
+
+## LOLA secrets and WhatsApp command authorization
+
+As of March 24, 2026, LOLA production runs enforce strict WhatsApp command sender authorization and Microsoft Graph secret validation at startup.
+
+Required controls:
+
+- `WHATSAPP_CEO_PRIMARY_NUMBER` must be set when `LOLA_ENABLED=true`.
+- Optional assistants can be set via `WHATSAPP_AUTHORIZED_ASSISTANTS`.
+- Optional additional command-authorized numbers can be set via `WHATSAPP_ALLOWED_NUMBERS`.
+- Microsoft Graph-enabled LOLA runs require tenant, client, secret, and mailbox values (`M365_*` or `LOLA_M365_*` aliases).
+- Microsoft token cache path must use encrypted cache filename suffix `.enc.json`.
+
+Secrets storage:
+
+- Store `.env` in `~/.openclaw/.env`.
+- Repo-local `.env` is rejected by default unless `OPENCLAW_ALLOW_REPO_ENV=1` is set.
+- Keep Graph token cache under `~/.openclaw/credentials/m365/` and out of git.

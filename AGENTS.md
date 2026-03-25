@@ -112,6 +112,7 @@ Use these instead of growing this file:
 - `docs/help/submitting-a-pr.md` and `docs/help/submitting-an-issue.md` for contribution mechanics.
 - `docs/testing.md` for live/docker/mobile test coverage details.
 - `docs/concepts/agent-workspace.md` and `docs/concepts/context.md` for bootstrap/context limits.
+- `docs/runbooks/secrets-and-authorized-numbers.md` for LOLA WhatsApp command authorization and M365 secret operations.
 
 ## AGENTS.md maintenance rule
 
