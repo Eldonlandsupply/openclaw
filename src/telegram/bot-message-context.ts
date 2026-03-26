@@ -30,6 +30,10 @@ import { loadConfig } from "../config/config.js";
 import { readSessionUpdatedAt, resolveStorePath } from "../config/sessions.js";
 import { logVerbose, shouldLogVerbose } from "../globals.js";
 import { recordChannelActivity } from "../infra/channel-activity.js";
+import {
+  evaluateTelegramIntake,
+  resolveTelegramTargetAgentId,
+} from "../orchestration/lola/telegram-intake.js";
 import { buildPairingReply } from "../pairing/pairing-messages.js";
 import { upsertChannelPairingRequest } from "../pairing/pairing-store.js";
 import { resolveAgentRoute } from "../routing/resolve-route.js";
@@ -166,7 +170,7 @@ export const buildTelegramMessageContext = async ({
   const peerId = isGroup ? buildTelegramGroupPeerId(chatId, resolvedThreadId) : String(chatId);
   const parentPeer = buildTelegramParentPeer({ isGroup, resolvedThreadId, chatId });
   // Fresh config for bindings lookup; other routing inputs are payload-derived.
-  const route = resolveAgentRoute({
+  let route = resolveAgentRoute({
     cfg: loadConfig(),
     channel: "telegram",
     accountId: account.accountId,
@@ -395,7 +399,44 @@ export const buildTelegramMessageContext = async ({
     return null;
   }
 
+  const intake = evaluateTelegramIntake(primaryCtx);
+  if (intake.outcome === "blocked" || intake.outcome === "handled") {
+    await withTelegramApiErrorLogging({
+      operation: "sendMessage",
+      fn: () => bot.api.sendMessage(chatId, intake.responseText),
+    }).catch(() => undefined);
+    return null;
+  }
+
+  const routedAgentId = resolveTelegramTargetAgentId(intake.route.target);
+  if (routedAgentId !== route.agentId) {
+    route = resolveAgentRoute({
+      cfg: loadConfig(),
+      channel: "telegram",
+      accountId: account.accountId,
+      peer: {
+        kind: isGroup ? "group" : "direct",
+        id: peerId,
+      },
+      parentPeer,
+    });
+    route = {
+      ...route,
+      agentId: routedAgentId,
+      sessionKey:
+        `agent:${routedAgentId}:telegram:${isGroup ? "group" : "direct"}:${peerId}`.toLowerCase(),
+      mainSessionKey: `agent:${routedAgentId}:main`,
+    };
+  }
+
   let bodyText = rawBody;
+  const intakeAckText = intake.responseText;
+  if (intakeAckText) {
+    await withTelegramApiErrorLogging({
+      operation: "sendMessage",
+      fn: () => bot.api.sendMessage(chatId, intakeAckText),
+    }).catch(() => undefined);
+  }
   if (!bodyText && allMedia.length > 0) {
     bodyText = `<media:image>${allMedia.length > 1 ? ` (${allMedia.length} images)` : ""}`;
   }

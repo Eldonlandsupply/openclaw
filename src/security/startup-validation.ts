@@ -33,6 +33,32 @@ function isGraphConfigured(env: NodeJS.ProcessEnv): boolean {
   );
 }
 
+function validateLolaTelegramConfig(env: NodeJS.ProcessEnv, errors: string[]) {
+  const enabled = parseTruthy(env.LOLA_TELEGRAM_ENABLED);
+  if (!enabled) {
+    return;
+  }
+  const token = env.TELEGRAM_BOT_TOKEN?.trim();
+  const mode = (env.TELEGRAM_MODE ?? "polling").trim().toLowerCase();
+  const allowedUsers = env.TELEGRAM_ALLOWED_USER_IDS?.trim();
+  if (!token) {
+    errors.push("LOLA Telegram bridge is enabled but TELEGRAM_BOT_TOKEN is missing.");
+  }
+  if (!allowedUsers) {
+    errors.push(
+      "LOLA Telegram bridge is enabled but TELEGRAM_ALLOWED_USER_IDS is missing. Add at least one Telegram user ID.",
+    );
+  }
+  if (mode === "webhook") {
+    if (!env.TELEGRAM_WEBHOOK_URL?.trim()) {
+      errors.push("TELEGRAM_MODE=webhook requires TELEGRAM_WEBHOOK_URL.");
+    }
+    if (!env.TELEGRAM_WEBHOOK_SECRET?.trim()) {
+      errors.push("TELEGRAM_MODE=webhook requires TELEGRAM_WEBHOOK_SECRET.");
+    }
+  }
+}
+
 export function resolveM365TokenCachePath(env: NodeJS.ProcessEnv = process.env): string {
   const configured = env.M365_TOKEN_CACHE_FILE?.trim();
   if (configured) {
@@ -43,6 +69,7 @@ export function resolveM365TokenCachePath(env: NodeJS.ProcessEnv = process.env):
 
 export function validateSecurityStartupEnv(env: NodeJS.ProcessEnv = process.env): void {
   const errors: string[] = [];
+  validateLolaTelegramConfig(env, errors);
 
   for (const message of validateAuthorizedNumbersConfig(env)) {
     errors.push(message);
