@@ -877,6 +877,7 @@
                 "pages": [
                   "channels/whatsapp",
                   "channels/telegram",
+                  "channels/telegram-lola-bridge",
                   "channels/discord",
                   "channels/irc",
                   "channels/slack",

@@ -25,4 +25,14 @@ describe("security startup validation", () => {
 
     expect(() => validateSecurityStartupEnv(env)).not.toThrow();
   });
+
+  it("fails loudly when Lola Telegram bridge is enabled without required env", () => {
+    const env = {
+      LOLA_TELEGRAM_ENABLED: "true",
+      TELEGRAM_MODE: "webhook",
+    } as NodeJS.ProcessEnv;
+
+    expect(() => validateSecurityStartupEnv(env)).toThrow(/LOLA Telegram bridge is enabled/i);
+    expect(() => validateSecurityStartupEnv(env)).toThrow(/TELEGRAM_WEBHOOK_URL/);
+  });
 });
