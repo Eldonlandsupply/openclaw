@@ -331,6 +331,7 @@ async def run(yaml_path: str = "config.yaml") -> None:
         wa = WhatsAppConnector(
             allowed_numbers=cfg.secrets.whatsapp_allowed_numbers_list,
             bridge_url=cfg.connectors.whatsapp.bridge_url,
+            bridge_db=cfg.connectors.whatsapp.bridge_db,
             poll_interval=cfg.connectors.whatsapp.poll_interval,
         )
         await wa.start()
@@ -411,3 +412,4 @@ def cli_entry() -> None:
 
 if __name__ == "__main__":
     cli_entry()
+

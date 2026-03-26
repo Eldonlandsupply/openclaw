@@ -81,6 +81,7 @@ class ConnectorWhatsAppConfig:
         self.enabled = raw if isinstance(raw, bool) else str(raw).lower() in ("true", "1", "yes")
         self.bridge_url = str(data.get("bridge_url", "http://127.0.0.1:8181"))
         self.poll_interval = int(data.get("poll_interval", 5))
+        self.bridge_db = str(data.get("bridge_db", "/var/lib/wabridge/wabridge.db"))
 
 
 class ConnectorsConfig:
@@ -304,3 +305,4 @@ def reset_config() -> None:
     """For use in tests only."""
     global _config
     _config = None
+
