@@ -1252,6 +1252,8 @@
                   "reference/wizard",
                   "reference/token-use",
                   "reference/codex-task-pickup-runbook",
+                  "operations/runtime-hardening",
+                  "decisions/2026-03-27-runtime-hardening",
                   "channels/grammy"
                 ]
               },

@@ -184,7 +184,7 @@ describe("exec approvals shell parsing", () => {
 });
 
 describe("exec approvals shell allowlist (chained commands)", () => {
-  it("allows chained commands when all parts are allowlisted", () => {
+  it("requires approval for pipelines even when segments are allowlisted", () => {
     const allowlist: ExecAllowlistEntry[] = [
       { pattern: "/usr/bin/obsidian-cli" },
       { pattern: "/usr/bin/head" },
@@ -197,7 +197,8 @@ describe("exec approvals shell allowlist (chained commands)", () => {
       cwd: "/tmp",
     });
     expect(result.analysisOk).toBe(true);
-    expect(result.allowlistSatisfied).toBe(true);
+    expect(result.allowlistSatisfied).toBe(false);
+    expect(result.requiresApprovalReason).toBe("pipeline");
   });
 
   it("rejects chained commands when any part is not allowlisted", () => {

@@ -1306,6 +1306,7 @@ export type ExecAllowlistAnalysis = {
   allowlistSatisfied: boolean;
   allowlistMatches: ExecAllowlistEntry[];
   segments: ExecCommandSegment[];
+  requiresApprovalReason?: "pipeline";
 };
 
 /**
@@ -1321,6 +1322,30 @@ export function evaluateShellAllowlist(params: {
   autoAllowSkills?: boolean;
   platform?: string | null;
 }): ExecAllowlistAnalysis {
+  const hasPipeline = !isWindowsPlatform(params.platform) && params.command.includes("|");
+  if (hasPipeline) {
+    const analysis = analyzeShellCommand({
+      command: params.command,
+      cwd: params.cwd,
+      env: params.env,
+      platform: params.platform,
+    });
+    if (!analysis.ok) {
+      return {
+        analysisOk: false,
+        allowlistSatisfied: false,
+        allowlistMatches: [],
+        segments: [],
+      };
+    }
+    return {
+      analysisOk: true,
+      allowlistSatisfied: false,
+      allowlistMatches: [],
+      segments: analysis.segments,
+      requiresApprovalReason: "pipeline",
+    };
+  }
   const chainParts = isWindowsPlatform(params.platform) ? null : splitCommandChain(params.command);
   if (!chainParts) {
     const analysis = analyzeShellCommand({
