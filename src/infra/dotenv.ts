@@ -12,6 +12,34 @@ function hasRepoMarker(dir: string): boolean {
   return fs.existsSync(path.join(dir, ".git"));
 }
 
+function assertReadableFile(filePath: string, label: string): void {
+  if (!fs.existsSync(filePath)) {
+    return;
+  }
+
+  try {
+    fs.accessSync(filePath, fs.constants.R_OK);
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `${label} exists but is not readable by this process: ${filePath}. ${detail}.` +
+        " Fix ownership/permissions before starting OpenClaw.",
+      { cause: error },
+    );
+  }
+}
+
+function loadDotenvFile(filePath: string, quiet: boolean, override: boolean, label: string): void {
+  if (!fs.existsSync(filePath)) {
+    return;
+  }
+  assertReadableFile(filePath, label);
+  const result = dotenv.config({ quiet, path: filePath, override });
+  if (result.error) {
+    throw new Error(`Failed to parse ${label}: ${filePath}. ${result.error.message}`);
+  }
+}
+
 export function loadDotEnv(opts?: { quiet?: boolean }) {
   const quiet = opts?.quiet ?? true;
   const repoEnvPath = path.join(process.cwd(), ".env");
@@ -22,8 +50,8 @@ export function loadDotEnv(opts?: { quiet?: boolean }) {
     );
   }
 
-  // Load from process CWD first (dotenv default).
-  dotenv.config({ quiet });
+  // Load from process CWD first (dotenv default path), if present.
+  loadDotenvFile(repoEnvPath, quiet, false, "CWD .env");
 
   // Then load global fallback: ~/.openclaw/.env (or OPENCLAW_STATE_DIR/.env),
   // without overriding any env vars already present.
@@ -32,5 +60,5 @@ export function loadDotEnv(opts?: { quiet?: boolean }) {
     return;
   }
 
-  dotenv.config({ quiet, path: globalEnvPath, override: false });
+  loadDotenvFile(globalEnvPath, quiet, false, "global .env");
 }
