@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import textwrap
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -248,3 +249,40 @@ def test_actions_require_confirm_both_spellings(tmp_path):
     """)
     cfg2 = AppConfig(yaml_path=str(p2))
     assert cfg2.actions.require_confirm is False
+
+
+def test_telegram_env_intent_requires_successful_env_load(tmp_path, monkeypatch):
+    env_file = tmp_path / ".env"
+    env_file.write_text("OPENCLAW_CONNECTOR_TELEGRAM=true\n", encoding="utf-8")
+    p = write_yaml(tmp_path, """
+        llm:
+          provider: none
+          chat_model: gpt-test
+        connectors:
+          telegram: ${OPENCLAW_CONNECTOR_TELEGRAM:false}
+    """)
+    monkeypatch.delenv("OPENCLAW_CONNECTOR_TELEGRAM", raising=False)
+    with patch("openclaw.config._find_env_file", return_value=str(env_file)), \
+         patch("openclaw.config.load_dotenv", return_value=False), \
+         patch("openclaw.config.os.access", return_value=False):
+        with pytest.raises(SystemExit):
+            AppConfig(yaml_path=str(p))
+
+
+def test_connector_state_reasons_show_disabled_reason(tmp_path):
+    p = write_yaml(tmp_path, """
+        llm:
+          provider: none
+          chat_model: gpt-test
+        connectors:
+          telegram: false
+    """)
+    cfg = AppConfig(yaml_path=str(p))
+    reasons = cfg.connector_state_reasons()
+    assert reasons["telegram"] in {
+        "disabled by config/default",
+        "disabled because OPENCLAW_CONNECTOR_TELEGRAM was not loaded from env file",
+    }
+    summary = cfg.summary()
+    assert "config_diagnostics" in summary
+    assert isinstance(summary["config_diagnostics"]["env_file_exists"], bool)

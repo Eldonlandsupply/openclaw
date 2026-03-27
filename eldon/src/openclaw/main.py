@@ -250,6 +250,12 @@ async def run(yaml_path: str = "config.yaml") -> None:
         "openclaw starting",
         extra={"version": __version__, "config": cfg.summary()},
     )
+    for connector, reason in cfg.connector_state_reasons().items():
+        enabled = getattr(cfg.connectors, connector).enabled
+        logger.info(
+            "connector state resolved",
+            extra={"connector": connector, "enabled": enabled, "reason": reason},
+        )
 
     if cfg.runtime.dry_run:
         logger.warning(
@@ -325,6 +331,11 @@ async def run(yaml_path: str = "config.yaml") -> None:
         tasks.append(asyncio.create_task(
             _message_loop(tg, dispatcher, dedup, con_health, admin_connector=tg)))
         logger.info("Telegram connector active", extra={"allowed_chat_ids": allowed})
+    else:
+        logger.info(
+            "Telegram connector disabled",
+            extra={"reason": cfg.connector_state_reasons().get("telegram", "disabled")},
+        )
 
     if cfg.connectors.whatsapp.enabled:
         from openclaw.connectors.whatsapp import WhatsAppConnector
@@ -412,4 +423,3 @@ def cli_entry() -> None:
 
 if __name__ == "__main__":
     cli_entry()
-

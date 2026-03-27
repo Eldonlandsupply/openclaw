@@ -20,6 +20,19 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 # ── Environment variable expansion ────────────────────────────────────────
 
 _ENV_TOKEN = re.compile(r"^\$\{([^}]+)\}$")
+_TRUE_VALUES = frozenset({"true", "1", "yes", "on"})
+_FALSE_VALUES = frozenset({"false", "0", "no", "off"})
+
+
+def _parse_env_bool(value: str | None, default: bool = False) -> bool:
+    if value is None:
+        return default
+    lowered = value.strip().lower()
+    if lowered in _TRUE_VALUES:
+        return True
+    if lowered in _FALSE_VALUES:
+        return False
+    return default
 
 
 def _expand(value: Any) -> Any:
@@ -134,6 +147,27 @@ def _find_env_file() -> str:
     return ".env"  # fallback; pydantic-settings won't error if missing
 
 
+def _read_env_file_value(env_path: Path, key: str) -> str | None:
+    """Read one env key from a dotenv-style file without exposing secrets."""
+    if not env_path.exists() or not env_path.is_file():
+        return None
+    try:
+        for line in env_path.read_text(encoding="utf-8").splitlines():
+            raw = line.strip()
+            if not raw or raw.startswith("#") or "=" not in raw:
+                continue
+            name, value = raw.split("=", 1)
+            if name.strip() != key:
+                continue
+            val = value.strip()
+            if val.startswith(("'", '"')) and val.endswith(("'", '"')) and len(val) >= 2:
+                val = val[1:-1]
+            return val
+    except OSError:
+        return None
+    return None
+
+
 class Secrets(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=_find_env_file(),
@@ -191,13 +225,31 @@ class AppConfig:
     """Single object holding all config. Created once at startup."""
 
     def __init__(self, yaml_path: str = "config.yaml") -> None:
+        self._env_file = Path(_find_env_file())
+        self._dotenv_loaded = False
+        self._env_file_exists = self._env_file.exists()
+        self._env_file_readable = os.access(self._env_file, os.R_OK) if self._env_file_exists else False
+        self._telegram_env_value = None
+        self._telegram_intent_from_file = False
+        self._telegram_env_present = False
+        self._yaml_defaults_used: list[dict[str, str]] = []
+
+        if self._env_file_exists:
+            self._telegram_env_value = _read_env_file_value(
+                self._env_file, "OPENCLAW_CONNECTOR_TELEGRAM"
+            )
+            self._telegram_intent_from_file = _parse_env_bool(self._telegram_env_value, default=False)
+
+        self._telegram_env_present = os.getenv("OPENCLAW_CONNECTOR_TELEGRAM") is not None
         self.secrets = Secrets()
         self._yaml_path = yaml_path
         self._load_yaml(yaml_path)
         self._validate()
 
     def _load_yaml(self, path: str) -> None:
-        load_dotenv(override=False)
+        # load_dotenv must run before YAML token expansion. If .env is unreadable,
+        # connector flags can silently fall back to config defaults.
+        self._dotenv_loaded = bool(load_dotenv(dotenv_path=self._env_file, override=False))
 
         p = Path(path)
         if not p.exists():
@@ -212,6 +264,21 @@ class AppConfig:
             raw = yaml.safe_load(f) or {}
 
         expanded = _expand(raw)
+        self._yaml_defaults_used = []
+        connectors = raw.get("connectors") if isinstance(raw, dict) else {}
+        if isinstance(connectors, dict):
+            telegram_token = connectors.get("telegram")
+            if isinstance(telegram_token, str):
+                m = _ENV_TOKEN.match(telegram_token.strip())
+                if m:
+                    inner = m.group(1)
+                    if ":" in inner:
+                        env_key, default = inner.split(":", 1)
+                        env_key = env_key.strip()
+                        if os.getenv(env_key) is None:
+                            self._yaml_defaults_used.append(
+                                {"path": "connectors.telegram", "env_key": env_key, "default": default}
+                            )
 
         self.llm = LLMConfig(**(expanded.get("llm") or {}))
         self.runtime = RuntimeConfig(**(expanded.get("runtime") or {}))
@@ -220,6 +287,7 @@ class AppConfig:
         self.health = HealthConfig(**(expanded.get("health") or {}))
 
     def _validate(self) -> None:
+        self._telegram_env_present = os.getenv("OPENCLAW_CONNECTOR_TELEGRAM") is not None
         if self.llm.provider not in _VALID_PROVIDERS:
             self._fatal(
                 f"llm.provider must be one of {sorted(_VALID_PROVIDERS)}, "
@@ -241,6 +309,20 @@ class AppConfig:
         if self.connectors.whatsapp.enabled and not self.secrets.whatsapp_allowed_numbers:
             self._fatal("connectors.whatsapp.enabled=true but WHATSAPP_ALLOWED_NUMBERS is not set")
         Path(self.runtime.data_dir).mkdir(parents=True, exist_ok=True)
+
+        if self._telegram_intent_from_file and not self._dotenv_loaded and not self._telegram_env_present:
+            self._fatal(
+                "OPENCLAW_CONNECTOR_TELEGRAM=true is set in env file intent, "
+                f"but runtime did not load {self._env_file}. Check env file ownership/permissions."
+            )
+
+        for default_use in self._yaml_defaults_used:
+            if default_use["path"] == "connectors.telegram":
+                print(
+                    "CONFIG WARNING: connectors.telegram fell back to default "
+                    f"{default_use['default']!r} because env var {default_use['env_key']} was absent.",
+                    file=sys.stderr,
+                )
 
     @staticmethod
     def _fatal(msg: str) -> None:
@@ -286,7 +368,34 @@ class AppConfig:
                 "minimax_api_key": "SET" if self.secrets.minimax_api_key else "NOT SET",
                 "sqlite_path": self.secrets.sqlite_path,
             },
+            "config_diagnostics": {
+                "env_file": str(self._env_file),
+                "env_file_exists": self._env_file_exists,
+                "env_file_readable": self._env_file_readable,
+                "dotenv_loaded": self._dotenv_loaded,
+                "telegram_env_present": self._telegram_env_present,
+                "telegram_intent_from_env_file": self._telegram_intent_from_file,
+            },
         }
+
+    def connector_state_reasons(self) -> dict[str, str]:
+        reasons: dict[str, str] = {}
+        reasons["cli"] = "enabled by config" if self.connectors.cli.enabled else "disabled by config"
+        if self.connectors.telegram.enabled:
+            reasons["telegram"] = "enabled via OPENCLAW_CONNECTOR_TELEGRAM/config"
+        else:
+            if self._telegram_intent_from_file and not self._telegram_env_present:
+                reasons["telegram"] = (
+                    "disabled because OPENCLAW_CONNECTOR_TELEGRAM was not loaded from env file"
+                )
+            else:
+                reasons["telegram"] = "disabled by config/default"
+        reasons["whatsapp"] = (
+            "enabled via OPENCLAW_CONNECTOR_WHATSAPP/config"
+            if self.connectors.whatsapp.enabled
+            else "disabled by config/default"
+        )
+        return reasons
 
 
 # ── Module-level singleton ─────────────────────────────────────────────────
@@ -305,4 +414,3 @@ def reset_config() -> None:
     """For use in tests only."""
     global _config
     _config = None
-
