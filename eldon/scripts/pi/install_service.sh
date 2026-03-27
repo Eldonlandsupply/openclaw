@@ -1,61 +1,98 @@
 #!/usr/bin/env bash
-# openclaw install-service — install and enable systemd service
-# Usage: sudo ./scripts/pi/install_service.sh
-# Must be run as root (or with sudo)
+# openclaw install-service — render and reconcile /etc/systemd/system/openclaw.service
+# Usage:
+#   sudo ./scripts/pi/install_service.sh [--root PATH] [--user USER] [--group GROUP] [--env-file PATH] [--restart]
 set -euo pipefail
 
 if [[ "${EUID}" -ne 0 ]]; then
-    echo "ERROR: must run as root. Use: sudo ./scripts/pi/install_service.sh"
-    exit 1
+  echo "ERROR: must run as root. Use: sudo ./scripts/pi/install_service.sh"
+  exit 1
 fi
 
-INSTALL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-SERVICE_SRC="${INSTALL_DIR}/deploy/systemd/openclaw.service"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DEFAULT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+TEMPLATE_PATH="${DEFAULT_ROOT}/deploy/systemd/openclaw.service.template"
 SERVICE_DST="/etc/systemd/system/openclaw.service"
-PYTHON="${INSTALL_DIR}/.venv/bin/python"
 
-# Verify venv exists
-if [[ ! -f "${PYTHON}" ]]; then
-    echo "ERROR: venv not found at ${INSTALL_DIR}/.venv"
-    echo "Run ./scripts/pi/install.sh first"
-    exit 1
+OPENCLAW_ROOT="${OPENCLAW_ROOT:-${DEFAULT_ROOT}}"
+OPENCLAW_USER="${OPENCLAW_USER:-$(stat -c '%U' "${DEFAULT_ROOT}")}"
+OPENCLAW_GROUP="${OPENCLAW_GROUP:-$(stat -c '%G' "${DEFAULT_ROOT}")}"
+OPENCLAW_ENV_FILE="${OPENCLAW_ENV_FILE:-${OPENCLAW_ROOT}/.env}"
+RESTART_AFTER_INSTALL=0
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --root)
+      OPENCLAW_ROOT="$2"
+      shift 2
+      ;;
+    --user)
+      OPENCLAW_USER="$2"
+      shift 2
+      ;;
+    --group)
+      OPENCLAW_GROUP="$2"
+      shift 2
+      ;;
+    --env-file)
+      OPENCLAW_ENV_FILE="$2"
+      shift 2
+      ;;
+    --restart)
+      RESTART_AFTER_INSTALL=1
+      shift
+      ;;
+    *)
+      echo "ERROR: unknown argument: $1"
+      exit 1
+      ;;
+  esac
+done
+
+if [[ ! -f "${TEMPLATE_PATH}" ]]; then
+  echo "ERROR: missing template: ${TEMPLATE_PATH}"
+  exit 1
 fi
 
-# Verify config exists
-if [[ ! -f "${INSTALL_DIR}/config.yaml" ]]; then
-    echo "ERROR: config.yaml not found"
-    echo "Run: cp config.yaml.example config.yaml and configure it"
-    exit 1
+if [[ ! -f "${OPENCLAW_ROOT}/.venv/bin/python" ]]; then
+  echo "ERROR: venv not found at ${OPENCLAW_ROOT}/.venv"
+  echo "Run ./scripts/pi/install.sh first"
+  exit 1
 fi
 
-# Write the service file with real paths substituted
-echo "Writing ${SERVICE_DST}..."
+if [[ ! -f "${OPENCLAW_ROOT}/config.yaml" ]]; then
+  echo "ERROR: config.yaml not found at ${OPENCLAW_ROOT}/config.yaml"
+  echo "Run: cp config.yaml.example config.yaml and configure it"
+  exit 1
+fi
+
+tmp_file="$(mktemp)"
+trap 'rm -f "${tmp_file}"' EXIT
+
 sed \
-    -e "s|/opt/openclaw|${INSTALL_DIR}|g" \
-    -e "s|User=openclaw|User=$(stat -c '%U' "${INSTALL_DIR}")|g" \
-    -e "s|Group=openclaw|Group=$(stat -c '%G' "${INSTALL_DIR}")|g" \
-    "${SERVICE_SRC}" > "${SERVICE_DST}"
+  -e "s|{{OPENCLAW_ROOT}}|${OPENCLAW_ROOT}|g" \
+  -e "s|{{OPENCLAW_USER}}|${OPENCLAW_USER}|g" \
+  -e "s|{{OPENCLAW_GROUP}}|${OPENCLAW_GROUP}|g" \
+  -e "s|{{OPENCLAW_ENV_FILE}}|${OPENCLAW_ENV_FILE}|g" \
+  "${TEMPLATE_PATH}" > "${tmp_file}"
 
-# Handle EnvironmentFile — use .env in install dir if /etc/openclaw doesn't exist
-if [[ ! -f "/etc/openclaw/openclaw.env" ]]; then
-    sed -i "s|EnvironmentFile=/etc/openclaw/openclaw.env|EnvironmentFile=${INSTALL_DIR}/.env|g" "${SERVICE_DST}"
-    echo "NOTE: Using ${INSTALL_DIR}/.env as EnvironmentFile"
-    echo "      For production, move secrets to /etc/openclaw/openclaw.env (chmod 600)"
-fi
-
-# Fix ReadWritePaths
-sed -i "s|ReadWritePaths=/var/lib/openclaw|ReadWritePaths=${INSTALL_DIR}/data ${INSTALL_DIR}/logs|g" "${SERVICE_DST}"
-
-echo "Reloading systemd..."
+install -m 0644 "${tmp_file}" "${SERVICE_DST}"
+systemd-analyze verify "${SERVICE_DST}"
 systemctl daemon-reload
-
-echo "Enabling openclaw service..."
 systemctl enable openclaw
 
+if [[ "${RESTART_AFTER_INSTALL}" -eq 1 ]]; then
+  systemctl restart openclaw
+fi
+
 echo ""
-echo "=== Service installed ==="
-echo "Start :  sudo systemctl start openclaw"
-echo "Status:  sudo systemctl status openclaw"
-echo "Logs  :  journalctl -u openclaw -f"
+echo "=== openclaw.service reconciled ==="
+echo "Unit path      : ${SERVICE_DST}"
+echo "Runtime root   : ${OPENCLAW_ROOT}"
+echo "User/Group     : ${OPENCLAW_USER}:${OPENCLAW_GROUP}"
+echo "EnvironmentFile: ${OPENCLAW_ENV_FILE}"
 echo ""
-echo "Service file written to: ${SERVICE_DST}"
+echo "Verify live unit:"
+echo "  sudo systemctl cat openclaw.service"
+echo "  sudo systemctl show openclaw.service -p User -p EnvironmentFile -p WorkingDirectory -p FragmentPath"
+echo "  sudo cat /etc/systemd/system/openclaw.service"

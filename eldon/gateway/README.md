@@ -5,7 +5,7 @@ This directory contains an experimental FastAPI-based webhook gateway.
 ## Status
 
 **NOT active.** The deployed runtime is `src/openclaw/main.py`, managed by
-`deploy/systemd/openclaw.service`. This gateway sub-package is retained for
+`deploy/systemd/openclaw.service.template`. This gateway sub-package is retained for
 reference and future architecture exploration.
 
 ## Architecture relationship

@@ -1,6 +1,14 @@
 # OpenClaw — Full Raspberry Pi Setup
+
 ## From Blank SD Card to Running 24/7 Service
+
 ### Every single step. No gaps. No assumptions.
+
+> Important: canonical `openclaw.service` management now uses
+> `deploy/systemd/openclaw.service.template` plus
+> `scripts/pi/install_service.sh` and `scripts/pi/audit_service.sh`.
+> Do not manually edit `/etc/systemd/system/openclaw.service`.
+> See `docs/systemd-service-management.md`.
 
 ---
 
@@ -39,15 +47,18 @@ Put the SD card into your Mac's SD card slot or a USB adapter. It will mount on 
 Inside Raspberry Pi Imager:
 
 **1. Click "Choose Device"**
+
 - Select: **Raspberry Pi 4** (or Pi 5 if that's your hardware)
 
 **2. Click "Choose OS"**
+
 - Click **"Raspberry Pi OS (other)"**
 - Select **"Raspberry Pi OS Lite (64-bit)"**
   - It will say "Debian Bookworm" in the description — that is correct
   - Do NOT pick the desktop version. You want Lite (no GUI)
 
 **3. Click "Choose Storage"**
+
 - Select your SD card from the list
   - It will show the card name and size (e.g., "Generic MassStorageClass Media - 32.0 GB")
   - **Triple-check this is your SD card, not an external drive**
@@ -56,20 +67,21 @@ Inside Raspberry Pi Imager:
 
 You will see a form. Fill it in exactly:
 
-| Field | Value to enter |
-|---|---|
-| Hostname | `openclaw` |
-| Username | `pi` |
-| Password | Pick something strong, write it down — you will need it every SSH session |
-| Configure wireless LAN | Check this box if using Wi-Fi |
-| SSID | Your Wi-Fi network name (exact, case-sensitive) |
-| Password | Your Wi-Fi password |
-| Wireless LAN country | `US` |
-| Set locale | Check this box |
-| Time zone | `America/Chicago` |
-| Keyboard layout | `us` |
+| Field                  | Value to enter                                                            |
+| ---------------------- | ------------------------------------------------------------------------- |
+| Hostname               | `openclaw`                                                                |
+| Username               | `pi`                                                                      |
+| Password               | Pick something strong, write it down — you will need it every SSH session |
+| Configure wireless LAN | Check this box if using Wi-Fi                                             |
+| SSID                   | Your Wi-Fi network name (exact, case-sensitive)                           |
+| Password               | Your Wi-Fi password                                                       |
+| Wireless LAN country   | `US`                                                                      |
+| Set locale             | Check this box                                                            |
+| Time zone              | `America/Chicago`                                                         |
+| Keyboard layout        | `us`                                                                      |
 
 **5. Click the "Services" tab at the top of that same dialog**
+
 - Check **"Enable SSH"**
 - Select **"Use password authentication"**
 
@@ -120,6 +132,7 @@ ping -c 3 openclaw.local
 ```
 
 You should see replies like:
+
 ```
 64 bytes from openclaw.local (192.168.1.X): icmp_seq=0 ttl=64 time=2.4 ms
 ```
@@ -141,6 +154,7 @@ ssh pi@openclaw.local
 ```
 
 You will see:
+
 ```
 The authenticity of host 'openclaw.local' can't be established.
 Are you sure you want to continue connecting (yes/no/[fingerprint])?
@@ -151,6 +165,7 @@ Type `yes` and press Enter.
 Enter the password you chose in Step 3 when prompted.
 
 You are now inside the Pi. Your prompt will look like:
+
 ```
 pi@openclaw:~ $
 ```
@@ -190,11 +205,13 @@ sudo apt autoremove -y
 ```bash
 hostname
 ```
+
 Should print: `openclaw`
 
 ```bash
 timedatectl
 ```
+
 Look for `Time zone: America/Chicago`. If it says something else:
 
 ```bash
@@ -242,6 +259,7 @@ sudo ufw status
 ```
 
 You should see:
+
 ```
 Status: active
 
@@ -393,6 +411,7 @@ ls -la /etc/openclaw/
 ```
 
 Should show:
+
 ```
 -rw-r----- 1 root openclaw  ... openclaw.env
 ```
@@ -430,6 +449,7 @@ sudo -u openclaw bash
 ```
 
 Your prompt changes to:
+
 ```
 openclaw@openclaw:/home/pi $
 ```
@@ -562,6 +582,7 @@ python3 scripts/doctor.py
 ```
 
 Expected output:
+
 ```
 OK config loaded
 chat_model=openai/gpt-4o-mini
@@ -572,6 +593,7 @@ vector_store_path=/var/lib/openclaw/vector_store
 ```
 
 If it errors:
+
 - `placeholder` in output → you still have `YOUR_CHAT_MODEL` somewhere in config.yaml, fix it
 - `memory enabled but no embed model` → set `memory.enabled: false` in config.yaml
 
@@ -586,6 +608,7 @@ python -m openclaw.main config.yaml
 ```
 
 Watch the output. Healthy startup looks like:
+
 ```json
 {"level":"INFO","event":"openclaw starting","version":"..."}
 {"level":"INFO","event":"health server started","host":"0.0.0.0","port":8080}
@@ -599,6 +622,7 @@ curl http://openclaw.local:8080/health
 ```
 
 Should return:
+
 ```json
 {"status": "ok", "uptime_s": 5, ...}
 ```
@@ -621,65 +645,28 @@ Your prompt returns to `pi@openclaw`.
 
 ---
 
-## Step 26 — Write the systemd Service File
+## Step 26 — Reconcile the systemd Service from Canonical Template
 
 ```bash
-sudo nano /etc/systemd/system/openclaw.service
+cd /opt/openclaw/eldon
+sudo ./scripts/pi/install_service.sh \
+  --root /opt/openclaw/eldon \
+  --user openclaw \
+  --group openclaw \
+  --env-file /etc/openclaw/openclaw.env \
+  --restart
 ```
 
-Paste in the entire contents below exactly:
-
-```ini
-[Unit]
-Description=OpenClaw Agent Runtime
-Documentation=https://github.com/Eldonlandsupply/EldonOpenClaw
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-Type=simple
-User=openclaw
-Group=openclaw
-
-WorkingDirectory=/opt/openclaw
-
-EnvironmentFile=/etc/openclaw/openclaw.env
-
-ExecStart=/opt/openclaw/.venv/bin/python -m openclaw.main /opt/openclaw/config.yaml
-
-Restart=always
-RestartSec=5
-TimeoutStopSec=15
-
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=openclaw
-
-NoNewPrivileges=true
-PrivateTmp=true
-ProtectSystem=strict
-ReadWritePaths=/var/lib/openclaw /opt/openclaw/data
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Save: Ctrl+X → Y → Enter
+This command renders `deploy/systemd/openclaw.service.template`, writes
+`/etc/systemd/system/openclaw.service`, verifies the unit, reloads systemd,
+enables the service, and restarts it.
 
 ---
 
-## Step 27 — Enable and Start the Service
+## Step 27 — Verify the Effective Service Values
 
 ```bash
-sudo systemctl daemon-reload
-```
-
-```bash
-sudo systemctl enable openclaw
-```
-
-```bash
-sudo systemctl start openclaw
+sudo systemctl show openclaw.service -p User -p EnvironmentFile -p WorkingDirectory -p FragmentPath
 ```
 
 ---
@@ -691,6 +678,7 @@ sudo systemctl status openclaw
 ```
 
 Look for `Active: active (running)` in green. Example:
+
 ```
 ● openclaw.service - OpenClaw Agent Runtime
      Loaded: loaded (/etc/systemd/system/openclaw.service; enabled)
@@ -714,8 +702,9 @@ curl http://openclaw.local:8080/health
 ```
 
 Expected:
+
 ```json
-{"status": "ok", "uptime_s": 12, "version": "0.1.0"}
+{ "status": "ok", "uptime_s": 12, "version": "0.1.0" }
 ```
 
 If this works, **OpenClaw is fully deployed and running 24/7.**
@@ -900,13 +889,13 @@ du -sh /var/lib/openclaw/
 
 # TROUBLESHOOTING REFERENCE
 
-| Problem | What to run | What to look for |
-|---|---|---|
-| Service won't start | `sudo journalctl -u openclaw -n 30` | Error message on last few lines |
-| Health endpoint refused | `sudo systemctl status openclaw` | Is it even running? |
-| Config error at startup | `sudo -u openclaw bash -c "cd /opt/openclaw && source .venv/bin/activate && python scripts/doctor.py"` | Placeholder or missing key error |
-| ModuleNotFoundError | `sudo -u openclaw /opt/openclaw/.venv/bin/pip install -e /opt/openclaw` | Re-run install |
-| Can't SSH in | Connect keyboard+HDMI directly, run `sudo ufw allow ssh` | UFW may have blocked you |
-| Pi not found on network | Check router device list, or `arp -a` from Mac | Find its IP and use that instead of `.local` |
-| High CPU | `top` then press 1 to see per-core | Look for python process, check tick_seconds in config.yaml |
-| Wrong API key error in logs | `sudo nano /etc/openclaw/openclaw.env` | Fix the key, then `sudo systemctl restart openclaw` |
+| Problem                     | What to run                                                                                            | What to look for                                           |
+| --------------------------- | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
+| Service won't start         | `sudo journalctl -u openclaw -n 30`                                                                    | Error message on last few lines                            |
+| Health endpoint refused     | `sudo systemctl status openclaw`                                                                       | Is it even running?                                        |
+| Config error at startup     | `sudo -u openclaw bash -c "cd /opt/openclaw && source .venv/bin/activate && python scripts/doctor.py"` | Placeholder or missing key error                           |
+| ModuleNotFoundError         | `sudo -u openclaw /opt/openclaw/.venv/bin/pip install -e /opt/openclaw`                                | Re-run install                                             |
+| Can't SSH in                | Connect keyboard+HDMI directly, run `sudo ufw allow ssh`                                               | UFW may have blocked you                                   |
+| Pi not found on network     | Check router device list, or `arp -a` from Mac                                                         | Find its IP and use that instead of `.local`               |
+| High CPU                    | `top` then press 1 to see per-core                                                                     | Look for python process, check tick_seconds in config.yaml |
+| Wrong API key error in logs | `sudo nano /etc/openclaw/openclaw.env`                                                                 | Fix the key, then `sudo systemctl restart openclaw`        |

@@ -54,10 +54,7 @@ mkdir -p data logs .data/vector_store
 
 # ── systemd ──────────────────────────────────────────────────────────────
 echo "[7/7] Installing systemd service..."
-sudo cp deploy/systemd/openclaw.service /etc/systemd/system/openclaw.service
-sudo systemctl daemon-reload
-sudo systemctl enable openclaw
-sudo systemctl restart openclaw
+sudo ./scripts/pi/install_service.sh --root "$INSTALL_DIR" --user pi --group pi --env-file "$INSTALL_DIR/.env" --restart
 
 echo ""
 echo "=== Bootstrap complete ==="

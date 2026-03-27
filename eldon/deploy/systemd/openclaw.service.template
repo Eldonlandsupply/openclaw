@@ -1,0 +1,33 @@
+[Unit]
+Description=OpenClaw Agent Runtime
+Documentation=https://github.com/Eldonlandsupply/EldonOpenClaw
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{OPENCLAW_USER}}
+Group={{OPENCLAW_GROUP}}
+
+WorkingDirectory={{OPENCLAW_ROOT}}
+EnvironmentFile={{OPENCLAW_ENV_FILE}}
+
+ExecStart={{OPENCLAW_ROOT}}/.venv/bin/python -m openclaw.main {{OPENCLAW_ROOT}}/config.yaml
+
+Restart=always
+RestartSec=5
+TimeoutStopSec=20
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=openclaw
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths={{OPENCLAW_ROOT}}/data
+ReadWritePaths={{OPENCLAW_ROOT}}/logs
+ReadWritePaths={{OPENCLAW_ROOT}}/.data
+
+[Install]
+WantedBy=multi-user.target
