@@ -12,6 +12,24 @@ export async function noteSecurityWarnings(cfg: OpenClawConfig) {
   const warnings: string[] = [];
   const auditHint = `- Run: ${formatCliCommand("openclaw security audit --deep")}`;
 
+  const globalExecSecurity = cfg.tools?.exec?.security;
+  if (globalExecSecurity === "full") {
+    warnings.push(
+      '- WARNING: tools.exec.security is set to "full". Prompt injection risk is materially higher because host exec can run without allowlist guardrails.',
+      `  Fix: ${formatCliCommand("openclaw config set tools.exec.security allowlist")}`,
+    );
+  }
+  for (const agent of cfg.agents?.list ?? []) {
+    const agentSecurity = agent.tools?.exec?.security;
+    if (agentSecurity === "full") {
+      const label = agent.id?.trim() || "<unknown>";
+      warnings.push(
+        `- WARNING: agents.list["${label}"].tools.exec.security is "full".`,
+        "  Restrict to allowlist unless this is a short-lived break-glass mode.",
+      );
+    }
+  }
+
   // ===========================================
   // GATEWAY NETWORK EXPOSURE CHECK
   // ===========================================

@@ -84,6 +84,30 @@ Bad `MEMORY.md` content:
 - stale TODO lists
 - raw transcripts duplicated from session files
 
+### Memory.md hard caps and automatic distillation
+
+OpenClaw now treats `MEMORY.md` as a bounded artifact, not an unbounded log:
+
+- soft trigger: 180 lines or 10 KB
+- hard cap: 220 lines or 12 KB
+- archive path: `memory/archive/MEMORY-YYYY-MM-DD.md`
+
+Use the built-in lifecycle script:
+
+```bash
+# fail when MEMORY.md exceeds hard caps
+node --import tsx scripts/memory-lifecycle.ts --check --workspace ~/.openclaw/workspace
+
+# archive + distill when needed
+node --import tsx scripts/memory-lifecycle.ts --apply --workspace ~/.openclaw/workspace
+```
+
+Distillation rules:
+
+- Keep durable facts, constraints, preferences, and stable project context.
+- Move temporary investigations and one-off logs to daily files.
+- Archive before rewrite, so older context stays auditable.
+
 ## When to write memory
 
 - Decisions, preferences, and durable facts go to `MEMORY.md`.

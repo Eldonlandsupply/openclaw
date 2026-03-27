@@ -1,4 +1,5 @@
 #!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
 # OpenClaw Auth Widget for Termux
 # Place in ~/.shortcuts/ for Termux:Widget
 #
@@ -7,6 +8,26 @@
 
 # Server hostname (via Tailscale or SSH config)
 SERVER="${OPENCLAW_SERVER:-${CLAWDBOT_SERVER:-l36}}"
+
+extract_hours_from_status() {
+    local status="$1"
+    if [[ "$status" =~ ([0-9]+)h ]]; then
+        printf '%s\n' "${BASH_REMATCH[1]}"
+        return 0
+    fi
+    printf '?\n'
+}
+
+dialog_text() {
+    local json="$1"
+    local text
+    text=$(jq -r '.text // "Dismiss"' <<<"$json" 2>/dev/null || true)
+    if [ -z "$text" ] || [ "$text" = "null" ]; then
+        printf 'Dismiss\n'
+        return 0
+    fi
+    printf '%s\n' "$text"
+}
 
 # Check auth status
 termux-toast "Checking OpenClaw auth..."
@@ -18,7 +39,8 @@ case "$STATUS" in
     OK)
         # Get remaining time
         DETAILS=$(ssh "$SERVER" '$HOME/openclaw/scripts/claude-auth-status.sh json' 2>&1)
-        HOURS=$(echo "$DETAILS" | jq -r '.claude_code.status' | grep -oP '\d+(?=h)' || echo "?")
+        STATUS_TEXT=$(jq -r '.claude_code.status // ""' <<<"$DETAILS" 2>/dev/null || true)
+        HOURS=$(extract_hours_from_status "$STATUS_TEXT")
 
         termux-vibrate -d 50
         termux-toast "Auth OK (${HOURS}h left)"
@@ -29,7 +51,7 @@ case "$STATUS" in
 
         # Ask if user wants to re-auth now
         CHOICE=$(termux-dialog radio -t "Auth Expiring Soon" -v "Re-auth now,Check later,Dismiss")
-        SELECTED=$(echo "$CHOICE" | jq -r '.text // "Dismiss"')
+        SELECTED=$(dialog_text "$CHOICE")
 
         case "$SELECTED" in
             "Re-auth now")
@@ -55,7 +77,7 @@ case "$STATUS" in
         termux-vibrate -d 300
 
         CHOICE=$(termux-dialog radio -t "Auth Expired!" -v "Re-auth now,Dismiss")
-        SELECTED=$(echo "$CHOICE" | jq -r '.text // "Dismiss"')
+        SELECTED=$(dialog_text "$CHOICE")
 
         case "$SELECTED" in
             "Re-auth now")

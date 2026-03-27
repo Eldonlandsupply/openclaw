@@ -73,4 +73,24 @@ describe("noteSecurityWarnings gateway exposure", () => {
     expect(message).toContain("No channel security warnings detected");
     expect(message).not.toContain("Gateway bound");
   });
+
+  it("warns when global exec security is full", async () => {
+    const cfg = {
+      gateway: { bind: "loopback" },
+      tools: { exec: { security: "full" } },
+    } as OpenClawConfig;
+    await noteSecurityWarnings(cfg);
+    const message = lastMessage();
+    expect(message).toContain('tools.exec.security is set to "full"');
+  });
+
+  it("warns when agent exec security is full", async () => {
+    const cfg = {
+      gateway: { bind: "loopback" },
+      agents: { list: [{ id: "main", tools: { exec: { security: "full" } } }] },
+    } as OpenClawConfig;
+    await noteSecurityWarnings(cfg);
+    const message = lastMessage();
+    expect(message).toContain('agents.list["main"].tools.exec.security is "full"');
+  });
 });

@@ -36,6 +36,10 @@ Approvals live in a local JSON file on the execution host:
 
 `~/.openclaw/exec-approvals.json`
 
+This file is runtime-mutated. OpenClaw updates allowlist metadata such as
+`lastUsedAt` after command execution. Keep the file writable by the runtime
+user. Making it immutable or read-only can break command execution with `EPERM`.
+
 Example schema:
 
 ```json
@@ -125,6 +129,10 @@ are treated as allowlisted on nodes (macOS node or headless node host). This use
 that can run in allowlist mode **without** explicit allowlist entries. Safe bins reject
 positional file args and path-like tokens, so they can only operate on the incoming stream.
 Shell chaining and redirections are not auto-allowed in allowlist mode.
+
+Shell pipelines (`|`) always require approval, even when all segments are allowlisted.
+This avoids fragile approval behavior in hosts where pipe commands are always treated as
+high-risk.
 
 Shell chaining (`&&`, `||`, `;`) is allowed when every top-level segment satisfies the allowlist
 (including safe bins or skill auto-allow). Redirections remain unsupported in allowlist mode.

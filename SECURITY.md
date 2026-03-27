@@ -50,6 +50,13 @@ The best way to help the project right now is by sending PRs.
 For threat model + hardening guidance (including `openclaw security audit --deep` and `--fix`), see:
 
 - `https://docs.openclaw.ai/gateway/security`
+- `https://docs.openclaw.ai/operations/runtime-hardening`
+
+### Exec approvals state file
+
+`~/.openclaw/exec-approvals.json` is write-active runtime state. OpenClaw updates
+fields like `lastUsedAt` during execution. Do not make this file immutable or
+read-only, or host execution can fail with `EPERM`.
 
 ### Web Interface Safety
 
@@ -97,6 +104,13 @@ Run locally:
 pip install detect-secrets==1.5.0
 detect-secrets scan --baseline .secrets.baseline
 ```
+
+## Credential rotation baseline
+
+- Rotate model/API tokens on a fixed cadence, recommended every 30 days.
+- Rotate immediately after debugging sessions that may expose auth or transport logs.
+- Review logs before sharing support bundles externally.
+- Prefer short-lived credentials and avoid storing secrets in markdown/script files.
 
 ## LOLA secrets and WhatsApp command authorization
 
