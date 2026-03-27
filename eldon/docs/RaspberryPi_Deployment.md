@@ -1,5 +1,11 @@
 # EldonOpenClaw — Raspberry Pi 24/7 Deployment Guide
 
+> Important: canonical `openclaw.service` management now uses
+> `deploy/systemd/openclaw.service.template` plus
+> `scripts/pi/install_service.sh` and `scripts/pi/audit_service.sh`.
+> Do not manually edit `/etc/systemd/system/openclaw.service`.
+> See `docs/systemd-service-management.md`.
+
 ---
 
 ## 1. VERDICT: Is EldonOpenClaw Ready for Raspberry Pi 24/7?
@@ -38,7 +44,7 @@ Reasons:
 - Ships Python 3.11 natively — no manual Python install required
 - Smaller footprint than Ubuntu Server, better first-party Pi support
 - Better thermal and GPIO support (relevant for 24/7 hardware)
-- systemd-based, matches the included `deploy/systemd/openclaw.service`
+- systemd-based, matches the canonical `deploy/systemd/openclaw.service.template`
 
 Use Ubuntu Server 24.04 LTS only if you need snaps, newer kernel features, or enterprise tooling. For this repo there is no benefit.
 
@@ -235,20 +241,20 @@ Select "Yes" when prompted.
 
 **Confirmed from source inspection:**
 
-| Item                | Finding                                                  |
-| ------------------- | -------------------------------------------------------- |
-| Language            | Python 3.11+                                             |
-| Package manager     | pip, no poetry/uv/npm required                           |
-| OS dependencies     | None beyond Python stdlib + pip packages                 |
-| Docker              | Optional, not required                                   |
-| Virtual environment | Required (pip install into venv)                         |
-| ARM64 compatibility | ✅ All packages are pure-Python or have ARM64 wheels     |
-| Required env vars   | `OPENAI_API_KEY` (if provider=openai), config via `.env` |
-| Entry point         | `python -m openclaw.main config.yaml`                    |
-| Config system       | `src/openclaw/config.py` + `config.yaml.example`         |
-| Health endpoint     | `http://HOST:8080/health`                                |
-| SQLite              | WAL mode enabled — write-safe                            |
-| Systemd service     | `deploy/systemd/openclaw.service` — needs path edits     |
+| Item                | Finding                                                     |
+| ------------------- | ----------------------------------------------------------- |
+| Language            | Python 3.11+                                                |
+| Package manager     | pip, no poetry/uv/npm required                              |
+| OS dependencies     | None beyond Python stdlib + pip packages                    |
+| Docker              | Optional, not required                                      |
+| Virtual environment | Required (pip install into venv)                            |
+| ARM64 compatibility | ✅ All packages are pure-Python or have ARM64 wheels        |
+| Required env vars   | `OPENAI_API_KEY` (if provider=openai), config via `.env`    |
+| Entry point         | `python -m openclaw.main config.yaml`                       |
+| Config system       | `src/openclaw/config.py` + `config.yaml.example`            |
+| Health endpoint     | `http://HOST:8080/health`                                   |
+| SQLite              | WAL mode enabled — write-safe                               |
+| Systemd service     | `deploy/systemd/openclaw.service.template` + install script |
 
 **Missing from repo (you must provide):**
 
@@ -451,65 +457,16 @@ Stop with `Ctrl+C`, then `exit` back to your sudo user.
 
 ### G. systemd Service
 
-**Edit the included service file:**
+**Do not hand-edit the deployed unit. Reconcile from canonical template:**
 
 ```bash
-sudo nano /opt/openclaw/deploy/systemd/openclaw.service
-```
-
-Replace the entire file content with:
-
-```ini
-[Unit]
-Description=OpenClaw Agent Runtime
-Documentation=https://github.com/Eldonlandsupply/EldonOpenClaw
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-Type=simple
-User=openclaw
-Group=openclaw
-
-WorkingDirectory=/opt/openclaw
-
-EnvironmentFile=/etc/openclaw/openclaw.env
-
-ExecStart=/opt/openclaw/.venv/bin/python -m openclaw.main /opt/openclaw/config.yaml
-
-Restart=always
-RestartSec=5
-TimeoutStopSec=15
-
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=openclaw
-
-NoNewPrivileges=true
-PrivateTmp=true
-ProtectSystem=strict
-ReadWritePaths=/var/lib/openclaw /opt/openclaw/data
-
-[Install]
-WantedBy=multi-user.target
-```
-
-**Install and enable the service:**
-
-```bash
-sudo cp /opt/openclaw/deploy/systemd/openclaw.service /etc/systemd/system/openclaw.service
-```
-
-```bash
-sudo systemctl daemon-reload
-```
-
-```bash
-sudo systemctl enable openclaw
-```
-
-```bash
-sudo systemctl start openclaw
+cd /opt/openclaw/eldon
+sudo ./scripts/pi/install_service.sh \
+  --root /opt/openclaw/eldon \
+  --user openclaw \
+  --group openclaw \
+  --env-file /etc/openclaw/openclaw.env \
+  --restart
 ```
 
 ```bash

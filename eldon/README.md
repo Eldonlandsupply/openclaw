@@ -45,6 +45,8 @@ eldon/
 Deployed on Raspberry Pi at `/opt/openclaw`. Service managed by systemd as `openclaw.service`.
 
 See `docs/OpenClaw_Pi_FULL_SETUP.md` for the complete setup guide.
+For canonical install, drift audit, and reconciliation of the systemd unit, use
+`docs/systemd-service-management.md`.
 
 ## What was intentionally excluded from consolidation
 
@@ -59,10 +61,10 @@ This Python runtime is **independent** of the upstream TypeScript `openclaw/open
 this same repo. They share a name and conceptual purpose (personal AI assistant) but are separate
 implementations targeting different use cases:
 
-| | Upstream openclaw (TypeScript) | Eldon runtime (Python, `eldon/`) |
-|---|---|---|
-| Purpose | General-purpose personal AI | Business automation for Eldon Land Supply |
-| Platform | Multi-platform (macOS, Linux, Windows) | Raspberry Pi only |
-| Channels | WhatsApp, Telegram, Slack, Discord, etc. | Telegram, Gmail, Outlook |
-| Runtime | Node.js | Python 3.11+ |
-| Deployment | npm install | systemd on Pi |
+|            | Upstream openclaw (TypeScript)           | Eldon runtime (Python, `eldon/`)          |
+| ---------- | ---------------------------------------- | ----------------------------------------- |
+| Purpose    | General-purpose personal AI              | Business automation for Eldon Land Supply |
+| Platform   | Multi-platform (macOS, Linux, Windows)   | Raspberry Pi only                         |
+| Channels   | WhatsApp, Telegram, Slack, Discord, etc. | Telegram, Gmail, Outlook                  |
+| Runtime    | Node.js                                  | Python 3.11+                              |
+| Deployment | npm install                              | systemd on Pi                             |

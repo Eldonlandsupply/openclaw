@@ -1,5 +1,9 @@
 # OpenClaw Operations Runbook
 
+Canonical systemd management for `openclaw.service` is documented in
+`docs/systemd-service-management.md`. Use that workflow for install, drift
+audit, and reconciliation.
+
 ## Service management
 
 ```bash
@@ -35,7 +39,7 @@ A healthy response looks like:
   "uptime_s": 3600,
   "last_tick": "2026-03-14T07:00:00+00:00",
   "version": "0.1.0",
-  "connectors": {"telegram": "ok", "gmail": "ok"},
+  "connectors": { "telegram": "ok", "gmail": "ok" },
   "reason": ""
 }
 ```
@@ -45,26 +49,34 @@ If `status` is `degraded`, check `reason` and `connectors` fields.
 ## Connector failure recovery
 
 ### Telegram stops responding
+
 ```bash
 sudo systemctl restart openclaw
 ```
+
 Verify bot token is still valid: `curl https://api.telegram.org/bot$TOKEN/getMe`
 
 ### Gmail IMAP drops
+
 Gmail IMAP4_SSL connections drop silently after ~30 min idle.
 The connector auto-reconnects on the next poll cycle (30s default).
 If polls stop entirely:
+
 ```bash
 sudo systemctl restart openclaw
 ```
+
 Verify app password is still valid by testing IMAP manually:
+
 ```bash
 python3 -c "import imaplib; m=imaplib.IMAP4_SSL('imap.gmail.com'); m.login('$GMAIL_USER','$GMAIL_APP_PASSWORD'); print('ok')"
 ```
 
 ### Outlook token expires
+
 Microsoft Graph tokens expire after 1 hour but auto-refresh on each poll.
 If token refresh fails (network issue, secret rotation):
+
 1. Check `AZURE_CLIENT_SECRET` is still valid in `/etc/openclaw/openclaw.env`
 2. `sudo systemctl restart openclaw`
 3. Monitor logs for `Outlook poll error`
@@ -87,11 +99,13 @@ grep '"action": "attio_search"' /opt/openclaw/action_allowlist/audit_log.jsonl |
 ## Doctor script
 
 Run after any config change:
+
 ```bash
 cd /opt/openclaw && .venv/bin/python scripts/doctor.py
 ```
 
 Expected output:
+
 ```
 OK config loaded
 chat_model=grok-3-mini
@@ -102,14 +116,17 @@ memory_enabled=False
 ## Config reload (without restart)
 
 Edit `/opt/openclaw/config.yaml` or `/etc/openclaw/openclaw.env`, then:
+
 ```bash
 sudo systemctl kill -s HUP openclaw
 ```
+
 The service will reload config and restart the message loop without losing the systemd PID.
 
 ## SIGHUP reload behavior
 
 On `SIGHUP`:
+
 1. Current tasks are cancelled gracefully
 2. All connectors are stopped
 3. Chat client and memory are closed
@@ -122,7 +139,7 @@ This is safe to use for config changes. It does NOT clear SQLite memory.
 
 The `gateway/` directory contains an experimental FastAPI webhook gateway.
 It is **not running** as a systemd service on the Pi. The active runtime is
-`deploy/systemd/openclaw.service`. The gateway sub-package is kept for
+`deploy/systemd/openclaw.service.template`. The gateway sub-package is kept for
 reference and future webhook-based architecture.
 
 Do not start `gateway/infra/openclaw-gateway.service` — it is not integrated
@@ -143,6 +160,7 @@ with the main runtime.
 All secrets live in `/etc/openclaw/openclaw.env`.
 
 After rotating any key:
+
 1. Edit `/etc/openclaw/openclaw.env`
 2. `sudo systemctl kill -s HUP openclaw` (SIGHUP reload)
 3. Verify health endpoint returns `"status": "ok"`
