@@ -21,6 +21,7 @@ from typing import Optional
 
 from .config import MeetingOpsConfig
 from .models import ActionItem, MeetingArtifactBundle, StructuredMeetingNote
+from openclaw.llm.provider_resolution import LLMProviderResolutionError, resolve_llm_provider
 
 logger = logging.getLogger("lola.meeting_ops.synthesizer")
 
@@ -200,21 +201,32 @@ async def _call_llm(cfg: MeetingOpsConfig, system: str, user: str) -> str:
     model = cfg.chat_model
 
     try:
-        if provider == "xai":
-            return await _call_xai(model, system, user)
-        elif provider in ("openrouter", "openai"):
-            return await _call_openai_compat(
-                model=model,
-                system=system,
-                user=user,
-                base_url=os.getenv("OPENAI_BASE_URL", "https://openrouter.ai/api/v1")
-                if provider == "openrouter"
-                else os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1"),
-                api_key=os.getenv("OPENROUTER_API_KEY" if provider == "openrouter" else "OPENAI_API_KEY", ""),
-            )
-        else:
-            logger.warning("Unknown LLM provider %r, skipping synthesis", provider)
-            return ""
+        resolved = resolve_llm_provider(
+            provider=provider,
+            model=model,
+            configured_base_url=os.getenv("OPENAI_BASE_URL", "").strip() or None,
+        )
+        logger.info(
+            "meeting-ops llm route",
+            extra={
+                "provider": resolved.provider,
+                "base_url": resolved.base_url,
+                "model": resolved.model,
+                "api_key_source": resolved.api_key_source,
+            },
+        )
+        if resolved.provider == "xai":
+            return await _call_xai(resolved.model, system, user)
+        return await _call_openai_compat(
+            model=resolved.model,
+            system=system,
+            user=user,
+            base_url=resolved.base_url,
+            api_key=resolved.api_key,
+        )
+    except LLMProviderResolutionError as e:
+        logger.error("LLM provider config invalid: %s", e)
+        return ""
     except Exception as e:
         logger.error("LLM call failed: %s", e)
         return ""

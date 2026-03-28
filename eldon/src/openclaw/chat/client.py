@@ -7,7 +7,7 @@ Async LLM chat client with:
   - Rate-limiting stub via configurable max_requests_per_minute
   - Injection pattern detection with warning log
   - Hard asyncio timeout (LLM_REQUEST_TIMEOUT_SECONDS, default 30s)
-Supports OpenRouter, OpenAI, and xAI (Grok).
+Supports OpenRouter, OpenAI, MiniMax, and xAI (Grok).
 """
 from __future__ import annotations
 
@@ -16,6 +16,8 @@ import logging
 import re
 import time
 from typing import TYPE_CHECKING
+
+from openclaw.llm.provider_resolution import LLMProviderResolutionError, resolve_llm_provider
 
 import aiohttp
 
@@ -50,12 +52,6 @@ _INJECTION_PATTERNS = re.compile(
     re.IGNORECASE,
 )
 
-_PROVIDER_BASE_URLS: dict[str, str] = {
-    "openrouter": "https://openrouter.ai/api/v1",
-    "openai":     "https://api.openai.com/v1",
-    "xai":        "https://api.x.ai/v1",
-}
-
 # Hard wall: if the LLM has not responded within this many seconds,
 # cancel the request and return a clean error instead of blocking the message loop.
 _DEFAULT_REQUEST_TIMEOUT_SECONDS = 30
@@ -75,20 +71,31 @@ class ChatClient:
 
     def __init__(self, cfg: AppConfig) -> None:
         self._provider = (cfg.llm.provider or "none").lower()
-        self._model    = cfg.llm.chat_model
+        self._model = cfg.llm.chat_model
 
-        if self._provider == "openrouter":
-            self._base_url = _PROVIDER_BASE_URLS["openrouter"]
-            self._api_key  = cfg.secrets.openrouter_api_key or ""
-        elif self._provider == "openai":
-            self._base_url = cfg.llm.base_url or _PROVIDER_BASE_URLS["openai"]
-            self._api_key  = cfg.secrets.openai_api_key or ""
-        elif self._provider == "xai":
-            self._base_url = _PROVIDER_BASE_URLS["xai"]
-            self._api_key  = cfg.secrets.xai_api_key or ""
-        else:
-            self._base_url = ""
-            self._api_key  = ""
+        explicit_api_key = {
+            "openrouter": cfg.secrets.openrouter_api_key,
+            "openai": cfg.secrets.openai_api_key,
+            "xai": cfg.secrets.xai_api_key,
+            "minimax": cfg.secrets.minimax_api_key,
+        }.get(self._provider)
+
+        try:
+            resolved = resolve_llm_provider(
+                provider=self._provider,
+                model=self._model,
+                configured_base_url=cfg.llm.base_url,
+                configured_api_key=explicit_api_key,
+            )
+        except LLMProviderResolutionError as exc:
+            logger.error("LLM provider resolution failed: %s", exc)
+            resolved = resolve_llm_provider(provider="none", model=self._model)
+
+        self._provider = resolved.provider
+        self._model = resolved.model
+        self._base_url = resolved.base_url
+        self._api_key = resolved.api_key
+        self._api_key_source = resolved.api_key_source
 
         self._system_prompt: str = (
             getattr(cfg.llm, "system_prompt", None)
@@ -108,9 +115,14 @@ class ChatClient:
 
         logger.info(
             "ChatClient init",
-            extra={"provider": self._provider, "model": self._model,
-                   "rate_limit_rpm": self._rate_limit,
-                   "request_timeout_s": self._request_timeout},
+            extra={
+                "provider": self._provider,
+                "model": self._model,
+                "base_url": self._base_url,
+                "api_key_source": getattr(self, "_api_key_source", "none"),
+                "rate_limit_rpm": self._rate_limit,
+                "request_timeout_s": self._request_timeout,
+            },
         )
 
     # -- public ------------------------------------------------------------

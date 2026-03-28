@@ -5,13 +5,13 @@ from __future__ import annotations
 import os, re
 import aiohttp
 
+from openclaw.llm.provider_resolution import LLMProviderResolutionError, resolve_llm_provider
+
 from .models_import import LolaIntent, RiskTier, LolaRequest
 from . import audit
 from .approvals import create as create_approval, resolve as resolve_approval, list_pending
 from .memory import recall as mem_recall, record_fact
 
-_LLM_BASE = os.getenv("LLM_BASE_URL", "https://api.x.ai/v1")
-_LLM_KEY = os.getenv("XAI_API_KEY", os.getenv("OPENROUTER_API_KEY", ""))
 _LLM_MODEL = os.getenv("LOLA_LLM_MODEL", os.getenv("LLM_MODEL", "grok-3-mini"))
 _PROMPT_PATH = os.path.join(os.path.dirname(__file__), "system_prompt.md")
 
@@ -28,19 +28,31 @@ async def _llm(user_message: str, context: str = "") -> str:
     system = _load_prompt()
     if context:
         system += f"\n\n## Context\n{context}"
+    provider = os.getenv("LLM_PROVIDER", "xai")
+    configured_base_url = os.getenv("OPENAI_BASE_URL", "").strip() or None
+
+    try:
+        route = resolve_llm_provider(
+            provider=provider,
+            model=_LLM_MODEL,
+            configured_base_url=configured_base_url,
+        )
+    except LLMProviderResolutionError as e:
+        return f"[Lola error: {e}]"
+
     payload = {
-        "model": _LLM_MODEL,
+        "model": route.model,
         "messages": [{"role": "user", "content": user_message}],
         "max_tokens": 600, "temperature": 0.3,
     }
-    headers = {"Authorization": f"Bearer {_LLM_KEY}", "Content-Type": "application/json"}
-    if "openrouter" in _LLM_BASE:
+    headers = {"Authorization": f"Bearer {route.api_key}", "Content-Type": "application/json"}
+    if route.provider == "openrouter":
         headers["HTTP-Referer"] = "https://eldonlandsupply.com"
         headers["X-Title"] = "Lola Executive Assistant"
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(
-                f"{_LLM_BASE}/chat/completions", json=payload, headers=headers,
+                f"{route.base_url}/chat/completions", json=payload, headers=headers,
                 timeout=aiohttp.ClientTimeout(total=30),
             ) as resp:
                 data = await resp.json()
