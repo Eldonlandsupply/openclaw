@@ -286,6 +286,11 @@
       "title": "Memory Get",
       "detailKeys": ["path", "from", "lines"]
     },
+    "session_memory_spine": {
+      "emoji": "🗂️",
+      "title": "Session Memory",
+      "detailKeys": ["action", "kind", "taskKey", "taskStatus", "nextState"]
+    },
     "web_search": {
       "emoji": "🔎",
       "title": "Web Search",
