@@ -17,6 +17,8 @@ import yaml
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from openclaw.llm.provider_resolution import LLMProviderResolutionError, resolve_llm_provider
+
 # ── Environment variable expansion ────────────────────────────────────────
 
 _ENV_TOKEN = re.compile(r"^\$\{([^}]+)\}$")
@@ -215,7 +217,7 @@ class Secrets(BaseSettings):
 
 # ── Valid sets ─────────────────────────────────────────────────────────────
 
-_VALID_PROVIDERS: frozenset[str] = frozenset({"openai", "anthropic", "openrouter", "xai", "none"})
+_VALID_PROVIDERS: frozenset[str] = frozenset({"openai", "anthropic", "openrouter", "xai", "minimax", "none"})
 _VALID_LOG_LEVELS: frozenset[str] = frozenset({"DEBUG", "INFO", "WARNING", "ERROR"})
 
 
@@ -304,6 +306,23 @@ class AppConfig:
             self._fatal("llm.provider=openrouter but OPENROUTER_API_KEY is not set")
         if self.llm.provider == "xai" and not self.secrets.xai_api_key:
             self._fatal("llm.provider=xai but XAI_API_KEY is not set")
+        if self.llm.provider == "minimax" and not self.secrets.minimax_api_key:
+            self._fatal("llm.provider=minimax but MINIMAX_API_KEY is not set")
+
+        try:
+            resolve_llm_provider(
+                provider=self.llm.provider,
+                model=self.llm.chat_model,
+                configured_base_url=self.llm.base_url,
+                configured_api_key={
+                    "openrouter": self.secrets.openrouter_api_key,
+                    "openai": self.secrets.openai_api_key,
+                    "xai": self.secrets.xai_api_key,
+                    "minimax": self.secrets.minimax_api_key,
+                }.get(self.llm.provider),
+            )
+        except LLMProviderResolutionError as exc:
+            self._fatal(str(exc))
         if self.connectors.telegram.enabled and not self.secrets.telegram_bot_token:
             self._fatal("connectors.telegram.enabled=true but TELEGRAM_BOT_TOKEN is not set")
         if self.connectors.whatsapp.enabled and not self.secrets.whatsapp_allowed_numbers:

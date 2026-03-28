@@ -104,6 +104,31 @@ def test_openrouter_provider_with_key(tmp_path, monkeypatch):
     assert cfg.secrets.openrouter_api_key == "sk-or-test"
 
 
+
+
+def test_minimax_provider_requires_key(tmp_path, monkeypatch):
+    monkeypatch.delenv("MINIMAX_API_KEY", raising=False)
+    p = write_yaml(tmp_path, """
+        llm:
+          provider: minimax
+          chat_model: MiniMax-M2.1
+    """)
+    with pytest.raises(SystemExit):
+        AppConfig(yaml_path=str(p))
+
+
+def test_minimax_provider_rejects_openrouter_base_url(tmp_path, monkeypatch):
+    monkeypatch.setenv("MINIMAX_API_KEY", "sk-minimax-test")
+    p = write_yaml(tmp_path, """
+        llm:
+          provider: minimax
+          chat_model: MiniMax-M2.1
+          base_url: https://openrouter.ai/api/v1
+    """)
+    with pytest.raises(SystemExit):
+        AppConfig(yaml_path=str(p))
+
+
 def test_invalid_provider_exits(tmp_path):
     p = write_yaml(tmp_path, """
         llm:
