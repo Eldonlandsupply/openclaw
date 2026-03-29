@@ -1,11 +1,24 @@
+# EldonOpenClaw — canonical config.yaml
+# Non-secret settings. Secrets go in /etc/openclaw/openclaw.env (never committed).
+#
+# LLM_PROVIDER controls routing. Only the key for the selected provider is needed.
+# Valid: minimax | openrouter | openai | xai | none
+#
+# OPENAI_BASE_URL is only honoured when LLM_PROVIDER=openai.
+# It does NOT route traffic to MiniMax when LLM_PROVIDER=minimax.
+
 app:
   env: ${OPENCLAW_ENV:production}
   log_level: ${OPENCLAW_LOG_LEVEL:info}
 
 llm:
-  provider: ${LLM_PROVIDER:xai}
-  chat_model: ${OPENCLAW_CHAT_MODEL:grok-3-mini}
+  # Active provider for this deployment: minimax
+  # Change LLM_PROVIDER in /etc/openclaw/openclaw.env to switch.
+  provider: ${LLM_PROVIDER:minimax}
+  chat_model: ${OPENCLAW_CHAT_MODEL:MiniMax-M1-mini}
   embedding_model: ${OPENCLAW_EMBED_MODEL:}
+  # base_url: used ONLY when provider=openai (for self-hosted/local endpoints).
+  # Leave empty for all other providers — their URLs are hardcoded in provider_resolution.py.
   base_url: ${OPENAI_BASE_URL:}
 
 memory:
