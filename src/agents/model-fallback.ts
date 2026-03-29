@@ -19,6 +19,7 @@ import {
   resolveConfiguredModelRef,
   resolveModelRefFromString,
 } from "./model-selection.js";
+import { filterProviderFallbacks, resolveDeterministicProvider } from "./provider-routing.js";
 
 type ModelCandidate = {
   provider: string;
@@ -203,7 +204,11 @@ function resolveFallbackCandidates(params: {
     addCandidate({ provider: primary.provider, model: primary.model }, false);
   }
 
-  return candidates;
+  const enforcedProvider = resolveDeterministicProvider({});
+  return filterProviderFallbacks({
+    candidates,
+    enforcedProvider,
+  });
 }
 
 export async function runWithModelFallback<T>(params: {

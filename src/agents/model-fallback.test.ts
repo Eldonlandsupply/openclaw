@@ -565,4 +565,39 @@ describe("runWithModelFallback", () => {
     expect(result.provider).toBe("openai");
     expect(result.model).toBe("gpt-4.1-mini");
   });
+
+  it("keeps fallback attempts on minimax when primary provider is minimax", async () => {
+    vi.stubEnv("LLM_PROVIDER", "minimax");
+    try {
+      const cfg = makeCfg({
+        agents: {
+          defaults: {
+            model: {
+              primary: "minimax/MiniMax-M2.1",
+              fallbacks: ["openrouter/anthropic/claude-opus-4-5", "minimax/MiniMax-M2.1-lightning"],
+            },
+          },
+        },
+      });
+      const run = vi
+        .fn()
+        .mockRejectedValueOnce(Object.assign(new Error("auth"), { status: 401 }))
+        .mockResolvedValueOnce("ok");
+
+      const result = await runWithModelFallback({
+        cfg,
+        provider: "minimax",
+        model: "MiniMax-M2.1",
+        run,
+      });
+
+      expect(result.result).toBe("ok");
+      expect(run.mock.calls).toEqual([
+        ["minimax", "MiniMax-M2.1"],
+        ["minimax", "MiniMax-M2.1-lightning"],
+      ]);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
 });

@@ -44,6 +44,7 @@ import {
   pickFallbackThinkingLevel,
   type FailoverReason,
 } from "../pi-embedded-helpers.js";
+import { validateProviderRuntimeSelection } from "../provider-routing.js";
 import { derivePromptTokens, normalizeUsage, type UsageLike } from "../usage.js";
 import { redactRunIdentifier, resolveRunWorkspaceDir } from "../workspace-run.js";
 import { compactEmbeddedPiSessionDirect } from "./compact.js";
@@ -210,6 +211,10 @@ export async function runEmbeddedPiAgent(
       if (!model) {
         throw new Error(error ?? `Unknown model: ${provider}/${modelId}`);
       }
+      validateProviderRuntimeSelection({
+        provider,
+        baseUrl: "baseUrl" in model ? String(model.baseUrl ?? "") : undefined,
+      });
 
       const ctxInfo = resolveContextWindowInfo({
         cfg: params.config,
@@ -324,6 +329,11 @@ export async function runEmbeddedPiAgent(
 
       const applyApiKeyInfo = async (candidate?: string): Promise<void> => {
         apiKeyInfo = await resolveApiKeyForCandidate(candidate);
+        validateProviderRuntimeSelection({
+          provider: model.provider,
+          baseUrl: "baseUrl" in model ? String(model.baseUrl ?? "") : undefined,
+          authSource: apiKeyInfo.source,
+        });
         const resolvedProfileId = apiKeyInfo.profileId ?? candidate;
         if (!apiKeyInfo.apiKey) {
           if (apiKeyInfo.mode !== "aws-sdk") {
@@ -344,6 +354,9 @@ export async function runEmbeddedPiAgent(
         } else {
           authStorage.setRuntimeApiKey(model.provider, apiKeyInfo.apiKey);
         }
+        log.info(
+          `provider routing resolved: provider=${model.provider} model=${model.id} baseUrl=${"baseUrl" in model ? String(model.baseUrl ?? "(default)") : "(default)"} authSource=${apiKeyInfo.source}`,
+        );
         lastProfileId = apiKeyInfo.profileId;
       };
 
