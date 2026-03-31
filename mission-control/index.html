@@ -409,10 +409,21 @@ function HealthPanel({health,loading,onRefresh}){
   );
 }
 // ── OVERVIEW ─────────────────────────────────────────────────────
-function OverviewTab({agents,cronJobs,sessions,health,healthLoading,onRefreshHealth,isDemo,auditLog}){
+function OverviewTab({agents,cronJobs,sessions,health,healthLoading,onRefreshHealth,isDemo,auditLog,client,onNavAgent}){
   const active=cronJobs.filter(j=>j.enabled).length;
-  const def=agents.find(a=>a.isDefault)||agents[0];
   const activeSess=sessions.filter(s=>Date.now()-(s.updatedAt||s.updatedAtMs||0)<3600000).length;
+  const[wakingId,setWakingId]=useState(null);const[wakeResults,setWakeResults]=useState({});
+  const wakeAgent=async(a)=>{
+    setWakingId(a.id);
+    try{
+      if(!isDemo&&client){
+        try{await client.req('agent.run',{agentId:a.id,payload:{kind:'agentTurn',message:'Wake up.'}});pushA('event','agent.run',`${a.id} woken`);}
+        catch{const job=cronJobs.find(j=>j.agentId===a.id&&j.enabled);if(job){await client.req('cron.run',{id:job.id});pushA('event','cron.run',`${a.id} via ${job.name}`);}else throw new Error('no runnable job');}
+      } else {pushA('event','agent.run',`${a.id} (demo)`);}
+      setWakeResults(p=>({...p,[a.id]:'\u2713'}));
+    }catch{setWakeResults(p=>({...p,[a.id]:'\u2717'}));}
+    setWakingId(null);setTimeout(()=>setWakeResults(p=>{const n={...p};delete n[a.id];return n;}),3000);
+  };
   return h(Fragment,null,
     h('div',{className:'g4'},
       h('div',{className:'stat'},h('div',{className:'stl'},'Agents'),h('div',{className:'stv'},agents.length),h('div',{className:'sts'},'in fleet')),
@@ -425,7 +436,13 @@ function OverviewTab({agents,cronJobs,sessions,health,healthLoading,onRefreshHea
       h('div',{className:'card'},
         h('div',{className:'ch'},h('span',{className:'cht'},'Agent Fleet'),h('span',{className:'pill po'},`${agents.length} agents`)),
         h('div',{className:'cb'},agents.length===0?h('div',{className:'emp'},h('div',{className:'empi'},'🦞'),h('div',{className:'empt'},'No agents'))
-          :h('div',{className:'col',style:{gap:3}},agents.map(a=>h('div',{key:a.id,style:{display:'flex',alignItems:'center',gap:8,padding:'7px 0',borderBottom:'1px solid var(--bd)'}},h('div',{className:'sav'},aEmoji(a)),h('div',{style:{flex:1,minWidth:0}},h('div',{className:'sn'},aLbl(a)),h('div',{className:'ss'},a.id)),a.isDefault&&h('span',{className:'pill pde'},'default')))))
+          :h('div',{className:'col',style:{gap:3}},agents.map(a=>h('div',{key:a.id,style:{display:'flex',alignItems:'center',gap:8,padding:'7px 0',borderBottom:'1px solid var(--bd)'}},
+            h('div',{className:'sav'},aEmoji(a)),
+            h('div',{style:{flex:1,minWidth:0,cursor:'pointer'},onClick:()=>onNavAgent&&onNavAgent(a.id)},h('div',{className:'sn'},aLbl(a)),h('div',{className:'ss'},a.id)),
+            a.isDefault&&h('span',{className:'pill pde'},'default'),
+            wakeResults[a.id]&&h('span',{style:{fontSize:11,color:wakeResults[a.id]==='\u2713'?'var(--cgr)':'var(--cre)',fontFamily:'var(--mo)',marginRight:4}},wakeResults[a.id]),
+            h('button',{className:'btn bto bts',style:{fontSize:10,padding:'3px 9px',opacity:wakingId===a.id?.6:1},onClick:e=>{e.stopPropagation();wakeAgent(a);},disabled:!!wakingId},wakingId===a.id?h(Fragment,null,h('span',{className:'spin'}),' …'):'▶ Wake')
+          ))))
       ),
       h('div',{className:'card'},
         h('div',{className:'ch'},h('span',{className:'cht'},'Audit Trail'),h('span',{style:{fontSize:10,color:'var(--t3)'}},'live events')),
@@ -1218,7 +1235,29 @@ function AgentDetail({agent,client,isDemo,onUpdated,configRaw,configHash,configL
   const[tab,setTab]=useState('overview');
   const[editName,setEditName]=useState(aLbl(agent));const[editModel,setEditModel]=useState('');
   const[saving,setSaving]=useState(false);const[saved,setSaved]=useState(false);const[err,setErr]=useState('');
-  useEffect(()=>{setEditName(aLbl(agent));setEditModel('');},[agent.id]);
+  const[waking,setWaking]=useState(false);const[wakeMsg,setWakeMsg]=useState('');
+  useEffect(()=>{setEditName(aLbl(agent));setEditModel('');setWakeMsg('');},[agent.id]);
+  const wakeAgent=async()=>{
+    setWaking(true);setWakeMsg('');
+    try{
+      if(!isDemo&&client){
+        // Try agent.run first; fall back to synthesizing a cron.run on any enabled job for this agent
+        try{
+          await client.req('agent.run',{agentId:agent.id,payload:{kind:'agentTurn',message:'Wake up.'}});
+          pushA('event','agent.run',`${agent.id} woken`);
+        }catch(e){
+          // If agent.run not supported, trigger the first enabled cron job for this agent
+          const job=cronJobs.find(j=>j.agentId===agent.id&&j.enabled);
+          if(job){await client.req('cron.run',{id:job.id});pushA('event','cron.run',`${agent.id} via ${job.name}`);}
+          else throw new Error('No runnable job for this agent and agent.run is not supported');
+        }
+      } else {
+        pushA('event','agent.run',`${agent.id} woken (demo)`);
+      }
+      setWakeMsg('✓ Agent woken');
+    }catch(e){setWakeMsg('✗ '+e.message);}
+    setWaking(false);setTimeout(()=>setWakeMsg(''),3500);
+  };
   const saveAgent=async()=>{
     setSaving(true);setErr('');setSaved(false);
     try{if(!isDemo&&client)await client.req('agents.update',{agentId:agent.id,name:editName,...(editModel?{model:editModel}:{})});
@@ -1228,7 +1267,7 @@ function AgentDetail({agent,client,isDemo,onUpdated,configRaw,configHash,configL
   const agentCron=cronJobs.filter(j=>j.agentId===agent.id);
   const TABS=[{id:'overview',l:'Overview'},{id:'files',l:'Files'},{id:'tools',l:'Tools'},{id:'cron',l:`Cron (${agentCron.length})`},{id:'skills',l:'Skills'},{id:'approvals',l:'Exec Approvals'},{id:'policy',l:'Policy'},...(agent.id==='lola'?[{id:'lola',l:'💼 Lola'}]:[])];  
   return h('div',{className:'col',style:{gap:11}},
-    h('div',{className:'card'},h('div',{className:'cb',style:{display:'flex',alignItems:'center',gap:13}},h('div',{className:'sav',style:{width:42,height:42,fontSize:20,borderRadius:9}},aEmoji(agent)),h('div',{style:{flex:1}},h('div',{style:{fontFamily:'var(--sa)',fontSize:16,fontWeight:700}},aLbl(agent)),h('div',{style:{fontSize:10,color:'var(--t3)',fontFamily:'var(--mo)',marginTop:2}},agent.id),agent.identity?.theme&&h('div',{style:{fontSize:11,color:'var(--t2)',marginTop:4}},agent.identity.theme)),agent.isDefault&&h('span',{className:'pill pde'},'default'),h('span',{className:'pill po'},'active'))),
+    h('div',{className:'card'},h('div',{className:'cb',style:{display:'flex',alignItems:'center',gap:13}},h('div',{className:'sav',style:{width:42,height:42,fontSize:20,borderRadius:9}},aEmoji(agent)),h('div',{style:{flex:1}},h('div',{style:{fontFamily:'var(--sa)',fontSize:16,fontWeight:700}},aLbl(agent)),h('div',{style:{fontSize:10,color:'var(--t3)',fontFamily:'var(--mo)',marginTop:2}},agent.id),agent.identity?.theme&&h('div',{style:{fontSize:11,color:'var(--t2)',marginTop:4}},agent.identity.theme)),h('div',{className:'col',style:{alignItems:'flex-end',gap:5}},h('div',{className:'row',style:{gap:6}},agent.isDefault&&h('span',{className:'pill pde'},'default'),h('button',{className:'btn bto bts',style:{fontSize:11,padding:'4px 12px'},onClick:wakeAgent,disabled:waking},waking?h(Fragment,null,h('span',{className:'spin'}),' Waking\u2026'):'▶ Wake')),wakeMsg&&h('div',{style:{fontSize:10,color:wakeMsg.startsWith('\u2713')?'var(--cgr)':'var(--cre)',fontFamily:'var(--mo)'}},wakeMsg)))),
     h('div',{className:'tr'},TABS.map(t=>h('button',{key:t.id,className:`ta ${tab===t.id?'on':''}`,onClick:()=>setTab(t.id)},t.l))),
     tab==='overview'&&h(Fragment,null,
       err&&h('div',{className:'callout err'},err),saved&&h('div',{className:'callout ok'},'✓ Saved'),
@@ -1511,7 +1550,7 @@ function App(){
         nav==='nodes'?h(NodesTab,{nodes,loading:nodesLd,onLoad:loadNodes,client,isDemo}):
         nav==='usage'?h(UsageLogsWrapper,{client,isDemo}):
                 nav==='projects'?h(ProjectsTab,{projects,loading:projectsLd,agents,onNavAgent:(id)=>{setSelId(id);setNav('agent');}}):
-        h(OverviewTab,{agents,cronJobs,sessions,health,healthLoading:healthLd,onRefreshHealth:loadHealth,isDemo,auditLog})
+        h(OverviewTab,{agents,cronJobs,sessions,health,healthLoading:healthLd,onRefreshHealth:loadHealth,isDemo,auditLog,client,onNavAgent:(id)=>{setSelId(id);setNav('agent');}})
       )
     ),
     showCreate&&h(CreateModal,{onClose:()=>setShowCreate(false),onCreate:a=>{setAgents(p=>[...p,a]);setSelId(a.id);setNav('agent');setShowCreate(false);},client,isDemo}),
