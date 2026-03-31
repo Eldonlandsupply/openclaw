@@ -550,6 +550,7 @@ function SessionsTab({sessions,loading,onLoad,client,isDemo}){
   const[patchLevel,setPatchLevel]=useState('');
   const[patching,setPatching]=useState(false);
   const[patchMsg,setPatchMsg]=useState('');
+  useEffect(()=>{if(onLoad)onLoad();},[]);
 
   const selS=sel?sessions.find(s=>s.key===sel):null;
 
@@ -566,7 +567,7 @@ function SessionsTab({sessions,loading,onLoad,client,isDemo}){
       setPreviews(p=>({...p,[key]:entry?.items||[]}));
     }catch{setPreviews(p=>({...p,[key]:[]}));}
     setPreviewLoading(false);
-  },[client,isDemo,previews]);
+  },[client,isDemo]);
 
   const applyPatch=async()=>{
     if(!selS||!patchLevel)return;
@@ -1039,6 +1040,7 @@ function CronEditModal({job,onClose,onUpdated,client,isDemo}){
 // ── FLEET CRON TAB ───────────────────────────────────────────────
 function CronTab({cronJobs,setCronJobs,loading,onLoad,agents,client,isDemo}){
   const[showAdd,setShowAdd]=useState(false);const[edit,setEdit]=useState(null);
+  useEffect(()=>{if(onLoad)onLoad();},[]);
   return h(Fragment,null,
     h('div',{className:'row',style:{justifyContent:'space-between'}},
       h('div',{className:'row',style:{gap:6}},h('span',{className:'pill po'},`${cronJobs.filter(j=>j.enabled).length} active`),h('span',{className:'pill pd'},`${cronJobs.filter(j=>!j.enabled).length} disabled`)),
@@ -1054,9 +1056,10 @@ function CronTab({cronJobs,setCronJobs,loading,onLoad,agents,client,isDemo}){
       ),
       h('div',{className:'br',style:{flexDirection:'column',gap:4,alignItems:'flex-end'}},
         h('button',{className:'btn bts',onClick:()=>setEdit(job)},'Edit'),
-        h('button',{className:`btn bts ${job.enabled?'btd':'bto'}`,onClick:async()=>{
+        h('button',{className:`btn bts ${job.enabled?'btd':'bto'}`,onClick:async(e)=>{
+          e.stopPropagation();
           const p={...job,enabled:!job.enabled};
-          if(!isDemo&&client)try{await client.req('cron.update',{id:job.id,patch:{enabled:!job.enabled}});}catch{}
+          if(!isDemo&&client)try{await client.req('cron.update',{id:job.id,patch:{enabled:!job.enabled}});}catch(err){}
           pushA('update','cron.update',`${job.name} enabled=${!job.enabled}`);
           setCronJobs(prev=>prev.map(j=>(j.id||j.name)===(job.id||job.name)?p:j));
         }},job.enabled?'Disable':'Enable')
@@ -1214,7 +1217,7 @@ function AgentFilesTab({agentId,client,isDemo}){
 }
 // ── LOLA PANEL ───────────────────────────────────────────────────
 function LolaPanel({client,isDemo}){
-  const[queue,setQueue]=useState(null);const[ld,setLd]=useState(false);const[err,setErr]=useState('');
+  const[queue,setQueue]=useState(null);const[ld,setLd]=useState(false);const[err,setErr]=useState('');const[acting,setActing]=useState('');
   const load=useCallback(async()=>{
     setLd(true);setErr('');
     try{
@@ -1247,7 +1250,7 @@ function LolaPanel({client,isDemo}){
   useEffect(()=>{load();},[load]);
   if(ld)return h('div',{className:'emp'},h('div',{className:'empi'},'💼'),h('div',{className:'empt'},'Loading Lola…'));
   if(err)return h('div',{className:'callout err'},err);
-  if(!queue)return null;
+  if(!queue)return h('div',{className:'emp'},h('div',{className:'empi'},'💼'),h('div',{className:'emps'},'No data available'));
   const fmt=ms=>new Date(ms).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   const fmtAge=ms=>{const s=Math.floor((Date.now()-ms)/1000);if(s<60)return `${s}s ago`;if(s<3600)return `${Math.floor(s/60)}m ago`;return `${Math.floor(s/3600)}h ago`;};
   return h('div',{className:'col',style:{gap:11}},
@@ -1267,8 +1270,8 @@ function LolaPanel({client,isDemo}){
           ),
           h('div',{style:{fontSize:11,color:'var(--t2)',marginBottom:6}},item.summary),
           h('div',{className:'row',style:{gap:6}},
-            h('button',{className:'btn bts bto',style:{fontSize:10,padding:'3px 10px'},onClick:async()=>{if(!isDemo&&client)try{await client.req('lola.approve',{id:item.id});}catch(e){setErr(e.message);}load();}},'✓ Approve'),
-            h('button',{className:'btn bts btd',style:{fontSize:10,padding:'3px 10px'},onClick:async()=>{if(!isDemo&&client)try{await client.req('lola.reject',{id:item.id});}catch(e){setErr(e.message);}load();}},'✕ Reject'),
+            h('button',{className:'btn bts bto',style:{fontSize:10,padding:'3px 10px'},disabled:acting===item.id,onClick:async()=>{setActing(item.id);if(!isDemo&&client)try{await client.req('lola.approve',{id:item.id});}catch(e){setErr(e.message);}setActing('');load();}},'✓ Approve'),
+            h('button',{className:'btn bts btd',style:{fontSize:10,padding:'3px 10px'},disabled:acting===item.id,onClick:async()=>{setActing(item.id);if(!isDemo&&client)try{await client.req('lola.reject',{id:item.id});}catch(e){setErr(e.message);}setActing('');load();}},'✕ Reject'),
           )
         ))
       ))
@@ -1389,7 +1392,7 @@ function AgentDetail({agent,client,isDemo,onUpdated,configRaw,configHash,configL
       agentCron.length===0?h('div',{className:'emp'},h('div',{className:'empi'},'⏰'),h('div',{className:'empt'},'No jobs'),h('div',{className:'emps'},'Switch to the Cron tab to add one'))
       :h('div',{className:'col',style:{gap:8}},agentCron.map(job=>h('div',{key:job.id||job.name,className:'ci',style:{background:'var(--bg3)',border:'1px solid var(--bd)',borderRadius:7,padding:'10px 12px',display:'flex',alignItems:'flex-start',gap:10}},
         h('div',{style:{flex:1}},h('div',{className:'cnm'},job.name),h('div',{className:'csc'},cronSched(job.schedule)),h('div',{className:'cm'},h('span',{className:`pill ${job.enabled?'po':'pd'}`},job.enabled?'enabled':'disabled'))),
-        h('button',{className:`btn bts ${job.enabled?'btd':'bto'}`,onClick:async()=>{const p={...job,enabled:!job.enabled};if(!isDemo&&client)try{await client.req('cron.update',{id:job.id,patch:{enabled:!job.enabled}});}catch{}pushA('update','cron.update',`${job.name} enabled=${!job.enabled}`);setCronJobs(prev=>prev.map(j=>(j.id||j.name)===(job.id||job.name)?p:j));}},job.enabled?'Disable':'Enable')
+        h('button',{className:`btn bts ${job.enabled?'btd':'bto'}`,onClick:async(e)=>{e.stopPropagation();const p={...job,enabled:!job.enabled};if(!isDemo&&client)try{await client.req('cron.update',{id:job.id,patch:{enabled:!job.enabled}});}catch(er){}pushA('update','cron.update',`${job.name} enabled=${!job.enabled}`);setCronJobs(prev=>prev.map(j=>(j.id||j.name)===(job.id||job.name)?p:j));}},job.enabled?'Disable':'Enable')
       )))
     ),
     tab==='skills'&&h(SkillsPanel,{agentId:agent.id,client,isDemo}),
@@ -1769,6 +1772,7 @@ function NodesTab({nodes,loading,onLoad,client,isDemo}){
   const[snapLd,setSnapLd]=useState('');
   const[snapMsg,setSnapMsg]=useState({});
   const[newPat,setNewPat]=useState({});
+  useEffect(()=>{if(onLoad)onLoad();},[]);
   const selNode=sel?nodes.find(n=>n.nodeId===sel):null;
 
   const loadSnap=useCallback(async(nodeId)=>{
@@ -1867,6 +1871,8 @@ function LogsTab({client,isDemo}){
   const logRef=useRef(null);
   const pollRef=useRef(null);
   const autoScroll=useRef(true);
+  // Auto-start a single fetch on mount so logs aren't blank
+  const didInit=useRef(false);
 
   const fetchTail=useCallback(async(cur)=>{
     if(isDemo){
@@ -1891,6 +1897,8 @@ function LogsTab({client,isDemo}){
     if(polling){pollRef.current=setInterval(()=>fetchTail(cursor),3000);}
     return()=>{if(pollRef.current)clearInterval(pollRef.current);};
   },[polling,cursor,fetchTail]);
+  // Auto-load on mount so logs aren't blank
+  useEffect(()=>{if(!didInit.current){didInit.current=true;fetchTail(null);}},[fetchTail]);
 
   const shown=useMemo(()=>{
     let l=lines;
@@ -2028,5 +2036,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(h(App));
 </script>
 </body>
 </html>
+
 
 
