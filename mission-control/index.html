@@ -418,7 +418,7 @@ function OverviewTab({agents,cronJobs,sessions,health,healthLoading,onRefreshHea
     try{
       if(!isDemo&&client){
         try{await client.req('agent.run',{agentId:a.id,payload:{kind:'agentTurn',message:'Wake up.'}});pushA('event','agent.run',`${a.id} woken`);}
-        catch{const job=cronJobs.find(j=>j.agentId===a.id&&j.enabled);if(job){await client.req('cron.run',{id:job.id});pushA('event','cron.run',`${a.id} via ${job.name}`);}else throw new Error('no runnable job');}
+        catch(er){const job=cronJobs.find(j=>j.agentId===a.id&&j.enabled);if(job){await client.req('cron.run',{id:job.id});pushA('event','cron.run',`${a.id} via ${job.name}`);}else throw new Error('no runnable job');}
       } else {pushA('event','agent.run',`${a.id} (demo)`);}
       setWakeResults(p=>({...p,[a.id]:'\u2713'}));
     }catch{setWakeResults(p=>({...p,[a.id]:'\u2717'}));}
@@ -1040,6 +1040,7 @@ function CronEditModal({job,onClose,onUpdated,client,isDemo}){
 // ── FLEET CRON TAB ───────────────────────────────────────────────
 function CronTab({cronJobs,setCronJobs,loading,onLoad,agents,client,isDemo}){
   const[showAdd,setShowAdd]=useState(false);const[edit,setEdit]=useState(null);
+  const[toggling,setToggling]=useState('');
   useEffect(()=>{if(onLoad)onLoad();},[]);
   return h(Fragment,null,
     h('div',{className:'row',style:{justifyContent:'space-between'}},
@@ -1056,12 +1057,13 @@ function CronTab({cronJobs,setCronJobs,loading,onLoad,agents,client,isDemo}){
       ),
       h('div',{className:'br',style:{flexDirection:'column',gap:4,alignItems:'flex-end'}},
         h('button',{className:'btn bts',onClick:()=>setEdit(job)},'Edit'),
-        h('button',{className:`btn bts ${job.enabled?'btd':'bto'}`,onClick:async(e)=>{
-          e.stopPropagation();
+        h('button',{className:`btn bts ${job.enabled?'btd':'bto'}`,disabled:toggling===job.id,onClick:async(e)=>{
+          e.stopPropagation();setToggling(job.id);
           const p={...job,enabled:!job.enabled};
           if(!isDemo&&client)try{await client.req('cron.update',{id:job.id,patch:{enabled:!job.enabled}});}catch(err){}
           pushA('update','cron.update',`${job.name} enabled=${!job.enabled}`);
           setCronJobs(prev=>prev.map(j=>(j.id||j.name)===(job.id||job.name)?p:j));
+          setToggling('');
         }},job.enabled?'Disable':'Enable')
       )
     ))),
@@ -1534,7 +1536,7 @@ function App(){
 
   const loadConfig=useCallback(async()=>{
     if(isDemo)return;if(!client)return;setConfigLd(true);
-    try{const r=await client.req('config.get',{});setConfigRaw(r.raw||JSON.stringify(r.config||{}));setConfigHash(r.hash);}catch{}setConfigLd(false);
+    try{const r=await client.req('config.get',{});setConfigRaw(r.raw||JSON.stringify(r.config||{}));setConfigHash(r.hash);}catch(e){console.warn('config.get failed:',e.message);}setConfigLd(false);
   },[client,isDemo]);
 
   const loadNodes=useCallback(async()=>{
@@ -1739,7 +1741,7 @@ function CronRunHistory({jobId,client,isDemo}){
   const load=useCallback(async()=>{
     setLoading(true);
     if(isDemo){setTimeout(()=>{setEntries(MCRON_RUNS[jobId]||[]);setLoading(false);},250);return;}
-    try{const r=await client.req('cron.runs',{id:jobId,limit:50});setEntries(r.entries||[]);}
+    try{const r=await client.req('cron.runs',{id:jobId,limit:50});setEntries(r.entries||[]);setErr('');}
     catch{setEntries([]);}
     setLoading(false);
   },[jobId,client,isDemo]);
@@ -1888,7 +1890,9 @@ function LogsTab({client,isDemo}){
         setCursor(r.cursor);setFilePath(r.file||'');
         if(autoScroll.current&&logRef.current)logRef.current.scrollTop=logRef.current.scrollHeight;
       }else{setCursor(r.cursor);}
-    }catch{}
+    }catch(e){
+      if(!polling)setLines(prev=>[...prev,{time:'',level:'error',subsystem:'mc',message:'logs.tail error: '+e.message,raw:''}]);
+    }
   },[client,isDemo]);
 
   const start=()=>{setPolling(true);fetchTail(null);};
@@ -1955,11 +1959,12 @@ function UsageTab({client,isDemo}){
         client.req('usage.status',{}).catch(()=>null),
       ]);
       setCost(c);setProvider(p);
-    }catch{}
+    }catch(e){setCost({error:e.message,daily:[],totals:{}});}
     setLoading(false);
   };
   useEffect(()=>{load();},[]);
 
+  if(cost?.error)return h('div',{className:'callout err',style:{margin:12}},'⚠ Usage load failed: '+cost.error);
   const daily=cost?.daily||[];
   const totals=cost?.totals||{};
   const maxCost=Math.max(...daily.map(d=>d.totalCost||0),0.0001);
@@ -2036,6 +2041,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(h(App));
 </script>
 </body>
 </html>
+
 
 
 
