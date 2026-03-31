@@ -32,6 +32,12 @@ class Intent(str, Enum):
     INGEST_ATTACHMENT = "INGEST_ATTACHMENT"
     APPROVE = "APPROVE"
     HELP = "HELP"
+    # Engineering / repo work — routed to repo_handler
+    REPO_OP = "REPO_OP"
+    # Read-only dev queries (tests, logs, status checks) — routed to repo_handler
+    DEV_QUERY = "DEV_QUERY"
+    # Anything else that doesn't match a hard keyword — routed to LLM orchestrator
+    LLM_FALLBACK = "LLM_FALLBACK"
     UNKNOWN = "UNKNOWN"
 
 
@@ -72,3 +78,6 @@ class GatewayRequest(BaseModel):
     action_args: dict[str, Any] = Field(default_factory=dict)
     requires_confirmation: bool = False
     status: RequestStatus = RequestStatus.RECEIVED
+    # Populated by pipeline to report routing decision in structured logs
+    routed_to: str = ""
+    route_reason: str = ""
