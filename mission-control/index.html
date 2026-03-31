@@ -1105,28 +1105,88 @@ function TopologyTab({agents,configRaw,configHash,client,isDemo,onConfigRefresh}
 // ── AGENT FILES TAB ──────────────────────────────────────────────
 function AgentFilesTab({agentId,client,isDemo}){
   const[files,setFiles]=useState(null);const[content,setContent]=useState({});const[draft,setDraft]=useState({});
-  const[active,setActive]=useState(null);const[saving,setSaving]=useState(false);const[err,setErr]=useState('');const[ld,setLd]=useState(false);
-  const load=async()=>{setLd(true);if(isDemo){setFiles({agentId,workspace:`~/.openclaw/agents/${agentId}`,files:MFIL});setLd(false);return;}
-    try{const r=await client.req('agents.files.list',{agentId});setFiles(r);}catch(e){setErr(e.message);}setLd(false);};
-  const loadFile=async(name)=>{if(content[name]!==undefined)return;
-    if(isDemo){setContent(p=>({...p,[name]:name==='SOUL.md'?SOUL_TPL:`# ${name}\n\nContents for ${agentId}\n`}));return;}
-    try{const r=await client.req('agents.files.get',{agentId,name});setContent(p=>({...p,[name]:r.file.content||''}));}catch{}};
-  const save=async(name)=>{const body=draft[name]??content[name]??'';setSaving(true);
-    try{if(!isDemo&&client)await client.req('agents.files.set',{agentId,name,content:body});pushA('update','agents.files.set',`${agentId}/${name}`);setContent(p=>({...p,[name]:body}));setDraft(p=>{const n={...p};delete n[name];return n;});}
-    catch(e){setErr(e.message);}setSaving(false);};
-  if(!files)return h('div',{className:'card'},h('div',{className:'cb'},h('div',{className:'emp'},h('div',{className:'empi'},'📁'),err&&h('div',{className:'callout err',style:{marginBottom:10}},err),h('button',{className:'btn btp',onClick:load,disabled:ld},ld?h(Fragment,null,h('span',{className:'spin'}),' …'):'Load Files'))));
+  const[active,setActive]=useState(null);const[saving,setSaving]=useState(false);
+  const[err,setErr]=useState('');const[ld,setLd]=useState(false);const[fileLoading,setFileLoading]=useState(false);const[saveMsg,setSaveMsg]=useState('');
+
+  const load=useCallback(async()=>{
+    setLd(true);setErr('');setFiles(null);setContent({});setDraft({});setActive(null);
+    if(isDemo){setFiles({agentId,workspace:`~/.openclaw/agents/${agentId}`,files:MFIL});setLd(false);return;}
+    if(!client){setErr('Not connected');setLd(false);return;}
+    try{const r=await client.req('agents.files.list',{agentId});setFiles(r);}
+    catch(e){setErr(e.message||'Failed to load files');}
+    setLd(false);
+  },[agentId,client,isDemo]);
+
+  // Auto-load on mount and whenever the agent changes
+  useEffect(()=>{load();},[load]);
+
+  const loadFile=useCallback(async(name)=>{
+    if(content[name]!==undefined)return;
+    setFileLoading(true);
+    if(isDemo){
+      setContent(p=>({...p,[name]:name==='SOUL.md'?SOUL_TPL:`# ${name}\n\nContents for ${agentId}\n`}));
+      setFileLoading(false);return;
+    }
+    try{const r=await client.req('agents.files.get',{agentId,name});setContent(p=>({...p,[name]:r.file?.content||''}));}
+    catch(e){setErr('Load failed: '+e.message);}
+    setFileLoading(false);
+  },[agentId,client,isDemo,content]);
+
+  const save=async(name)=>{
+    const body=draft[name]??content[name]??'';setSaving(true);setSaveMsg('');setErr('');
+    try{
+      if(!isDemo&&client)await client.req('agents.files.set',{agentId,name,content:body});
+      pushA('update','agents.files.set',`${agentId}/${name}`);
+      setContent(p=>({...p,[name]:body}));
+      setDraft(p=>{const n={...p};delete n[name];return n;});
+      setSaveMsg('Saved ✓');setTimeout(()=>setSaveMsg(''),2500);
+    }catch(e){setErr('Save failed: '+e.message);}
+    setSaving(false);
+  };
+
+  // Loading state — spinner while fetching file list
+  if(ld)return h('div',{className:'card'},h('div',{className:'cb'},h('div',{className:'emp'},h('div',{className:'empi'},'📁'),h('div',{className:'empt'},h('span',{className:'spin'}),' Loading files…'))));
+
+  // Error with retry
+  if(!files)return h('div',{className:'card'},h('div',{className:'cb'},h('div',{className:'emp'},
+    h('div',{className:'empi'},'📁'),
+    err&&h('div',{className:'callout err',style:{marginBottom:10,maxWidth:320}},err),
+    h('button',{className:'btn btp',onClick:load},'Load Files')
+  )));
+
   return h('div',{className:'card'},
-    h('div',{className:'ch'},h('span',{className:'cht'},'Core Files'),h('div',{className:'row',style:{gap:6}},err&&h('span',{style:{fontSize:10,color:'var(--acc)'}},err),h('span',{style:{fontSize:10,color:'var(--t3)',fontFamily:'var(--mo)'}},files.workspace),h('button',{className:'btn bts',onClick:load,disabled:ld},'Refresh'))),
+    h('div',{className:'ch'},
+      h('span',{className:'cht'},'Core Files'),
+      h('div',{className:'row',style:{gap:6}},
+        h('span',{style:{fontSize:10,color:'var(--t3)',fontFamily:'var(--mo)'}},files.workspace),
+        err&&h('span',{style:{fontSize:10,color:'var(--cre)'}},err),
+        saveMsg&&h('span',{style:{fontSize:10,color:'var(--cgr)'}},saveMsg),
+        h('button',{className:'btn bts',onClick:load,disabled:ld},'Refresh')
+      )
+    ),
     h('div',{className:'cb',style:{display:'grid',gridTemplateColumns:'185px 1fr',gap:14,minHeight:320}},
-      h('div',{className:'fl'},files.files.map(f=>h('div',{key:f.name,className:`fr ${active===f.name?'on':''}`,onClick:()=>{setActive(f.name);loadFile(f.name);}},
-        h('div',{style:{flex:1}},h('div',{className:'fn'},f.name),h('div',{className:'fm'},f.missing?'missing':`${fmtB(f.size)} · ${fmtT(f.updatedAtMs)}`)),
+      h('div',{className:'fl'},(files.files||[]).map(f=>h('div',{key:f.name,className:`fr ${active===f.name?'on':''}`,onClick:()=>{setActive(f.name);loadFile(f.name);}},
+        h('div',{style:{flex:1}},
+          h('div',{className:'fn'},f.name),
+          h('div',{className:'fm'},f.missing?'missing':`${fmtB(f.size)} · ${fmtT(f.updatedAtMs)}`)
+        ),
         f.missing&&h('span',{className:'pill pw',style:{fontSize:8}},'missing'),
         draft[f.name]!==undefined&&h('span',{className:'pill pb',style:{fontSize:8}},'•')
       ))),
-      active?h('div',{style:{display:'flex',flexDirection:'column',gap:7}},
-        h('div',{className:'row',style:{justifyContent:'space-between'}},h('span',{style:{fontSize:9,color:'var(--t3)',fontFamily:'var(--mo)'}},`${files.workspace}/${active}`),h('div',{className:'br'},h('button',{className:'btn bts',onClick:()=>setDraft(p=>{const n={...p};delete n[active];return n;}),disabled:draft[active]===undefined},'Reset'),h('button',{className:'btn btp bts',onClick:()=>save(active),disabled:saving||draft[active]===undefined},saving?'Saving…':'Save'))),
-        h('textarea',{className:'ea',value:draft[active]??content[active]??'',onChange:e=>setDraft(p=>({...p,[active]:e.target.value})),spellCheck:false})
-      ):h('div',{className:'emp'},h('div',{className:'emps'},'← Select a file'))
+      active
+        ?h('div',{style:{display:'flex',flexDirection:'column',gap:7}},
+            h('div',{className:'row',style:{justifyContent:'space-between'}},
+              h('span',{style:{fontSize:9,color:'var(--t3)',fontFamily:'var(--mo)'}},`${files.workspace}/${active}`),
+              h('div',{className:'br'},
+                h('button',{className:'btn bts',onClick:()=>setDraft(p=>{const n={...p};delete n[active];return n;}),disabled:draft[active]===undefined},'Reset'),
+                h('button',{className:'btn btp bts',onClick:()=>save(active),disabled:saving||draft[active]===undefined},saving?'Saving…':'Save')
+              )
+            ),
+            fileLoading&&content[active]===undefined
+              ?h('div',{className:'emp',style:{minHeight:200}},h('span',{className:'spin'}),' Loading…')
+              :h('textarea',{className:'ea',value:draft[active]??content[active]??'',onChange:e=>setDraft(p=>({...p,[active]:e.target.value})),spellCheck:false})
+          )
+        :h('div',{className:'emp'},h('div',{className:'emps'},'← Select a file'))
     )
   );
 }
@@ -1922,3 +1982,4 @@ ReactDOM.createRoot(document.getElementById('root')).render(h(App));
 </script>
 </body>
 </html>
+
