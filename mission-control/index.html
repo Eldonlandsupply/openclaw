@@ -647,23 +647,28 @@ function ExecApprovalsPanel({agentId,client,isDemo}){
   const[agentAsk,setAgentAsk]=useState('on-miss');
   const[autoAllow,setAutoAllow]=useState(true);
 
-  const load=async()=>{
-    setLoading(true);setMsg('');
+  const load=useCallback(async()=>{
+    setLoading(true);setMsg('');setSnap(null);
     if(isDemo){
       const m=JSON.parse(JSON.stringify(MEXA));
       setSnap(m);
       const ag=m.file?.agents?.[agentId];
       if(ag){setAgentSec(ag.security||'allowlist');setAgentAsk(ag.ask||'on-miss');setAutoAllow(ag.autoAllowSkills!==false);}
+      else{setAgentSec('allowlist');setAgentAsk('on-miss');setAutoAllow(true);}
       setLoading(false);return;
     }
+    if(!client){setMsg('Not connected');setLoading(false);return;}
     try{
       const r=await client.req('exec.approvals.get',{});
       setSnap(r);
       const ag=r.file?.agents?.[agentId];
       if(ag){setAgentSec(ag.security||'allowlist');setAgentAsk(ag.ask||'on-miss');setAutoAllow(ag.autoAllowSkills!==false);}
+      else{setAgentSec('allowlist');setAgentAsk('on-miss');setAutoAllow(true);}
     }catch(e){setMsg('Error: '+e.message);}
     setLoading(false);
-  };
+  },[agentId,client,isDemo]);
+
+  useEffect(()=>{load();},[load]);
 
   const addPattern=()=>{
     if(!newPat.trim()||!snap)return;
@@ -693,7 +698,8 @@ function ExecApprovalsPanel({agentId,client,isDemo}){
     setSaving(false);
   };
 
-  if(!snap)return h('div',{className:'card'},h('div',{className:'ch'},h('span',{className:'cht'},'Exec Approvals'),h('span',{className:'pill pb',style:{fontSize:9}},'exec.approvals.get/set')),h('div',{className:'cb'},h('div',{className:'emp'},h('div',{className:'empi'},'🛡'),msg&&h('div',{className:'callout err',style:{marginBottom:8}},msg),h('button',{className:'btn btp',onClick:load,disabled:loading},loading?h(Fragment,null,h('span',{className:'spin'}),' …'):'Load Approvals'))));
+  if(loading)return h('div',{className:'card'},h('div',{className:'ch'},h('span',{className:'cht'},'Exec Approvals')),h('div',{className:'cb'},h('div',{className:'emp'},h('span',{className:'spin'}),' Loading…')));
+  if(!snap)return h('div',{className:'card'},h('div',{className:'ch'},h('span',{className:'cht'},'Exec Approvals')),h('div',{className:'cb'},h('div',{className:'emp'},h('div',{className:'empi'},'🛡'),msg&&h('div',{className:'callout err',style:{marginBottom:8}},msg),h('button',{className:'btn btp',onClick:load},'Retry'))));
 
   const allowlist=snap.file?.agents?.[agentId]?.allowlist||[];
 
@@ -732,13 +738,16 @@ function SkillsPanel({agentId,client,isDemo}){
   const[msg,setMsg]=useState({});
   const[filter,setFilter]=useState('');
 
-  const load=async()=>{
-    setLoading(true);
+  const load=useCallback(async()=>{
+    setLoading(true);setReport(null);setMsg({});
     if(isDemo){setReport({workspaceDir:`~/.openclaw/agents/${agentId}`,managedSkillsDir:'~/.openclaw/skills',skills:MSKILLS});setLoading(false);return;}
+    if(!client){setLoading(false);return;}
     try{const r=await client.req('skills.status',{agentId});setReport(r);}
     catch{setReport({workspaceDir:'-',managedSkillsDir:'-',skills:MSKILLS});}
     setLoading(false);
-  };
+  },[agentId,client,isDemo]);
+
+  useEffect(()=>{load();},[load]);
 
   const toggleSkill=async(skillKey,enabled)=>{
     setUpdating(skillKey);
@@ -770,7 +779,8 @@ function SkillsPanel({agentId,client,isDemo}){
     setInstalling('');
   };
 
-  if(!report)return h('div',{className:'card'},h('div',{className:'ch'},h('span',{className:'cht'},'Skills'),h('span',{className:'pill pb',style:{fontSize:9}},'skills.status')),h('div',{className:'cb'},h('div',{className:'emp'},h('div',{className:'empi'},'🛠'),h('button',{className:'btn btp',onClick:load,disabled:loading},loading?h(Fragment,null,h('span',{className:'spin'}),' …'):'Load Skills'))));
+  if(loading)return h('div',{className:'card'},h('div',{className:'ch'},h('span',{className:'cht'},'Skills')),h('div',{className:'cb'},h('div',{className:'emp'},h('span',{className:'spin'}),' Loading…')));
+  if(!report)return h('div',{className:'card'},h('div',{className:'ch'},h('span',{className:'cht'},'Skills')),h('div',{className:'cb'},h('div',{className:'emp'},h('div',{className:'empi'},'🛠'),h('button',{className:'btn btp',onClick:load},'Retry'))));
 
   const filtered=filter.trim()?report.skills.filter(s=>[s.name,s.description,s.source].join(' ').toLowerCase().includes(filter.toLowerCase())):report.skills;
 
@@ -1063,6 +1073,18 @@ function TopologyTab({agents,configRaw,configHash,client,isDemo,onConfigRefresh}
   const[saving,setSaving]=useState(false);const[msg,setMsg]=useState('');
   const selA=sel?agents.find(a=>a.id===sel):null;
 
+  // When an agent is selected, populate editAllow from current config
+  useEffect(()=>{
+    if(!sel)return;
+    try{
+      const parsed=JSON.parse(configRaw||'{}');
+      const entry=(parsed?.agents?.list||[]).find(e=>e?.id===sel);
+      const allow=entry?.subagents?.allowAgents;
+      if(Array.isArray(allow))setEditAllow(allow.join(', '));
+      else setEditAllow('*');
+    }catch{setEditAllow('*');}
+  },[sel,configRaw]);
+
   const save=async()=>{
     if(!selA)return;setSaving(true);setMsg('');
     const allowAgents=editAllow.trim()==='*'?['*']:editAllow.split(',').map(s=>s.trim()).filter(Boolean);
@@ -1324,6 +1346,30 @@ function AgentDetail({agent,client,isDemo,onUpdated,configRaw,configHash,configL
       pushA('update','agents.update',`${agent.id} name="${editName}"${editModel?` model="${editModel}"`:''}`);
       setSaved(true);setTimeout(()=>setSaved(false),2500);if(onUpdated)onUpdated();
     }catch(e){setErr(e.message);}setSaving(false);};
+  // ── Policy tab state ─────────────────────────────────────────
+  const[polApproval,setPolApproval]=useState('off');
+  const[polSandbox,setPolSandbox]=useState('off');
+  const[polSaving,setPolSaving]=useState(false);const[polMsg,setPolMsg]=useState('');
+  useEffect(()=>{
+    try{
+      const parsed=JSON.parse(configRaw||'{}');
+      const entry=(parsed?.agents?.list||[]).find(e=>e?.id===agent.id);
+      setPolApproval(entry?.approvals?.require||'off');
+      setPolSandbox(entry?.sandbox||'off');
+    }catch{setPolApproval('off');setPolSandbox('off');}
+  },[agent.id,configRaw]);
+  const savePolicy=async()=>{
+    setPolSaving(true);setPolMsg('');
+    const agentUpdate={approvals:{require:polApproval==='off'?undefined:polApproval},sandbox:polSandbox==='off'?undefined:polSandbox};
+    const patch=buildAgentPatch(configRaw||'{}',agent.id,agentUpdate);
+    try{
+      if(!isDemo&&client&&configHash)await client.req('config.patch',{raw:JSON.stringify(patch),baseHash:configHash,note:`MC: policy ${agent.id}`});
+      pushA('update','config.patch',`${agent.id} approval=${polApproval} sandbox=${polSandbox}`);
+      setPolMsg('Policy saved ✓');setTimeout(()=>setPolMsg(''),2500);
+      if(onConfigRefresh)onConfigRefresh();
+    }catch(e){setPolMsg('Error: '+e.message);}
+    setPolSaving(false);
+  };
   const agentCron=cronJobs.filter(j=>j.agentId===agent.id);
   const TABS=[{id:'overview',l:'Overview'},{id:'files',l:'Files'},{id:'tools',l:'Tools'},{id:'cron',l:`Cron (${agentCron.length})`},{id:'skills',l:'Skills'},{id:'approvals',l:'Exec Approvals'},{id:'policy',l:'Policy'},...(agent.id==='lola'?[{id:'lola',l:'💼 Lola'}]:[])];  
   return h('div',{className:'col',style:{gap:11}},
@@ -1349,7 +1395,7 @@ function AgentDetail({agent,client,isDemo,onUpdated,configRaw,configHash,configL
     tab==='skills'&&h(SkillsPanel,{agentId:agent.id,client,isDemo}),
     tab==='approvals'&&h(ExecApprovalsPanel,{agentId:agent.id,client,isDemo}),
     tab==='lola'&&h(LolaPanel,{client,isDemo}),
-    tab==='policy'&&h('div',{className:'card'},h('div',{className:'ch'},h('span',{className:'cht'},'Governance & Guardrails')),h('div',{className:'cb'},h('div',{className:'col',style:{gap:14}},h('div',{className:'field'},h('label',null,'Human Approval Required'),h('select',null,h('option',{value:'off'},'Off'),h('option',{value:'exec'},'For exec/shell'),h('option',{value:'external'},'For external actions'),h('option',{value:'all'},'For all actions'))),h('div',{className:'field'},h('label',null,'Sandbox Mode'),h('select',null,h('option',{value:'off'},'Off'),h('option',{value:'non-main'},'Non-main agents'),h('option',{value:'all'},'All agents'))),h('div',{className:'callout info',style:{fontSize:10}},'Writes via ',h('code',null,'config.patch'),' using ',h('code',null,'buildAgentPatch'),' to safely update sandbox/approval settings.'),h('div',{className:'br',style:{justifyContent:'flex-end'}},h('button',{className:'btn btp bts',onClick:saveAgent},'Save Policy')))))
+    tab==='policy'&&h('div',{className:'card'},h('div',{className:'ch'},h('span',{className:'cht'},'Governance & Guardrails')),h('div',{className:'cb'},h('div',{className:'col',style:{gap:14}},polMsg&&h('div',{className:`callout ${polMsg.startsWith('Error')?'err':'ok'}`,style:{fontSize:10}},polMsg),h('div',{className:'field'},h('label',null,'Human Approval Required'),h('select',{value:polApproval,onChange:e=>setPolApproval(e.target.value)},h('option',{value:'off'},'Off'),h('option',{value:'exec'},'For exec/shell'),h('option',{value:'external'},'For external actions'),h('option',{value:'all'},'For all actions'))),h('div',{className:'field'},h('label',null,'Sandbox Mode'),h('select',{value:polSandbox,onChange:e=>setPolSandbox(e.target.value)},h('option',{value:'off'},'Off'),h('option',{value:'non-main'},'Non-main agents'),h('option',{value:'all'},'All agents'))),h('div',{className:'callout info',style:{fontSize:10}},'Reads current values from config. Writes via ',h('code',null,'config.patch'),' using ',h('code',null,'buildAgentPatch'),'.'),h('div',{className:'br',style:{justifyContent:'flex-end'}},h('button',{className:'btn btp bts',onClick:savePolicy,disabled:polSaving||(!configHash&&!isDemo)},polSaving?'Saving…':'Save Policy')))))
   );
 }
 // ── CREATE AGENT MODAL ───────────────────────────────────────────
@@ -1982,4 +2028,5 @@ ReactDOM.createRoot(document.getElementById('root')).render(h(App));
 </script>
 </body>
 </html>
+
 
