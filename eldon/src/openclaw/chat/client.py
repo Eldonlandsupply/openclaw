@@ -7,6 +7,8 @@ Async LLM chat client with:
   - Rate-limiting stub via configurable max_requests_per_minute
   - Injection pattern detection with warning log
   - Hard asyncio timeout (LLM_REQUEST_TIMEOUT_SECONDS, default 30s)
+  - Reasoning tag stripping: <think>...</think> blocks are removed from all
+    provider responses before the reply is returned or stored in history.
 Supports OpenRouter, OpenAI, MiniMax, and xAI (Grok).
 """
 from __future__ import annotations
@@ -17,7 +19,11 @@ import re
 import time
 from typing import TYPE_CHECKING
 
-from openclaw.llm.provider_resolution import LLMProviderResolutionError, resolve_llm_provider
+from openclaw.llm.provider_resolution import (
+    LLMProviderResolutionError,
+    resolve_llm_provider,
+    strip_reasoning_tags,
+)
 
 import aiohttp
 
@@ -128,7 +134,7 @@ class ChatClient:
     # -- public ------------------------------------------------------------
 
     async def chat(self, user_message: str) -> str:
-        """Send a message and return the assistant reply."""
+        """Send a message and return the assistant reply (reasoning tags stripped)."""
         if self._provider == "none" or not self._api_key:
             return f"[no LLM configured] echo: {user_message}"
 
@@ -212,7 +218,8 @@ class ChatClient:
                 body = await resp.text()
                 raise RuntimeError(f"HTTP {resp.status}: {body[:200]}")
             data = await resp.json()
-            return data["choices"][0]["message"]["content"].strip()
+            raw = data["choices"][0]["message"]["content"].strip()
+            return strip_reasoning_tags(raw)
 
     def _trim_history(self) -> None:
         if len(self._history) > self.MAX_HISTORY:

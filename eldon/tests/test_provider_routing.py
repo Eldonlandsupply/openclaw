@@ -158,3 +158,53 @@ def test_openrouter_rejects_minimax_base_url():
             configured_base_url="https://api.minimax.io/v1",
             env={"OPENROUTER_API_KEY": "sk-or-real"},
         )
+
+
+# ── strip_reasoning_tags tests ────────────────────────────────────────────
+
+from openclaw.llm.provider_resolution import strip_reasoning_tags
+
+
+def test_strip_think_block_removed():
+    raw = "<think>\nLet me think about this.\n</think>\n\nHello, I am OpenClaw."
+    assert strip_reasoning_tags(raw) == "Hello, I am OpenClaw."
+
+
+def test_strip_think_block_multiline():
+    raw = "<think>\nStep 1: consider identity.\nStep 2: answer directly.\n</think>No. I'm OpenClaw."
+    assert strip_reasoning_tags(raw) == "No. I'm OpenClaw."
+
+
+def test_strip_think_block_case_insensitive():
+    raw = "<THINK>reasoning here</THINK>\n\nActual reply."
+    assert strip_reasoning_tags(raw) == "Actual reply."
+
+
+def test_strip_no_think_block_passthrough():
+    raw = "Simple reply with no reasoning tags."
+    assert strip_reasoning_tags(raw) == raw
+
+
+def test_strip_empty_string():
+    assert strip_reasoning_tags("") == ""
+
+
+def test_strip_think_block_only():
+    raw = "<think>nothing useful here</think>"
+    assert strip_reasoning_tags(raw) == ""
+
+
+def test_strip_multiple_think_blocks():
+    raw = "<think>first</think>\nmiddle\n<think>second</think>\nend"
+    result = strip_reasoning_tags(raw)
+    assert "first" not in result
+    assert "second" not in result
+    assert "middle" in result
+    assert "end" in result
+
+
+def test_strip_think_block_preserves_content_with_angle_brackets():
+    raw = "<think>ignore this</think>\nResult: x < 5 and y > 3"
+    result = strip_reasoning_tags(raw)
+    assert "ignore" not in result
+    assert "x < 5" in result

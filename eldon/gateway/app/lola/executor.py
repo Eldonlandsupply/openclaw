@@ -5,7 +5,11 @@ from __future__ import annotations
 import os, re
 import aiohttp
 
-from openclaw.llm.provider_resolution import LLMProviderResolutionError, resolve_llm_provider
+from openclaw.llm.provider_resolution import (
+    LLMProviderResolutionError,
+    resolve_llm_provider,
+    strip_reasoning_tags,
+)
 
 from .models_import import LolaIntent, RiskTier, LolaRequest
 from . import audit
@@ -56,7 +60,8 @@ async def _llm(user_message: str, context: str = "") -> str:
                 timeout=aiohttp.ClientTimeout(total=30),
             ) as resp:
                 data = await resp.json()
-                return data["choices"][0]["message"]["content"].strip()
+                raw = data["choices"][0]["message"]["content"].strip()
+                return strip_reasoning_tags(raw)
     except Exception as e:
         return f"[Lola error: {e}]"
 
@@ -204,7 +209,6 @@ async def _briefing(req: LolaRequest) -> str:
 async def _crm_search(req: LolaRequest) -> str:
     from .adapters.attio import search_contacts, search_companies, format_contacts_for_lola
     text = req.normalized_text
-    # Extract query: strip common prefixes
     import re
     query = re.sub(r"(?i)(find|search|look up|attio|contact|company|who is|what is)\s*", "", text).strip()
     if not query:

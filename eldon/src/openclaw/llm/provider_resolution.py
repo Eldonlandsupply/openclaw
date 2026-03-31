@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass
 from typing import Mapping
 
@@ -32,6 +33,25 @@ _PROVIDER_KEY_VAR: dict[str, str] = {
     "xai": "XAI_API_KEY",
     "minimax": "MINIMAX_API_KEY",
 }
+
+# Regex that matches <think>...</think> blocks, including multiline and nested tags.
+# MiniMax-Text-01 and MiniMax-M1 embed chain-of-thought inside the content field
+# using these tags. They must be stripped before the reply is returned to the user.
+_THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
+
+
+def strip_reasoning_tags(text: str) -> str:
+    """
+    Remove <think>...</think> reasoning blocks from LLM output.
+
+    MiniMax (and some other reasoning models) embed chain-of-thought in the
+    content field as <think>...</think>. This function strips all such blocks
+    and collapses any leading whitespace left behind.
+
+    Safe to call on any provider output — no-op if no tags are present.
+    """
+    cleaned = _THINK_RE.sub("", text)
+    return cleaned.strip()
 
 
 def _normalize_provider(provider: str | None) -> str:
