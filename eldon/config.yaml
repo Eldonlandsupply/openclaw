@@ -1,0 +1,14 @@
+app:
+  env: ${ENV:development}
+  log_level: ${LOG_LEVEL:info}
+
+llm:
+  provider: ${LLM_PROVIDER:minimax}
+  chat_model: ${YOUR_CHAT_MODEL:}
+  embedding_model: ${YOUR_EMBED_MODEL:}
+  base_url: ${OPENAI_BASE_URL:https://api.minimax.io/v1}
+
+memory:
+  enabled: ${ENABLE_MEMORY:false}
+  vector_store: ${VECTOR_STORE:local}
+  vector_store_path: ${VECTOR_STORE_PATH:.data/vector_store}
