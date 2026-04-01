@@ -1496,8 +1496,8 @@ const FALLBACK_PROJECTS=[
   {slug:'eldon-runtime',name:'Eldon Land Supply Runtime',status:'active',priority:'high',owner:'Eldonlandsupply',related_source:'eldon/',description:'Bespoke Python agent runtime deployed 24/7 on a Raspberry Pi.'},
 ];
 function App(){
-  const[view,setView]=useState('connect');
-  const[isDemo,setIsDemo]=useState(false);const[client,setClient]=useState(null);const[gwSt,setGwSt]=useState('disconnected');
+  const[view,setView]=useState('main');
+  const[isDemo,setIsDemo]=useState(true);const[client,setClient]=useState(null);const[gwSt,setGwSt]=useState('disconnected');
   const[agents,setAgents]=useState([]);const[selId,setSelId]=useState(null);
   const[nav,setNav]=useState('overview');
   const[projects,setProjects]=useState(null);const[projectsLd,setProjectsLd]=useState(false);
@@ -1511,7 +1511,7 @@ function App(){
   const[configSchema,setConfigSchema]=useState(null);
   const[nodes,setNodes]=useState([]);const[nodesLd,setNodesLd]=useState(false);
 
-  useEffect(()=>{const t=setInterval(()=>setAuditLog([...ALOG]),2000);return()=>clearInterval(t);},[]);
+  useEffect(()=>{const t=setInterval(()=>setAuditLog([...ALOG]),2000);return()=>clearInterval(t);},[]);useEffect(()=>{const a=MAGS.map((x,i)=>({...x,isDefault:i===0}));setAgents(a);setSelId(a[0].id);setHealth(MHLTH);setCronJobs(MCRON);setSessions(MSESS);setNodes(MNODES);},[]);
 
   const loadAgents=useCallback(async(gc,demo)=>{
     if(demo){const a=MAGS.map((x,i)=>({...x,isDefault:i===0}));setAgents(a);setSelId(a[0].id);return;}
