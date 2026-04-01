@@ -189,12 +189,64 @@ export function evaluateTelegramIntake(ctx: TelegramContext): TelegramIntakeResu
   auditLogger.info("telegram route selected", {
     event: "route_selected",
     target: route.target,
+    intent: route.intent,
+    executor: route.executor,
     reason: route.reason,
     tier: policy.tier,
   });
 
   if (route.target === "blocked") {
     return { outcome: "blocked", responseText: "Request blocked by policy routing." };
+  }
+
+  const loweredText = text.toLowerCase();
+  const githubTokenPresent = Boolean(
+    process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.COPILOT_GITHUB_TOKEN,
+  );
+  const attioApiKeyPresent = Boolean(process.env.ATTIO_API_KEY);
+  const outlookCredentialsPresent = Boolean(
+    (process.env.LOLA_M365_GRAPH_ACCESS_TOKEN ||
+      (process.env.LOLA_M365_CLIENT_ID &&
+        process.env.LOLA_M365_CLIENT_SECRET &&
+        process.env.LOLA_M365_TENANT_ID) ||
+      (process.env.M365_CLIENT_ID &&
+        process.env.M365_CLIENT_SECRET &&
+        process.env.M365_TENANT_ID)) ??
+    false,
+  );
+
+  if (
+    route.intent === "engineering" &&
+    (loweredText.includes("pull request") ||
+      loweredText.includes("github") ||
+      /\bpr\b/.test(loweredText)) &&
+    !githubTokenPresent
+  ) {
+    return {
+      outcome: "handled",
+      responseText:
+        "Telegram request classified as engineering workflow. Repo executor requires GITHUB_TOKEN/GH_TOKEN (or COPILOT_GITHUB_TOKEN), but none is configured.",
+    };
+  }
+
+  if (route.intent === "operations" && loweredText.includes("attio") && !attioApiKeyPresent) {
+    return {
+      outcome: "handled",
+      responseText:
+        "Telegram request classified as operations workflow. Attio execution is unavailable because ATTIO_API_KEY is missing.",
+    };
+  }
+
+  if (
+    route.intent === "operations" &&
+    (loweredText.includes("outlook") || loweredText.includes("calendar")) &&
+    !outlookCredentialsPresent
+  ) {
+    return {
+      outcome: "handled",
+      responseText:
+        "Telegram request classified as operations workflow. Outlook execution is unavailable because Microsoft Graph credentials are missing.",
+    };
   }
 
   if (policy.tier === 2) {
