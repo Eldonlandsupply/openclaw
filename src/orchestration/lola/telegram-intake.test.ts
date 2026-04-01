@@ -38,6 +38,7 @@ describe("lola telegram intake", () => {
     delete process.env.COPILOT_GITHUB_TOKEN;
     delete process.env.ATTIO_API_KEY;
     delete process.env.LOLA_M365_GRAPH_ACCESS_TOKEN;
+    delete process.env.M365_GRAPH_ACCESS_TOKEN;
     delete process.env.LOLA_M365_CLIENT_ID;
     delete process.env.LOLA_M365_CLIENT_SECRET;
     delete process.env.LOLA_M365_TENANT_ID;
@@ -52,7 +53,7 @@ describe("lola telegram intake", () => {
   });
 
   it("accepts authorized users", () => {
-    const result = evaluateTelegramIntake(ctx("Lola, what follow-ups am I missing?") as never);
+    const result = evaluateTelegramIntake(ctx("hello") as never);
     expect(result.outcome).toBe("pass");
   });
 
@@ -73,6 +74,7 @@ describe("lola telegram intake", () => {
   });
 
   it("routes operations requests to workflow runner", () => {
+    process.env.M365_GRAPH_ACCESS_TOKEN = "test-token";
     const result = evaluateTelegramIntake(ctx("Lola, what follow-ups am I missing?") as never);
     expect(result.outcome).toBe("pass");
     if (result.outcome !== "pass") {
@@ -80,6 +82,21 @@ describe("lola telegram intake", () => {
     }
     expect(result.route.target).toBe("workflow_runner");
     expect(result.route.intent).toBe("operations");
+  });
+
+  it("blocks follow-up operations when graph credentials are missing", () => {
+    const result = evaluateTelegramIntake(ctx("Lola, what follow-ups am I missing?") as never);
+    expect(result.outcome).toBe("handled");
+    if (result.outcome !== "handled") {
+      throw new Error("expected handled");
+    }
+    expect(result.responseText).toContain("Microsoft Graph credentials are missing");
+  });
+
+  it("accepts outlook operations when M365_GRAPH_ACCESS_TOKEN is set", () => {
+    process.env.M365_GRAPH_ACCESS_TOKEN = "test-token";
+    const result = evaluateTelegramIntake(ctx("Check my Outlook calendar today") as never);
+    expect(result.outcome).toBe("pass");
   });
 
   it("routes generic questions to conversational path", () => {

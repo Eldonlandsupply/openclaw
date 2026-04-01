@@ -206,6 +206,7 @@ export function evaluateTelegramIntake(ctx: TelegramContext): TelegramIntakeResu
   const attioApiKeyPresent = Boolean(process.env.ATTIO_API_KEY);
   const outlookCredentialsPresent = Boolean(
     (process.env.LOLA_M365_GRAPH_ACCESS_TOKEN ||
+      process.env.M365_GRAPH_ACCESS_TOKEN ||
       (process.env.LOLA_M365_CLIENT_ID &&
         process.env.LOLA_M365_CLIENT_SECRET &&
         process.env.LOLA_M365_TENANT_ID) ||
@@ -237,11 +238,26 @@ export function evaluateTelegramIntake(ctx: TelegramContext): TelegramIntakeResu
     };
   }
 
-  if (
-    route.intent === "operations" &&
-    (loweredText.includes("outlook") || loweredText.includes("calendar")) &&
-    !outlookCredentialsPresent
-  ) {
+  const routeKeyword = route.reason.startsWith("operations keyword:")
+    ? route.reason.split(":")[1]?.trim().toLowerCase()
+    : undefined;
+  const graphOperationKeywords = new Set([
+    "outlook",
+    "calendar",
+    "meeting",
+    "inbox",
+    "follow-up",
+    "follow up",
+    "followups",
+  ]);
+  const graphOperationRequested =
+    routeKeyword !== undefined
+      ? graphOperationKeywords.has(routeKeyword)
+      : ["outlook", "calendar", "meeting", "inbox", "follow-up", "follow up", "followups"].some(
+          (keyword) => loweredText.includes(keyword),
+        );
+
+  if (route.intent === "operations" && graphOperationRequested && !outlookCredentialsPresent) {
     return {
       outcome: "handled",
       responseText:
