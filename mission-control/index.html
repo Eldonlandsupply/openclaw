@@ -1497,7 +1497,7 @@ const FALLBACK_PROJECTS=[
 ];
 function App(){
   const[view,setView]=useState('main');
-  const[isDemo,setIsDemo]=useState(true);const[client,setClient]=useState(null);const[gwSt,setGwSt]=useState('disconnected');
+  const[isDemo,setIsDemo]=useState(false);const[client,setClient]=useState(null);const[gwSt,setGwSt]=useState('disconnected');
   const[agents,setAgents]=useState([]);const[selId,setSelId]=useState(null);
   const[nav,setNav]=useState('overview');
   const[projects,setProjects]=useState(null);const[projectsLd,setProjectsLd]=useState(false);
@@ -1511,7 +1511,7 @@ function App(){
   const[configSchema,setConfigSchema]=useState(null);
   const[nodes,setNodes]=useState([]);const[nodesLd,setNodesLd]=useState(false);
 
-  useEffect(()=>{const t=setInterval(()=>setAuditLog([...ALOG]),2000);return()=>clearInterval(t);},[]);useEffect(()=>{const a=MAGS.map((x,i)=>({...x,isDefault:i===0}));setAgents(a);setSelId(a[0].id);setHealth(MHLTH);setCronJobs(MCRON);setSessions(MSESS);setNodes(MNODES);},[]);
+  useEffect(()=>{const t=setInterval(()=>setAuditLog([...ALOG]),2000);return()=>clearInterval(t);},[]);useEffect(()=>{const GW_URL='wss://openclaw.fly.dev';const autoConnect=async()=>{try{const c=new GW(GW_URL,null);await c.connect();setClient(c);setGwSt('connected');setIsDemo(false);c.on('disconnect',()=>setGwSt('disconnected'));c.on('event',ev=>{if(ev?.data?.method)pushA('event',ev.data.method,JSON.stringify(ev.data).slice(0,60));});await loadAgents(c,false);Promise.all([c.req('health',{}).then(h=>setHealth(h)).catch(()=>setHealth(MHLTH)),c.req('cron.list',{includeDisabled:true}).then(r=>setCronJobs(r.jobs||[])).catch(()=>setCronJobs(MCRON)),c.req('sessions.list',{limit:50}).then(r=>setSessions(r.sessions||[])).catch(()=>setSessions(MSESS)),c.req('config.get',{}).then(r=>{setConfigRaw(r.raw||JSON.stringify(r.config||{}));setConfigHash(r.hash);}).catch(()=>{}),c.req('config.schema',{}).then(r=>setConfigSchema(r)).catch(()=>{}),c.req('node.list',{}).then(r=>setNodes(r.nodes||[])).catch(()=>{})]);} catch(e){console.warn('Gateway auto-connect failed:',e.message);setGwSt('disconnected');} };autoConnect();},[loadAgents]);
 
   const loadAgents=useCallback(async(gc,demo)=>{
     if(demo){const a=MAGS.map((x,i)=>({...x,isDefault:i===0}));setAgents(a);setSelId(a[0].id);return;}
@@ -1602,12 +1602,12 @@ function App(){
     setHealth(MHLTH);setCronJobs(MCRON);setSessions(MSESS);setNodes(MNODES);
   },[loadAgents]);
 
-  const doDisconnect=useCallback(()=>{client?.disconnect();setClient(null);setView('connect');setGwSt('disconnected');setAgents([]);setSelId(null);setHealth(null);setCronJobs([]);setSessions([]);setConfigRaw(null);setConfigHash(null);setNodes([]);},[client]);
+  const doDisconnect=useCallback(()=>{client?.disconnect();setClient(null);setGwSt('disconnected');setAgents([]);setSelId(null);setHealth(null);setCronJobs([]);setSessions([]);setConfigRaw(null);setConfigHash(null);setNodes([]);const c2=new GW('wss://openclaw.fly.dev',null);c2.connect().then(()=>{setClient(c2);setGwSt('connected');c2.on('disconnect',()=>setGwSt('disconnected'));loadAgents(c2,false);Promise.all([c2.req('health',{}).then(h=>setHealth(h)).catch(()=>{}),c2.req('cron.list',{includeDisabled:true}).then(r=>setCronJobs(r.jobs||[])).catch(()=>{}),c2.req('sessions.list',{limit:50}).then(r=>setSessions(r.sessions||[])).catch(()=>{}),c2.req('config.get',{}).then(r=>{setConfigRaw(r.raw||JSON.stringify(r.config||{}));setConfigHash(r.hash);}).catch(()=>{}),c2.req('node.list',{}).then(r=>setNodes(r.nodes||[])).catch(()=>{})]);}).catch(e=>console.warn('Reconnect failed:',e.message));},[client,loadAgents]);
 
   const filtered=useMemo(()=>{if(!filter.trim())return agents;const q=filter.toLowerCase();return agents.filter(a=>aLbl(a).toLowerCase().includes(q)||a.id.toLowerCase().includes(q));},[agents,filter]);
   const selAgent=useMemo(()=>agents.find(a=>a.id===selId)||null,[agents,selId]);
 
-  if(view==='connect')return h('div',{style:{height:'100vh',background:'var(--bg)'}},h(ConnectScreen,{onConnect:handleConnect,onDemo:enterDemo}));
+  
 
   const sbItems=()=>{
     if(nav==='fleet'||nav==='agent')return filtered.map(a=>h('div',{key:a.id,className:`si ${selId===a.id&&nav==='agent'?'on':''}`,onClick:()=>{setSelId(a.id);setNav('agent');}},h('div',{className:'sav'},aEmoji(a)),h('div',{className:'f1',style:{minWidth:0}},h('div',{className:'sn'},aLbl(a)),h('div',{className:'ss'},a.id)),h('div',{className:`sd ${a.isDefault?'ac':'gr'}`})));
