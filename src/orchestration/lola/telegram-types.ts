@@ -1,4 +1,10 @@
 export type TelegramRouteTarget = "lola" | "cto" | "research" | "workflow_runner" | "blocked";
+export type TelegramIntent =
+  | "engineering"
+  | "operations"
+  | "communication"
+  | "research"
+  | "blocked";
 
 export type TelegramExecutionTier = 0 | 1 | 2 | 3;
 
@@ -30,6 +36,8 @@ export type TelegramIntakePolicyResult = {
 
 export type TelegramRoutingDecision = {
   target: TelegramRouteTarget;
+  intent: TelegramIntent;
+  executor: "repo_executor" | "workflow_engine" | "conversational" | "research_agent" | "blocked";
   reason: string;
 };
 

@@ -33,6 +33,17 @@ describe("lola telegram intake", () => {
     resetTelegramApprovalsForTest();
     process.env.TELEGRAM_ALLOWED_USER_IDS = "1001";
     process.env.TELEGRAM_ALLOWED_CHAT_IDS = "2001";
+    delete process.env.GITHUB_TOKEN;
+    delete process.env.GH_TOKEN;
+    delete process.env.COPILOT_GITHUB_TOKEN;
+    delete process.env.ATTIO_API_KEY;
+    delete process.env.LOLA_M365_GRAPH_ACCESS_TOKEN;
+    delete process.env.LOLA_M365_CLIENT_ID;
+    delete process.env.LOLA_M365_CLIENT_SECRET;
+    delete process.env.LOLA_M365_TENANT_ID;
+    delete process.env.M365_CLIENT_ID;
+    delete process.env.M365_CLIENT_SECRET;
+    delete process.env.M365_TENANT_ID;
   });
 
   it("rejects unauthorized users", () => {
@@ -61,13 +72,43 @@ describe("lola telegram intake", () => {
     expect(result.route.target).toBe("cto");
   });
 
-  it("routes assistant requests to Lola", () => {
+  it("routes operations requests to workflow runner", () => {
     const result = evaluateTelegramIntake(ctx("Lola, what follow-ups am I missing?") as never);
     expect(result.outcome).toBe("pass");
     if (result.outcome !== "pass") {
       throw new Error("expected pass");
     }
+    expect(result.route.target).toBe("workflow_runner");
+    expect(result.route.intent).toBe("operations");
+  });
+
+  it("routes generic questions to conversational path", () => {
+    const result = evaluateTelegramIntake(ctx("Summarize this thread for me.") as never);
+    expect(result.outcome).toBe("pass");
+    if (result.outcome !== "pass") {
+      throw new Error("expected pass");
+    }
     expect(result.route.target).toBe("lola");
+    expect(result.route.intent).toBe("communication");
+  });
+
+  it("returns exact blocker when engineering executor dependency is missing", () => {
+    const result = evaluateTelegramIntake(ctx("Open a GitHub pull request for this fix.") as never);
+    expect(result.outcome).toBe("handled");
+    if (result.outcome !== "handled") {
+      throw new Error("expected handled");
+    }
+    expect(result.responseText).toContain("requires GITHUB_TOKEN");
+  });
+
+  it("does not use powerless default refusal language", () => {
+    const result = evaluateTelegramIntake(ctx("Open a GitHub pull request for this fix.") as never);
+    if (result.outcome !== "handled") {
+      throw new Error("expected handled");
+    }
+    const lowered = result.responseText.toLowerCase();
+    expect(lowered).not.toContain("i cannot");
+    expect(lowered).not.toContain("text-based routing");
   });
 
   it("blocks high-risk destructive actions", () => {

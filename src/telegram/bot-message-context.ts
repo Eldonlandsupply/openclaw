@@ -400,6 +400,16 @@ export const buildTelegramMessageContext = async ({
   }
 
   const intake = evaluateTelegramIntake(primaryCtx);
+  logger.info(
+    {
+      channel: "telegram",
+      event: "telegram_intake_outcome",
+      outcome: intake.outcome,
+      senderId,
+      chatId,
+    },
+    "telegram intake processed",
+  );
   if (intake.outcome === "blocked" || intake.outcome === "handled") {
     await withTelegramApiErrorLogging({
       operation: "sendMessage",

@@ -10,7 +10,7 @@ The Telegram Lola bridge turns Telegram inbound messages into a controlled opera
 It enforces:
 
 - Telegram user and chat allowlists
-- deterministic route selection (Lola, CTO, research, workflow runner, blocked)
+- deterministic intent classification and route selection
 - execution tier classification
 - explicit Telegram approval for Tier 2 actions
 - concise Telegram acknowledgements and outcomes
@@ -29,15 +29,17 @@ Set these in `~/.openclaw/.env`:
 
 Startup validation fails if the bridge is enabled and required values are missing.
 
-## Deterministic routing
+## Deterministic routing and intents
 
-The bridge uses deterministic keywords first.
+The bridge uses deterministic keywords first, then assigns both an intent and a route.
 
-- Engineering requests route to **CTO** (repo health, CI, tests, PRs, deploy, code changes, infra bugs).
-- Assistant requests route to **Lola** (inbox, calendar, follow-up, meetings).
-- Research synthesis requests route to **research**.
-- Known automation requests route to **workflow_runner**.
+- Engineering requests classify as `engineering` and route to **CTO** with `repo_executor`.
+- Operations requests classify as `operations` and route to **workflow_runner** with `workflow_engine`.
+- Research synthesis requests classify as `research` and route to **research**.
+- General communication requests classify as `communication` and route to **Lola** conversationally.
 - Disallowed requests route to **blocked**.
+
+Fallback now runs only after routing and capability checks. When execution is blocked, Lola returns the concrete blocker, for example missing `GITHUB_TOKEN`, missing `ATTIO_API_KEY`, or missing Microsoft Graph credentials.
 
 ## Approval flow
 
