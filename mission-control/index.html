@@ -1051,7 +1051,7 @@ function CronTab({cronJobs,setCronJobs,loading,onLoad,agents,client,isDemo}){
         h('button',{className:`btn bts ${job.enabled?'btd':'bto'}`,disabled:toggling===job.id,onClick:async(e)=>{
           e.stopPropagation();setToggling(job.id);
           const p={...job,enabled:!job.enabled};
-          if(!isDemo&&client)try{await client.req('cron.update',{id:job.id,patch:{enabled:!job.enabled}});}catch(err){}
+          if(!isDemo&&client)try{await client.req('cron.update',{id:job.id,patch:{enabled:!job.enabled}});}catch(err){setToggling('');return;}
           pushA('update','cron.update',`${job.name} enabled=${!job.enabled}`);
           setCronJobs(prev=>prev.map(j=>(j.id||j.name)===(job.id||job.name)?p:j));
           setToggling('');
@@ -1726,15 +1726,17 @@ const nodePlatformIcon=p=>{if(!p)return'📱';const pl=p.toLowerCase();if(pl.inc
 function CronRunHistory({jobId,client,isDemo}){
   const[entries,setEntries]=useState(null);
   const[loading,setLoading]=useState(false);
+  const[err,setErr]=useState('');
   const load=useCallback(async()=>{
-    setLoading(true);
+    setLoading(true);setErr('');
     if(isDemo){setTimeout(()=>{setEntries(MCRON_RUNS[jobId]||[]);setLoading(false);},250);return;}
     try{const r=await client.req('cron.runs',{id:jobId,limit:50});setEntries(r.entries||[]);setErr('');}
-    catch{setEntries([]);}
+    catch(e){setEntries([]);setErr(e.message||'Failed to load run history');}
     setLoading(false);
   },[jobId,client,isDemo]);
   useEffect(()=>{load();},[load]);
   if(loading&&entries===null)return h('div',{className:'row',style:{padding:8,gap:6}},h('span',{className:'spin'}),h('span',{style:{fontSize:10,color:'var(--t3)'}},'Loading run history…'));
+  if(err)return h('div',{style:{fontSize:10,color:'var(--cre)',padding:'4px 0'}},'⚠ '+err);
   if(!entries||entries.length===0)return h('div',{style:{fontSize:10,color:'var(--t3)',padding:'4px 0'}},'No run history yet.');
   const maxDur=Math.max(...entries.map(e=>e.durationMs||0),1);
   return h('div',{className:'col',style:{gap:5}},
@@ -1937,7 +1939,7 @@ function UsageTab({client,isDemo}){
   const[days,setDays]=useState('14');
   const[subTab,setSubTab]=useState('cost');
 
-  const load=async()=>{
+  const load=useCallback(async()=>{
     setLoading(true);
     if(isDemo){setCost(MUSAGE_MOCK);setProvider(MPROVIDER_MOCK);setLoading(false);return;}
     if(!client){setLoading(false);return;}
@@ -1949,8 +1951,8 @@ function UsageTab({client,isDemo}){
       setCost(c);setProvider(p);
     }catch(e){setCost({error:e.message,daily:[],totals:{}});}
     setLoading(false);
-  };
-  useEffect(()=>{load();},[]);
+  },[client,isDemo,days]);
+  useEffect(()=>{load();},[load]);
 
   if(cost?.error)return h('div',{className:'callout err',style:{margin:12}},'⚠ Usage load failed: '+cost.error);
   const daily=cost?.daily||[];
