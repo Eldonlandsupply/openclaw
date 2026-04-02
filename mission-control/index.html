@@ -406,7 +406,7 @@ function OverviewTab({agents,cronJobs,sessions,health,healthLoading,onRefreshHea
   return h(Fragment,null,
     h('div',{className:'g4'},
       h('div',{className:'stat'},h('div',{className:'stl'},'Agents'),h('div',{className:'stv'},agents.length),h('div',{className:'sts'},'in fleet')),
-      h('div',{className:'stat'},h('div',{className:'stl'},'Gateway'),h('div',{className:`stv ${gwSt==='connected'?'cgr':'cre'}`},gwSt==='connected'?'LIVE':'OFFLINE'),h('div',{className:'sts'},gwSt==='connected'?'connected':'not connected')),
+      h('div',{className:'stat'},h('div',{className:'stl'},'Gateway'),h('div',{className:`stv ${isDemo?'cyw':'cgr'}`},isDemo?'DEMO':'LIVE'),h('div',{className:'sts'},isDemo?'not connected':'connected')),
       h('div',{className:'stat'},h('div',{className:'stl'},'Active Jobs'),h('div',{className:'stv cgr'},active),h('div',{className:'sts'},`${cronJobs.length} total`)),
       h('div',{className:'stat'},h('div',{className:'stl'},'Sessions (1h)'),h('div',{className:'stv cbl'},activeSess),h('div',{className:'sts'},`${sessions.length} loaded`))
     ),
