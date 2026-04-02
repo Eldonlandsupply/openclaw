@@ -123,8 +123,7 @@ class TestStartup:
             MockSession.return_value = session
             session.get.return_value = _mock_response(_getme_ok())
             session.close = AsyncMock()
-            # Patch create_task so poll loop does not actually run
-            with patch("asyncio.create_task") as mock_ct:
+            with patch("asyncio.create_task"):
                 await c.start()
             assert c._running is True
 
@@ -143,7 +142,7 @@ class TestStartup:
 
 
 # ---------------------------------------------------------------------------
-# Update handling: authorized message
+# Update handling
 # ---------------------------------------------------------------------------
 
 class TestUpdateHandling:
@@ -182,7 +181,6 @@ class TestUpdateHandling:
                 "from": {"id": 9},
                 "chat": {"id": ALLOWED_CHAT_ID, "type": "private"},
                 "date": 1700000000,
-                # no "text" key — sticker / photo
             },
         }
         await c._handle_update(update)
@@ -213,11 +211,7 @@ class TestUpdateHandling:
         c._session = MagicMock()
         update = {
             "update_id": 7,
-            "callback_query": {
-                "id": "cq1",
-                "from": {"id": 9},
-                "data": "approve",
-            },
+            "callback_query": {"id": "cq1", "from": {"id": 9}, "data": "approve"},
         }
         await c._handle_update(update)
         assert c._queue.qsize() == 0
@@ -240,75 +234,74 @@ class TestUpdateHandling:
 
 
 # ---------------------------------------------------------------------------
-# Poll loop
+# Poll loop — counter-based stopping, no asyncio.sleep in test body
 # ---------------------------------------------------------------------------
 
 class TestPollLoop:
     @pytest.mark.asyncio
     async def test_poll_loop_enqueues_messages(self):
+        """
+        Poll loop must enqueue messages from getUpdates result.
+        Strategy: stop after exactly N calls by setting _running=False inside
+        fake_get so no real timing/sleep is needed. Each fake_get does
+        await asyncio.sleep(0) to yield control so the loop can process.
+        """
         c = _make_connector()
-        updates = [_text_update(text="looped")]
-        responses = [
-            _mock_response(_updates_ok(updates)),
-            _mock_response(_updates_ok([])),  # second call returns empty
-        ]
+        c._running = True
+
+        updates_first = [_text_update(text="looped", uid=1)]
         call_count = 0
 
         async def fake_get(*args, **kwargs):
             nonlocal call_count
-            resp = responses[min(call_count, len(responses) - 1)]
             call_count += 1
-            return resp
+            await asyncio.sleep(0)  # yield to event loop
+            if call_count == 1:
+                return _mock_response(_updates_ok(updates_first))
+            # Stop the loop on second call
+            c._running = False
+            return _mock_response(_updates_ok([]))
 
         session = MagicMock()
         session.get = fake_get
         c._session = session
-        c._running = True
 
-        # Run poll loop briefly then stop
-        async def stop_after():
-            await asyncio.sleep(0.05)
-            c._running = False
+        await c._poll_loop()
 
-        await asyncio.gather(
-            asyncio.create_task(c._poll_loop()),
-            asyncio.create_task(stop_after()),
-        )
         assert c._queue.qsize() >= 1
+        msg = await c._queue.get()
+        assert msg.text == "looped"
 
     @pytest.mark.asyncio
     async def test_poll_loop_handles_api_error_gracefully(self):
+        """
+        A getUpdates error response must not crash the loop.
+        Strategy: first call returns error, second call stops the loop.
+        asyncio.sleep is patched to a no-op so error backoff doesn't wait.
+        """
         c = _make_connector()
-        responses = [
-            _mock_response({"ok": False, "description": "Flood control"}),
-            _mock_response(_updates_ok([])),
-        ]
+        c._running = True
         call_count = 0
 
         async def fake_get(*args, **kwargs):
             nonlocal call_count
-            resp = responses[min(call_count, len(responses) - 1)]
             call_count += 1
-            return resp
+            await asyncio.sleep(0)
+            if call_count == 1:
+                return _mock_response({"ok": False, "description": "Flood control"})
+            c._running = False
+            return _mock_response(_updates_ok([]))
 
         session = MagicMock()
         session.get = fake_get
         c._session = session
-        c._running = True
 
         with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-            async def stop_after():
-                await asyncio.sleep(0.05)
-                c._running = False
-
-            # Ensure the sleep mock does not block
             mock_sleep.side_effect = lambda _: asyncio.sleep(0)
+            await c._poll_loop()
 
-            await asyncio.gather(
-                asyncio.create_task(c._poll_loop()),
-                asyncio.create_task(stop_after()),
-            )
-        # No exception should have been raised — test passes if we reach here
+        # Must reach here without raising
+        assert call_count >= 2
 
 
 # ---------------------------------------------------------------------------
@@ -339,10 +332,9 @@ class TestSend:
         session = MagicMock()
         session.post.return_value = _mock_response({"ok": True}, status=200)
         c._session = session
-
-        long_text = "x" * 9000  # 3 chunks at 4096 limit
+        long_text = "x" * 9000  # ceil(9000/4096) == 3 chunks
         await c.send(str(ALLOWED_CHAT_ID), long_text)
-        assert session.post.call_count == 3  # ceil(9000/4096) == 3
+        assert session.post.call_count == 3
 
     @pytest.mark.asyncio
     async def test_send_retries_on_transient_error(self):
@@ -372,7 +364,7 @@ class TestSend:
         session.post.return_value = _mock_response({"ok": False}, status=400)
         c._session = session
         await c._send_chunk(str(ALLOWED_CHAT_ID), "bad request")
-        assert session.post.call_count == 1  # permanent error, no retry
+        assert session.post.call_count == 1
 
     @pytest.mark.asyncio
     async def test_send_no_retry_on_403(self):
@@ -395,7 +387,6 @@ class TestLifecycle:
         mock_task = MagicMock()
         mock_task.done.return_value = False
         mock_task.cancel = MagicMock()
-        # Await on the task should just return (already cancelled)
         async def fake_await():
             raise asyncio.CancelledError()
         mock_task.__await__ = fake_await

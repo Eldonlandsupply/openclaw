@@ -96,8 +96,13 @@ def test_telegram_chat_path_uses_same_provider_resolver():
     """
     ChatClient (used by Telegram, WhatsApp, CLI paths) must use
     resolve_llm_provider, not a separate code path.
-    This test instantiates ChatClient with provider=minimax and verifies
-    the resolved attributes — same as the factory would produce.
+    When provider=minimax and MINIMAX_API_KEY is set, the resolved
+    base_url must be the MiniMax endpoint — never OpenRouter.
+
+    Note: ChatClient catches LLMProviderResolutionError and degrades to
+    provider=none rather than raising. The real guard is the contradiction
+    check in /etc/openclaw/openclaw.env at startup. This test verifies
+    the happy path: correct key → correct provider resolved.
     """
     cfg = MagicMock()
     cfg.llm.provider = "minimax"
@@ -112,10 +117,11 @@ def test_telegram_chat_path_uses_same_provider_resolver():
     cfg.secrets.xai_api_key = None
 
     client = ChatClient(cfg)
+    # Happy path: correct key present → minimax resolved
     assert client._provider == "minimax"
     assert "minimax.io" in client._base_url
     assert client._api_key == "sk-mini-telegram-test"
-    # Critically: OpenRouter must not be selected
+    # Critically: OpenRouter must not appear in the routing path
     assert "openrouter" not in client._base_url.lower()
 
 
