@@ -260,9 +260,9 @@ class GW {
   connect(){
     return new Promise((res,rej)=>{
       try{this.ws=new WebSocket(this.url);}catch(e){rej(new Error('Invalid URL'));return;}
-      const t=setTimeout(()=>{this.ws?.close();rej(new Error('Timeout (8s)'));},8000);
+      const t=setTimeout(()=>{this.ws?.close();rej(new Error('Connect timeout (45s)'));},45000);
       this.ws.onopen=()=>{
-        const connSeq=++this.seq;
+        const connSeq=++this.seq;this._connSeq=connSeq;
         this.ws.send(JSON.stringify({type:'request',seq:connSeq,method:'connect',params:{
           minProtocol:1,maxProtocol:99,
           client:{id:'mc5-'+Math.random().toString(36).slice(2),displayName:'Mission Control v5',version:'3.0.0',platform:'browser',mode:'ui'},
@@ -272,7 +272,7 @@ class GW {
       this.ws.onmessage=(e)=>{
         try{
           const m=JSON.parse(e.data);
-          if(m.type==='response'&&m.seq===1&&!this.ok){
+          if(m.type==='response'&&m.seq===this._connSeq&&!this.ok){
             clearTimeout(t);
             if(m.ok){this.ok=true;res(this);this.emit('connect',{});}
             else{this.ws?.close();rej(new Error(m.error?.message||'Auth rejected'));}
@@ -366,33 +366,7 @@ const MEXA={
   file:{version:1,defaults:{security:'deny',ask:'on-miss',autoAllowSkills:true},
     agents:{main:{security:'allowlist',ask:'on-miss',allowlist:[{id:'e1',pattern:'git *',lastUsedAt:Date.now()-3600000},{id:'e2',pattern:'npm *'},{id:'e3',pattern:'ls *'}]},codebot:{security:'full',ask:'off',allowlist:[]}}}
 };
-// ── CONNECT SCREEN ───────────────────────────────────────────────
-function ConnectScreen({onConnect,onDemo}){
-  const[url,setUrl]=useState('ws://localhost:18789');
-  const[tok,setTok]=useState('');
-  const[ld,setLd]=useState(false);
-  const[err,setErr]=useState('');
-  const go=async()=>{
-    setLd(true);setErr('');
-    try{const c=new GW(url.trim(),tok.trim()||null);await c.connect();onConnect(c);}
-    catch(e){setErr(e.message);}finally{setLd(false);}
-  };
-  return h('div',{className:'cop'},
-    h('div',{className:'colo'},'🦞 OpenClaw'),
-    h('p',{className:'cosu'},'Mission Control v3 — production operator interface for your agent fleet'),
-    h('div',{className:'cofo'},
-      h('h3',null,'Connect to Gateway'),
-      err&&h('div',{className:'callout err',style:{fontSize:11}},err),
-      h('div',{className:'field'},h('label',null,'Gateway URL'),h('input',{value:url,onChange:e=>setUrl(e.target.value),placeholder:'ws://localhost:18789',onKeyDown:e=>e.key==='Enter'&&go()})),
-      h('div',{className:'field'},h('label',null,'Auth Token'),h('input',{type:'password',value:tok,onChange:e=>setTok(e.target.value),placeholder:'optional',onKeyDown:e=>e.key==='Enter'&&go()})),
-      h('div',{className:'callout info',style:{fontSize:10}},'Run ',h('code',null,'openclaw gateway'),' to start (port 18789).'),
-      h('div',{className:'br'},
-        h('button',{className:'btn btp f1',onClick:go,disabled:ld},ld?h(Fragment,null,h('span',{className:'spin'}),' Connecting…'):'Connect'),
-        h('button',{className:'btn f1',onClick:onDemo},'Demo Mode')
-      )
-    )
-  );
-}
+// ConnectScreen removed — auto-connects to wss://openclaw-mc.fly.dev
 // ── HEALTH PANEL ─────────────────────────────────────────────────
 function HealthPanel({health,loading,onRefresh}){
   if(!health)return h('div',{className:'card'},h('div',{className:'ch'},h('span',{className:'cht'},'Gateway Health'),h('button',{className:'btn bts',onClick:onRefresh,disabled:loading},'Load')),h('div',{className:'cb'},h('div',{className:'emp'},h('div',{className:'empi'},'💊'),h('div',{className:'emps'},'Click Load to fetch health data'))));
@@ -432,7 +406,7 @@ function OverviewTab({agents,cronJobs,sessions,health,healthLoading,onRefreshHea
   return h(Fragment,null,
     h('div',{className:'g4'},
       h('div',{className:'stat'},h('div',{className:'stl'},'Agents'),h('div',{className:'stv'},agents.length),h('div',{className:'sts'},'in fleet')),
-      h('div',{className:'stat'},h('div',{className:'stl'},'Gateway'),h('div',{className:`stv ${isDemo?'cyw':'cgr'}`},isDemo?'DEMO':'LIVE'),h('div',{className:'sts'},isDemo?'not connected':'connected')),
+      h('div',{className:'stat'},h('div',{className:'stl'},'Gateway'),h('div',{className:`stv ${gwSt==='connected'?'cgr':'cre'}`},gwSt==='connected'?'LIVE':'OFFLINE'),h('div',{className:'sts'},gwSt==='connected'?'connected':'not connected')),
       h('div',{className:'stat'},h('div',{className:'stl'},'Active Jobs'),h('div',{className:'stv cgr'},active),h('div',{className:'sts'},`${cronJobs.length} total`)),
       h('div',{className:'stat'},h('div',{className:'stl'},'Sessions (1h)'),h('div',{className:'stv cbl'},activeSess),h('div',{className:'sts'},`${sessions.length} loaded`))
     ),
@@ -1516,12 +1490,12 @@ function App(){
   const[configSchema,setConfigSchema]=useState(null);
   const[nodes,setNodes]=useState([]);const[nodesLd,setNodesLd]=useState(false);
 
-  useEffect(()=>{const t=setInterval(()=>setAuditLog([...ALOG]),2000);return()=>clearInterval(t);},[]);useEffect(()=>{const GW_URL='wss://openclaw-mc.fly.dev';const GW_TOK='7407e4ed4b164fd2d7d2b3138f8581a7736f97283ceb3b1c7439b7aadff4944e';const autoConnect=async()=>{try{const c=new GW(GW_URL,GW_TOK);await c.connect();setClient(c);setGwSt('connected');setIsDemo(false);c.on('disconnect',()=>setGwSt('disconnected'));c.on('event',ev=>{if(ev?.data?.method)pushA('event',ev.data.method,JSON.stringify(ev.data).slice(0,60));});try{const r=await c.req('agents.list',{});const a=r.agents.map(x=>({...x,isDefault:x.id===r.defaultId}));setAgents(a);setSelId(a[0]?.id||null);}catch(e){console.warn('agents.list failed:',e.message);}Promise.all([c.req('health',{}).then(h=>setHealth(h)).catch(()=>{}),c.req('cron.list',{includeDisabled:true}).then(r=>setCronJobs(r.jobs||[])).catch(()=>{}),c.req('sessions.list',{limit:50}).then(r=>setSessions(r.sessions||[])).catch(()=>{}),c.req('config.get',{}).then(r=>{setConfigRaw(r.raw||JSON.stringify(r.config||{}));setConfigHash(r.hash);}).catch(()=>{}),c.req('config.schema',{}).then(r=>setConfigSchema(r)).catch(()=>{}),c.req('node.list',{}).then(r=>setNodes(r.nodes||[])).catch(()=>{})]);} catch(e){console.warn('Gateway auto-connect failed:',e.message);setGwSt('disconnected');}};autoConnect();},[]);
+  useEffect(()=>{const t=setInterval(()=>setAuditLog([...ALOG]),2000);return()=>clearInterval(t);},[]);useEffect(()=>{const GW_URL='wss://openclaw-mc.fly.dev';const GW_TOK='7407e4ed4b164fd2d7d2b3138f8581a7736f97283ceb3b1c7439b7aadff4944e';const autoConnect=async()=>{try{const c=new GW(GW_URL,GW_TOK);await c.connect();setClient(c);setGwSt('connected');setIsDemo(false);c.on('disconnect',()=>{setGwSt('disconnected');setTimeout(async()=>{try{const r=new GW('wss://openclaw-mc.fly.dev','7407e4ed4b164fd2d7d2b3138f8581a7736f97283ceb3b1c7439b7aadff4944e');await r.connect();setClient(r);setGwSt('connected');r.on('disconnect',()=>setGwSt('disconnected'));r.on('event',ev=>{if(ev?.data?.method)pushA('event',ev.data.method,JSON.stringify(ev.data).slice(0,60));});try{const ag=await r.req('agents.list',{});const a=ag.agents.map(x=>({...x,isDefault:x.id===ag.defaultId}));setAgents(a);setSelId(prev=>prev||a[0]?.id||null);}catch(e){console.warn('agents.list on reconnect:',e.message);}}catch(e){console.warn('Auto-reconnect failed:',e.message);}},5000);});c.on('event',ev=>{if(ev?.data?.method)pushA('event',ev.data.method,JSON.stringify(ev.data).slice(0,60));});try{const r=await c.req('agents.list',{});const a=r.agents.map(x=>({...x,isDefault:x.id===r.defaultId}));setAgents(a);setSelId(a[0]?.id||null);}catch(e){console.warn('agents.list failed:',e.message);}Promise.all([c.req('health',{}).then(h=>setHealth(h)).catch(()=>{}),c.req('cron.list',{includeDisabled:true}).then(r=>setCronJobs(r.jobs||[])).catch(()=>{}),c.req('sessions.list',{limit:50}).then(r=>setSessions(r.sessions||[])).catch(()=>{}),c.req('config.get',{}).then(r=>{setConfigRaw(r.raw||JSON.stringify(r.config||{}));setConfigHash(r.hash);}).catch(()=>{}),c.req('config.schema',{}).then(r=>setConfigSchema(r)).catch(()=>{}),c.req('node.list',{}).then(r=>setNodes(r.nodes||[])).catch(()=>{})]);} catch(e){console.warn('Gateway auto-connect failed:',e.message);setGwSt('disconnected');}};autoConnect();},[]);
 
   const loadAgents=useCallback(async(gc,demo)=>{
     if(demo){const a=MAGS.map((x,i)=>({...x,isDefault:i===0}));setAgents(a);setSelId(a[0].id);return;}
     try{const r=await gc.req('agents.list',{});const a=r.agents.map(x=>({...x,isDefault:x.id===r.defaultId}));setAgents(a);setSelId(a[0]?.id||null);}
-    catch{const a=MAGS.map((x,i)=>({...x,isDefault:i===0}));setAgents(a);setSelId(a[0].id);}
+    catch(e){console.warn('agents.list error:',e.message);}
   },[]);
 
   const loadHealth=useCallback(async()=>{
@@ -1607,7 +1581,7 @@ function App(){
     setHealth(MHLTH);setCronJobs(MCRON);setSessions(MSESS);setNodes(MNODES);
   },[loadAgents]);
 
-  const doDisconnect=useCallback(()=>{client?.disconnect();setClient(null);setGwSt('disconnected');setAgents([]);setSelId(null);setHealth(null);setCronJobs([]);setSessions([]);setConfigRaw(null);setConfigHash(null);setNodes([]);const c2=new GW('wss://openclaw-mc.fly.dev',null);c2.connect().then(()=>{setClient(c2);setGwSt('connected');c2.on('disconnect',()=>setGwSt('disconnected'));loadAgents(c2,false);Promise.all([c2.req('health',{}).then(h=>setHealth(h)).catch(()=>{}),c2.req('cron.list',{includeDisabled:true}).then(r=>setCronJobs(r.jobs||[])).catch(()=>{}),c2.req('sessions.list',{limit:50}).then(r=>setSessions(r.sessions||[])).catch(()=>{}),c2.req('config.get',{}).then(r=>{setConfigRaw(r.raw||JSON.stringify(r.config||{}));setConfigHash(r.hash);}).catch(()=>{}),c2.req('node.list',{}).then(r=>setNodes(r.nodes||[])).catch(()=>{})]);}).catch(e=>console.warn('Reconnect failed:',e.message));},[client,loadAgents]);
+  const doDisconnect=useCallback(()=>{client?.disconnect();setClient(null);setGwSt('disconnected');setAgents([]);setSelId(null);setHealth(null);setCronJobs([]);setSessions([]);setConfigRaw(null);setConfigHash(null);setNodes([]);const c2=new GW('wss://openclaw-mc.fly.dev','7407e4ed4b164fd2d7d2b3138f8581a7736f97283ceb3b1c7439b7aadff4944e');c2.connect().then(()=>{setClient(c2);setGwSt('connected');c2.on('disconnect',()=>setGwSt('disconnected'));loadAgents(c2,false);Promise.all([c2.req('health',{}).then(h=>setHealth(h)).catch(()=>{}),c2.req('cron.list',{includeDisabled:true}).then(r=>setCronJobs(r.jobs||[])).catch(()=>{}),c2.req('sessions.list',{limit:50}).then(r=>setSessions(r.sessions||[])).catch(()=>{}),c2.req('config.get',{}).then(r=>{setConfigRaw(r.raw||JSON.stringify(r.config||{}));setConfigHash(r.hash);}).catch(()=>{}),c2.req('node.list',{}).then(r=>setNodes(r.nodes||[])).catch(()=>{})]);}).catch(e=>console.warn('Reconnect failed:',e.message));},[client,loadAgents]);
 
   const filtered=useMemo(()=>{if(!filter.trim())return agents;const q=filter.toLowerCase();return agents.filter(a=>aLbl(a).toLowerCase().includes(q)||a.id.toLowerCase().includes(q));},[agents,filter]);
   const selAgent=useMemo(()=>agents.find(a=>a.id===selId)||null,[agents,selId]);
@@ -1644,7 +1618,7 @@ function App(){
       h('button',{className:'rb',title:'Disconnect',onClick:doDisconnect},'⏏')
     ),
     h('div',{className:'sb'},
-      h('div',{className:'sbh'},h('div',{className:'sbht'},nav==='topology'?'Topology':nav==='sessions'?'Sessions':nav==='cron'?'Cron':nav==='config'?'Config':nav==='nodes'?'Nodes':nav==='usage'?'Usage':nav==='projects'?'Projects':nav==='overview'?'Overview':'Agents'),h('div',{className:'sbhc'},`${agents.length} agents · ${isDemo?'demo':'live'}`)),
+      h('div',{className:'sbh'},h('div',{className:'sbht'},nav==='topology'?'Topology':nav==='sessions'?'Sessions':nav==='cron'?'Cron':nav==='config'?'Config':nav==='nodes'?'Nodes':nav==='usage'?'Usage':nav==='projects'?'Projects':nav==='overview'?'Overview':'Agents'),h('div',{className:'sbhc'},`${agents.length} agents · ${gwSt==='connected'?'live':'offline'}`)),
       (nav==='fleet'||nav==='agent')&&h('div',{className:'sbs'},h('input',{value:filter,onChange:e=>setFilter(e.target.value),placeholder:'Search agents…'})),
       h('div',{className:'sbl'},sbItems()),
       (nav==='fleet'||nav==='agent')&&h('button',{className:'sbadd',onClick:()=>setShowCreate(true)},'+ New Agent')
@@ -1654,7 +1628,7 @@ function App(){
         h('div',{className:'tbt'},topTitle),
         h('div',{className:'row',style:{gap:8,flexShrink:0}},
           configHash&&h('span',{style:{fontSize:9,color:'var(--t3)',fontFamily:'var(--mo)'}},'cfg:'+configHash.slice(0,8)),
-          h('div',{className:'srow'},h('div',{className:`sdot ${isDemo?'yw':gwSt==='connected'?'gr':'re'}`}),h('span',{style:{fontSize:10,color:'var(--t3)',fontFamily:'var(--mo)'}},isDemo?'DEMO':gwSt==='connected'?'LIVE':'OFFLINE'))
+          h('div',{className:'srow'},h('div',{className:`sdot ${gwSt==='connected'?'gr':'re'}`}),h('span',{style:{fontSize:10,color:'var(--t3)',fontFamily:'var(--mo)'}},gwSt==='connected'?'LIVE':'OFFLINE'))
         )
       ),
       h('div',{className:'ct'},
@@ -1670,7 +1644,7 @@ function App(){
       )
     ),
     showCreate&&h(CreateModal,{onClose:()=>setShowCreate(false),onCreate:a=>{setAgents(p=>[...p,a]);setSelId(a.id);setNav('agent');setShowCreate(false);},client,isDemo}),
-    isDemo&&h('div',{className:'cbanner'},h('div',{className:'sdot yw'}),h('div',{className:'cbtx'},h('div',{style:{fontWeight:600,fontSize:11}},'Demo Mode'),h('div',{style:{fontSize:9,color:'var(--t3)',marginTop:2}},'Simulating gateway. Nothing persisted.')),h('button',{className:'cbcl',onClick:doDisconnect},'✕'))
+    null
   );
 }
 
