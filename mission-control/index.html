@@ -1499,32 +1499,33 @@ function App(){
   },[]);
 
   const loadHealth=useCallback(async()=>{
-    if(!client)return;
-    setHealthLd(true);try{const h=await client.req('health',{});setHealth(h);}catch(e){console.warn('health failed:',e.message);}setHealthLd(false);
-  },[client]);
+    if(isDemo){setHealth(MHLTH);return;}if(!client)return;
+    setHealthLd(true);try{const h=await client.req('health',{});setHealth(h);}catch{setHealth(MHLTH);}setHealthLd(false);
+  },[client,isDemo]);
 
   const loadCron=useCallback(async()=>{
-    setCronLd(true);if(!client){setCronLd(false);return;}
-    try{const r=await client.req('cron.list',{includeDisabled:true});setCronJobs(r.jobs||[]);}catch(e){console.warn('cron.list failed:',e.message);}setCronLd(false);
-  },[client]);
+    setCronLd(true);if(isDemo){setCronJobs(MCRON);setCronLd(false);return;}if(!client){setCronLd(false);return;}
+    try{const r=await client.req('cron.list',{includeDisabled:true});setCronJobs(r.jobs||[]);}catch{setCronJobs(MCRON);}setCronLd(false);
+  },[client,isDemo]);
 
   const loadSessions=useCallback(async()=>{
-    setSessLd(true);if(!client){setSessLd(false);return;}
-    try{const r=await client.req('sessions.list',{limit:50,includeDerivedTitles:false});setSessions(r.sessions||[]);}catch(e){console.warn('sessions.list failed:',e.message);}setSessLd(false);
-  },[client]);
+    setSessLd(true);if(isDemo){setSessions(MSESS);setSessLd(false);return;}if(!client){setSessLd(false);return;}
+    try{const r=await client.req('sessions.list',{limit:50,includeDerivedTitles:false});setSessions(r.sessions||[]);}catch{setSessions(MSESS);}setSessLd(false);
+  },[client,isDemo]);
 
   const loadConfig=useCallback(async()=>{
-    if(!client)return;setConfigLd(true);
+    if(isDemo)return;if(!client)return;setConfigLd(true);
     try{const r=await client.req('config.get',{});setConfigRaw(r.raw||JSON.stringify(r.config||{}));setConfigHash(r.hash);}catch(e){console.warn('config.get failed:',e.message);}setConfigLd(false);
-  },[client]);
+  },[client,isDemo]);
 
   const loadNodes=useCallback(async()=>{
     setNodesLd(true);
+    if(isDemo){setNodes(MNODES);setNodesLd(false);return;}
     if(!client){setNodesLd(false);return;}
     try{const r=await client.req('node.list',{});setNodes(r.nodes||[]);}
-    catch(e){console.warn('node.list failed:',e.message);}
+    catch{setNodes(MNODES);}
     setNodesLd(false);
-  },[client]);
+  },[client,isDemo]);
 
   const loadProjects=useCallback(async()=>{
     setProjectsLd(true);
