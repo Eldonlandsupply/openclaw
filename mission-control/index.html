@@ -1499,33 +1499,32 @@ function App(){
   },[]);
 
   const loadHealth=useCallback(async()=>{
-    if(isDemo){setHealth(MHLTH);return;}if(!client)return;
-    setHealthLd(true);try{const h=await client.req('health',{});setHealth(h);}catch{setHealth(MHLTH);}setHealthLd(false);
-  },[client,isDemo]);
+    if(!client)return;
+    setHealthLd(true);try{const h=await client.req('health',{});setHealth(h);}catch(e){console.warn('health failed:',e.message);}setHealthLd(false);
+  },[client]);
 
   const loadCron=useCallback(async()=>{
-    setCronLd(true);if(isDemo){setCronJobs(MCRON);setCronLd(false);return;}if(!client){setCronLd(false);return;}
-    try{const r=await client.req('cron.list',{includeDisabled:true});setCronJobs(r.jobs||[]);}catch{setCronJobs(MCRON);}setCronLd(false);
-  },[client,isDemo]);
+    setCronLd(true);if(!client){setCronLd(false);return;}
+    try{const r=await client.req('cron.list',{includeDisabled:true});setCronJobs(r.jobs||[]);}catch(e){console.warn('cron.list failed:',e.message);}setCronLd(false);
+  },[client]);
 
   const loadSessions=useCallback(async()=>{
-    setSessLd(true);if(isDemo){setSessions(MSESS);setSessLd(false);return;}if(!client){setSessLd(false);return;}
-    try{const r=await client.req('sessions.list',{limit:50,includeDerivedTitles:false});setSessions(r.sessions||[]);}catch{setSessions(MSESS);}setSessLd(false);
-  },[client,isDemo]);
+    setSessLd(true);if(!client){setSessLd(false);return;}
+    try{const r=await client.req('sessions.list',{limit:50,includeDerivedTitles:false});setSessions(r.sessions||[]);}catch(e){console.warn('sessions.list failed:',e.message);}setSessLd(false);
+  },[client]);
 
   const loadConfig=useCallback(async()=>{
-    if(isDemo)return;if(!client)return;setConfigLd(true);
+    if(!client)return;setConfigLd(true);
     try{const r=await client.req('config.get',{});setConfigRaw(r.raw||JSON.stringify(r.config||{}));setConfigHash(r.hash);}catch(e){console.warn('config.get failed:',e.message);}setConfigLd(false);
-  },[client,isDemo]);
+  },[client]);
 
   const loadNodes=useCallback(async()=>{
     setNodesLd(true);
-    if(isDemo){setNodes(MNODES);setNodesLd(false);return;}
     if(!client){setNodesLd(false);return;}
     try{const r=await client.req('node.list',{});setNodes(r.nodes||[]);}
-    catch{setNodes(MNODES);}
+    catch(e){console.warn('node.list failed:',e.message);}
     setNodesLd(false);
-  },[client,isDemo]);
+  },[client]);
 
   const loadProjects=useCallback(async()=>{
     setProjectsLd(true);
@@ -1576,10 +1575,7 @@ function App(){
     ]);
   },[loadAgents]);
 
-  const enterDemo=useCallback(()=>{
-    setIsDemo(true);setGwSt('disconnected');setView('main');loadAgents(null,true);
-    setHealth(MHLTH);setCronJobs(MCRON);setSessions(MSESS);setNodes(MNODES);
-  },[loadAgents]);
+
 
   const doDisconnect=useCallback(()=>{client?.disconnect();setClient(null);setGwSt('disconnected');setAgents([]);setSelId(null);setHealth(null);setCronJobs([]);setSessions([]);setConfigRaw(null);setConfigHash(null);setNodes([]);const c2=new GW('wss://openclaw-mc.fly.dev','7407e4ed4b164fd2d7d2b3138f8581a7736f97283ceb3b1c7439b7aadff4944e');c2.connect().then(()=>{setClient(c2);setGwSt('connected');c2.on('disconnect',()=>setGwSt('disconnected'));loadAgents(c2,false);Promise.all([c2.req('health',{}).then(h=>setHealth(h)).catch(()=>{}),c2.req('cron.list',{includeDisabled:true}).then(r=>setCronJobs(r.jobs||[])).catch(()=>{}),c2.req('sessions.list',{limit:50}).then(r=>setSessions(r.sessions||[])).catch(()=>{}),c2.req('config.get',{}).then(r=>{setConfigRaw(r.raw||JSON.stringify(r.config||{}));setConfigHash(r.hash);}).catch(()=>{}),c2.req('node.list',{}).then(r=>setNodes(r.nodes||[])).catch(()=>{})]);}).catch(e=>console.warn('Reconnect failed:',e.message));},[client,loadAgents]);
 
