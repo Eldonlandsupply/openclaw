@@ -253,33 +253,45 @@ code{font-family:var(--mono);font-size:.9em;background:var(--bg4);border:1px sol
 const {createElement:h,useState,useEffect,useRef,useCallback,useMemo,Fragment,useReducer} = React;
 
 // ── GATEWAY CLIENT ──────────────────────────────────────────────
+// Protocol: type:"req"/"res"/"event", string id (not seq), connect.challenge handshake
 class GW {
-  constructor(url,tok){this.url=url;this.tok=tok;this.ws=null;this.pend=new Map();this.seq=0;this.evts=new Map();this.ok=false;}
+  constructor(url,tok){this.url=url;this.tok=tok;this.ws=null;this.pend=new Map();this.idN=0;this.evts=new Map();this.ok=false;}
+  _id(){return 'mc-'+(++this.idN)+'-'+Math.random().toString(36).slice(2,7);}
   on(ev,fn){if(!this.evts.has(ev))this.evts.set(ev,new Set());this.evts.get(ev).add(fn);return()=>this.evts.get(ev)?.delete(fn);}
   emit(ev,d){this.evts.get(ev)?.forEach(fn=>fn(d));}
   connect(){
     return new Promise((res,rej)=>{
       try{this.ws=new WebSocket(this.url);}catch(e){rej(new Error('Invalid URL'));return;}
       const t=setTimeout(()=>{this.ws?.close();rej(new Error('Connect timeout (45s)'));},45000);
-      this.ws.onopen=()=>{
-        const connSeq=++this.seq;this._connSeq=connSeq;
-        this.ws.send(JSON.stringify({type:'request',seq:connSeq,method:'connect',params:{
-          minProtocol:1,maxProtocol:99,
-          client:{id:'mc5-'+Math.random().toString(36).slice(2),displayName:'Mission Control v5',version:'3.0.0',platform:'browser',mode:'ui'},
-          ...(this.tok?{auth:{token:this.tok}}:{})
-        }}));
-      };
+      let challenged=false;
       this.ws.onmessage=(e)=>{
         try{
           const m=JSON.parse(e.data);
-          if(m.type==='response'&&m.seq===this._connSeq&&!this.ok){
+          // Step 1: wait for connect.challenge event from gateway
+          if(!challenged&&m.type==='event'&&m.event==='connect.challenge'){
+            challenged=true;
+            const connId=this._id();
+            this._connId=connId;
+            this.ws.send(JSON.stringify({
+              type:'req',id:connId,method:'connect',
+              params:{
+                minProtocol:1,maxProtocol:99,
+                client:{id:'mc5-'+Math.random().toString(36).slice(2),displayName:'Mission Control v5',version:'3.0.0',platform:'browser',mode:'ui'},
+                ...(this.tok?{auth:{token:this.tok}}:{})
+              }
+            }));
+            return;
+          }
+          // Step 2: wait for connect response
+          if(!this.ok&&m.type==='res'&&m.id===this._connId){
             clearTimeout(t);
-            if(m.ok){this.ok=true;res(this);this.emit('connect',{});}
+            if(m.ok){this.ok=true;res(this);this.emit('connect',m.payload||{});}
             else{this.ws?.close();rej(new Error(m.error?.message||'Auth rejected'));}
             return;
           }
-          if(m.type==='response'&&m.seq){const p=this.pend.get(m.seq);if(p){this.pend.delete(m.seq);m.ok?p.res(m.result):p.rej(new Error(m.error?.message||'Request failed'));}}
-          else if(m.type==='event')this.emit('event',m);
+          // Normal response routing
+          if(m.type==='res'&&m.id){const p=this.pend.get(m.id);if(p){this.pend.delete(m.id);m.ok?p.res(m.payload):p.rej(new Error(m.error?.message||'Request failed'));}}
+          else if(m.type==='event'){this.emit('event',{data:{method:m.event,event:m.event,payload:m.payload}});}
         }catch{}
       };
       this.ws.onerror=(e)=>{clearTimeout(t);this.emit('error',e);rej(new Error('WebSocket error'));};
@@ -289,9 +301,9 @@ class GW {
   req(method,params={}){
     return new Promise((res,rej)=>{
       if(!this.ws||this.ws.readyState!==WebSocket.OPEN){rej(new Error('Not connected'));return;}
-      const seq=++this.seq;this.pend.set(seq,{res,rej});
-      this.ws.send(JSON.stringify({type:'request',seq,method,params}));
-      setTimeout(()=>{if(this.pend.has(seq)){this.pend.delete(seq);rej(new Error('Timeout'));}},18000);
+      const id=this._id();this.pend.set(id,{res,rej});
+      this.ws.send(JSON.stringify({type:'req',id,method,params}));
+      setTimeout(()=>{if(this.pend.has(id)){this.pend.delete(id);rej(new Error('Timeout'));}},18000);
     });
   }
   disconnect(){this.ws?.close();this.ws=null;this.ok=false;}
