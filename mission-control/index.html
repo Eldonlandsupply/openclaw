@@ -262,17 +262,22 @@ class GW {
       try{this.ws=new WebSocket(this.url);}catch(e){rej(new Error('Invalid URL'));return;}
       const t=setTimeout(()=>{this.ws?.close();rej(new Error('Timeout (8s)'));},8000);
       this.ws.onopen=()=>{
-        clearTimeout(t);
-        this.ws.send(JSON.stringify({type:'request',seq:++this.seq,method:'connect',params:{
+        const connSeq=++this.seq;
+        this.ws.send(JSON.stringify({type:'request',seq:connSeq,method:'connect',params:{
           minProtocol:1,maxProtocol:99,
           client:{id:'mc5-'+Math.random().toString(36).slice(2),displayName:'Mission Control v5',version:'3.0.0',platform:'browser',mode:'ui'},
           ...(this.tok?{auth:{token:this.tok}}:{})
         }}));
-        this.ok=true;res(this);this.emit('connect',{});
       };
       this.ws.onmessage=(e)=>{
         try{
           const m=JSON.parse(e.data);
+          if(m.type==='response'&&m.seq===1&&!this.ok){
+            clearTimeout(t);
+            if(m.ok){this.ok=true;res(this);this.emit('connect',{});}
+            else{this.ws?.close();rej(new Error(m.error?.message||'Auth rejected'));}
+            return;
+          }
           if(m.type==='response'&&m.seq){const p=this.pend.get(m.seq);if(p){this.pend.delete(m.seq);m.ok?p.res(m.result):p.rej(new Error(m.error?.message||'Request failed'));}}
           else if(m.type==='event')this.emit('event',m);
         }catch{}
