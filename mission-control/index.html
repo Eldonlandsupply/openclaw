@@ -276,7 +276,7 @@ class GW {
               type:'req',id:connId,method:'connect',
               params:{
                 minProtocol:1,maxProtocol:99,
-                client:{id:'mc5-'+Math.random().toString(36).slice(2),displayName:'Mission Control v5',version:'3.0.0',platform:'browser',mode:'ui'},
+                client:{id:'openclaw-control-ui',displayName:'Mission Control v5',version:'3.0.0',platform:'browser',mode:'ui'},
                 ...(this.tok?{auth:{token:this.tok}}:{})
               }
             }));
