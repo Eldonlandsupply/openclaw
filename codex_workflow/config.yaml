@@ -1,24 +1,45 @@
-workflow_name: codex_agentic_hardening
-run_id: run-20260403-0001
-repo_root: /workspace/openclaw
-input_file: codex_workflow/input.json
-output_dir: codex_workflow/out
-log_level: INFO
-dry_run: false
-require_clean_git: true
-allow_network: false
-timeout_seconds: 900
-energy_basis: HHV
-steps:
-  - id: preflight
-    enabled: true
-    command: ./codex_workflow/preflight.sh codex_workflow/config.yaml
-    retry_count: 0
-  - id: validate
-    enabled: true
-    command: python3 codex_workflow/validate_inputs.py --config codex_workflow/config.yaml --schema codex_workflow/config.schema.json
-    retry_count: 0
-  - id: smoke_test
-    enabled: true
-    command: ./codex_workflow/smoke_test.sh
-    retry_count: 0
+schema_version: 1.0.0
+workflow:
+  name: codex_agentic_hardening
+  run_id: run-20260403-0001
+  mode: full
+paths:
+  repo_root: /workspace/openclaw
+  workspace_root: /workspace/openclaw
+  output_root: codex_workflow/out
+  logs_dir: codex_workflow/out/logs
+  allow_write_paths:
+    - codex_workflow/out
+runtime:
+  log_level: INFO
+  timeout_seconds: 900
+  require_clean_git: false
+  allow_network: false
+  dry_run: false
+dependencies:
+  required_binaries:
+    - python3
+    - bash
+    - git
+execution:
+  steps:
+    - id: validate_inputs
+      enabled: true
+      command: python3 codex_workflow/validate_inputs.py --config codex_workflow/config.yaml --schema codex_workflow/config.schema.json --emit-runtime codex_workflow/out/runtime.contract.json
+      retry_count: 0
+      timeout_seconds: 120
+    - id: smoke_test
+      enabled: true
+      command: ./codex_workflow/smoke_test.sh codex_workflow/config.yaml
+      retry_count: 0
+      timeout_seconds: 180
+verification:
+  commands:
+    - test -f codex_workflow/out/runtime.contract.json
+    - test -f codex_workflow/out/smoke/results.json
+error_policy:
+  fail_fast: true
+  allow_silent_fallbacks: false
+energy:
+  basis: HHV
+  mixed_basis_input: false
