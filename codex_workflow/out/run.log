@@ -1,0 +1,3 @@
+[RUN] preflight :: ./codex_workflow/preflight.sh codex_workflow/config.yaml
+[ERROR] Git workspace is dirty and require_clean_git=true
+[ERROR] preflight failed with exit code 17
