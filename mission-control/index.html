@@ -1487,7 +1487,6 @@ const FALLBACK_PROJECTS=[
   {slug:'eldon-runtime',name:'Eldon Land Supply Runtime',status:'active',priority:'high',owner:'Eldonlandsupply',related_source:'eldon/',description:'Bespoke Python agent runtime deployed 24/7 on a Raspberry Pi.'},
 ];
 function App(){
-  const[view,setView]=useState('connect');const[gwUrl,setGwUrl]=useState(()=>localStorage.getItem('oc_gw_url')||'ws://openclaw.local:8080');const[gwTok,setGwTok]=useState(()=>localStorage.getItem('oc_gw_tok')||'');
   const[isDemo,setIsDemo]=useState(false);const[client,setClient]=useState(null);const[gwSt,setGwSt]=useState('disconnected');
   const[agents,setAgents]=useState([]);const[selId,setSelId]=useState(null);
   const[nav,setNav]=useState('overview');
@@ -1510,20 +1509,7 @@ function App(){
     catch(e){console.warn('agents.list error:',e.message);}
   },[]);
 
-  const doConnect=useCallback(async(url,tok)=>{
-    setGwSt('connecting');
-    try{
-      const c=new GW(url,tok);
-      await c.connect();
-      localStorage.setItem('oc_gw_url',url);
-      localStorage.setItem('oc_gw_tok',tok);
-      setClient(c);setGwSt('connected');setIsDemo(false);setView('main');
-      c.on('disconnect',()=>{setGwSt('disconnected');setClient(null);setView('connect');});
-      c.on('event',ev=>{if(ev?.data?.method)pushA('event',ev.data.method,JSON.stringify(ev.data).slice(0,60));});
-      try{const r=await c.req('agents.list',{});const a=r.agents.map(x=>({...x,isDefault:x.id===r.defaultId}));setAgents(a);setSelId(prev=>prev||a[0]?.id||null);}catch(e){console.warn('agents.list:',e.message);}
-      Promise.all([c.req('health',{}).then(h=>setHealth(h)).catch(()=>{}),c.req('cron.list',{includeDisabled:true}).then(r=>setCronJobs(r.jobs||[])).catch(()=>{}),c.req('sessions.list',{limit:50}).then(r=>setSessions(r.sessions||[])).catch(()=>{}),c.req('config.get',{}).then(r=>{setConfigRaw(r.raw||JSON.stringify(r.config||{}));setConfigHash(r.hash);}).catch(()=>{}),c.req('config.schema',{}).then(r=>setConfigSchema(r)).catch(()=>{}),c.req('node.list',{}).then(r=>setNodes(r.nodes||[])).catch(()=>{})]);
-    }catch(e){setGwSt('disconnected');throw e;}
-  },[]);
+  useEffect(()=>{const GW_URL='wss://openclaw-mc.fly.dev';const GW_TOK='7407e4ed4b164fd2d7d2b3138f8581a7736f97283ceb3b1c7439b7aadff4944e';let dead=false;const loadAll=async(c)=>{try{const r=await c.req('agents.list',{});const a=r.agents.map(x=>({...x,isDefault:x.id===r.defaultId}));setAgents(a);setSelId(prev=>prev||a[0]?.id||null);}catch(e){console.warn('agents.list:',e.message);}Promise.all([c.req('health',{}).then(h=>setHealth(h)).catch(()=>{}),c.req('cron.list',{includeDisabled:true}).then(r=>setCronJobs(r.jobs||[])).catch(()=>{}),c.req('sessions.list',{limit:50}).then(r=>setSessions(r.sessions||[])).catch(()=>{}),c.req('config.get',{}).then(r=>{setConfigRaw(r.raw||JSON.stringify(r.config||{}));setConfigHash(r.hash);}).catch(()=>{}),c.req('config.schema',{}).then(r=>setConfigSchema(r)).catch(()=>{}),c.req('node.list',{}).then(r=>setNodes(r.nodes||[])).catch(()=>{})]);};const connect=async(delay)=>{if(dead)return;if(delay)await new Promise(res=>setTimeout(res,delay));if(dead)return;try{const c=new GW(GW_URL,GW_TOK);await c.connect();if(dead){c.disconnect();return;}setClient(c);setGwSt('connected');setIsDemo(false);c.on('disconnect',()=>{setGwSt('disconnected');setClient(null);connect(5000);});c.on('event',ev=>{if(ev?.data?.method)pushA('event',ev.data.method,JSON.stringify(ev.data).slice(0,60));});await loadAll(c);}catch(e){console.warn('Connect failed:',e.message);setGwSt('disconnected');connect(8000);}};connect(0);return()=>{dead=true;};},[]);
   const loadHealth=useCallback(async()=>{
     if(isDemo){setHealth(MHLTH);return;}if(!client)return;
     setHealthLd(true);try{const h=await client.req('health',{});setHealth(h);}catch{setHealth(MHLTH);}setHealthLd(false);
@@ -1611,25 +1597,7 @@ function App(){
 
   
 
-  if(view==='connect'){
-    return h('div',{style:{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',background:'var(--bg1)',flexDirection:'column',gap:16}},
-      h('div',{style:{background:'var(--bg2)',border:'1px solid var(--brd)',borderRadius:8,padding:'32px 28px',width:380,maxWidth:'90vw'}},
-        h('div',{style:{fontFamily:'var(--mo)',fontWeight:700,fontSize:18,marginBottom:4,color:'var(--t1)'}},'OpenClaw'),
-        h('div',{style:{fontSize:11,color:'var(--t3)',marginBottom:24}},gwSt==='connecting'?'Connecting…':'Connect to gateway'),
-        h('div',{style:{marginBottom:12}},
-          h('div',{style:{fontSize:11,color:'var(--t3)',marginBottom:4}},'Gateway URL'),
-          h('input',{value:gwUrl,onChange:e=>setGwUrl(e.target.value),placeholder:'ws://openclaw.local:8080',disabled:gwSt==='connecting',style:{width:'100%',boxSizing:'border-box',background:'var(--bg3)',border:'1px solid var(--brd)',color:'var(--t1)',borderRadius:4,padding:'6px 8px',fontSize:12,fontFamily:'var(--mo)'}})
-        ),
-        h('div',{style:{marginBottom:20}},
-          h('div',{style:{fontSize:11,color:'var(--t3)',marginBottom:4}},'Auth Token (optional)'),
-          h('input',{type:'password',value:gwTok,onChange:e=>setGwTok(e.target.value),placeholder:'leave blank if not required',disabled:gwSt==='connecting',onKeyDown:e=>{if(e.key==='Enter')doConnect(gwUrl,gwTok).catch(er=>alert('Connect failed: '+er.message));},style:{width:'100%',boxSizing:'border-box',background:'var(--bg3)',border:'1px solid var(--brd)',color:'var(--t1)',borderRadius:4,padding:'6px 8px',fontSize:12,fontFamily:'var(--mo)'}})
-        ),
-        gwSt==='disconnected'&&h('div',{style:{fontSize:10,color:'var(--cre)',marginBottom:12}},'Connection failed. Check URL and try again.'),
-        h('button',{className:'rb',disabled:gwSt==='connecting'||!gwUrl.trim(),onClick:()=>doConnect(gwUrl,gwTok).catch(er=>alert('Connect failed: '+er.message)),style:{width:'100%',padding:'8px 0',fontSize:13}},gwSt==='connecting'?'Connecting…':'Connect'),
-        h('button',{className:'rb',style:{width:'100%',marginTop:8,padding:'6px 0',fontSize:12,opacity:0.7},onClick:()=>{setIsDemo(true);setView('main');}},'Continue in Demo Mode')
-      )
-    );
-  }
+
   const sbItems=()=>{
     if(nav==='fleet'||nav==='agent')return filtered.map(a=>h('div',{key:a.id,className:`si ${selId===a.id&&nav==='agent'?'on':''}`,onClick:()=>{setSelId(a.id);setNav('agent');}},h('div',{className:'sav'},aEmoji(a)),h('div',{className:'f1',style:{minWidth:0}},h('div',{className:'sn'},aLbl(a)),h('div',{className:'ss'},a.id)),h('div',{className:`sd ${a.isDefault?'ac':'gr'}`})));
     if(nav==='cron')return cronJobs.map(j=>h('div',{key:j.id||j.name,className:'si'},h('div',{className:'sav'},'⏰'),h('div',{className:'f1',style:{minWidth:0}},h('div',{className:'sn'},j.name),h('div',{className:'ss'},cronSched(j.schedule))),h('div',{className:`sd ${j.enabled?'gr':''}`})));
