@@ -1,0 +1,25 @@
+1) Validate configuration
+   Command:
+   python3 codex_workflow/validate_inputs.py --config codex_workflow/config.yaml --schema codex_workflow/config.schema.json
+   Expected:
+   [OK] validation complete
+
+2) Execute workflow
+   Command:
+   ./codex_workflow/run_workflow.sh codex_workflow/config.yaml
+   Expected:
+   [OK] workflow complete
+
+3) Run smoke tests
+   Command:
+   ./codex_workflow/smoke_test.sh
+   Expected:
+   [OK] Smoke tests passed: 4
+
+4) Inspect artifacts
+   Commands:
+   cat codex_workflow/out/status.json
+   cat codex_workflow/out/smoke/results.json
+   Expected:
+   status.json contains result=success
+   results.json shows failures=0

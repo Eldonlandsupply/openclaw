@@ -1,0 +1,24 @@
+workflow_name: codex_agentic_hardening
+run_id: run-20260403-0001
+repo_root: /workspace/openclaw
+input_file: codex_workflow/input.json
+output_dir: codex_workflow/out
+log_level: INFO
+dry_run: false
+require_clean_git: true
+allow_network: false
+timeout_seconds: 900
+energy_basis: HHV
+steps:
+  - id: preflight
+    enabled: true
+    command: ./codex_workflow/preflight.sh codex_workflow/config.yaml
+    retry_count: 0
+  - id: validate
+    enabled: true
+    command: python3 codex_workflow/validate_inputs.py --config codex_workflow/config.yaml --schema codex_workflow/config.schema.json
+    retry_count: 0
+  - id: smoke_test
+    enabled: true
+    command: ./codex_workflow/smoke_test.sh
+    retry_count: 0
