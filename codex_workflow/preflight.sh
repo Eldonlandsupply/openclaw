@@ -2,56 +2,50 @@
 set -euo pipefail
 
 CONFIG_PATH="${1:-codex_workflow/config.yaml}"
+RUNTIME_JSON="${2:-codex_workflow/out/runtime.contract.json}"
 
-error() {
-  echo "[ERROR] $1" >&2
-  exit "${2:-1}"
+fail() {
+  local code="$1"
+  local message="$2"
+  echo "[ERROR] PREFLIGHT_FAILED: ${message}" >&2
+  exit "$code"
 }
 
-[ -f "$CONFIG_PATH" ] || error "Config file not found: $CONFIG_PATH" 10
-command -v python3 >/dev/null 2>&1 || error "Missing dependency: python3" 11
-command -v git >/dev/null 2>&1 || error "Missing dependency: git" 12
+[[ -f "$CONFIG_PATH" ]] || fail 10 "Config file not found: $CONFIG_PATH"
+command -v python3 >/dev/null 2>&1 || fail 11 "Missing dependency: python3"
+command -v bash >/dev/null 2>&1 || fail 12 "Missing dependency: bash"
 
-REPO_ROOT=$(python3 - <<'PY' "$CONFIG_PATH"
-import pathlib, sys
-p = pathlib.Path(sys.argv[1])
-repo = None
-for line in p.read_text(encoding='utf-8').splitlines():
-    s=line.strip()
-    if s.startswith('repo_root:'):
-        repo=s.split(':',1)[1].strip()
-        break
-if not repo:
-    raise SystemExit(2)
-print(pathlib.Path(repo).resolve())
-PY
-) || error "Unable to parse repo_root from $CONFIG_PATH" 13
+python3 codex_workflow/validate_inputs.py \
+  --config "$CONFIG_PATH" \
+  --schema codex_workflow/config.schema.json \
+  --emit-runtime "$RUNTIME_JSON" >/dev/null || fail 13 "Input validation failed"
 
-[ -d "$REPO_ROOT" ] || error "repo_root is not a directory: $REPO_ROOT" 14
-cd "$REPO_ROOT"
-
-if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  error "repo_root is not a git repository: $REPO_ROOT" 15
-fi
-
-if [ "$(git rev-parse --show-toplevel)" != "$REPO_ROOT" ]; then
-  error "repo_root mismatch with git toplevel" 16
-fi
-
-REQUIRE_CLEAN=$(python3 - <<'PY' "$CONFIG_PATH"
-import sys, pathlib
-for line in pathlib.Path(sys.argv[1]).read_text(encoding='utf-8').splitlines():
-    s=line.strip()
-    if s.startswith('require_clean_git:'):
-        print(s.split(':',1)[1].strip().lower())
-        break
-else:
-    print('true')
+mapfile -t PREFLIGHT_VALUES < <(python3 - <<'PY' "$RUNTIME_JSON"
+import json, pathlib, sys
+runtime = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding='utf-8'))
+print(pathlib.Path(runtime['paths']['repo_root']).resolve())
+print('true' if runtime['runtime']['require_clean_git'] else 'false')
+for b in runtime['dependencies']['required_binaries']:
+    print(f"bin:{b}")
 PY
 )
 
-if [ "$REQUIRE_CLEAN" = "true" ] && [ -n "$(git status --porcelain)" ]; then
-  error "Git workspace is dirty and require_clean_git=true" 17
+REPO_ROOT="${PREFLIGHT_VALUES[0]}"
+REQUIRE_CLEAN="${PREFLIGHT_VALUES[1]}"
+
+[[ -d "$REPO_ROOT" ]] || fail 14 "paths.repo_root is not a directory: $REPO_ROOT"
+cd "$REPO_ROOT"
+
+git rev-parse --is-inside-work-tree >/dev/null 2>&1 || fail 15 "paths.repo_root is not inside a git worktree"
+[[ "$(git rev-parse --show-toplevel)" == "$REPO_ROOT" ]] || fail 16 "paths.repo_root must equal git top-level root"
+
+if [[ "$REQUIRE_CLEAN" == "true" ]] && [[ -n "$(git status --porcelain)" ]]; then
+  fail 17 "Git workspace dirty while runtime.require_clean_git=true"
 fi
+
+for entry in "${PREFLIGHT_VALUES[@]:2}"; do
+  bin="${entry#bin:}"
+  command -v "$bin" >/dev/null 2>&1 || fail 18 "Missing dependency binary: $bin"
+done
 
 echo "[OK] preflight complete"
