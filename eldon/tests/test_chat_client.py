@@ -129,6 +129,9 @@ async def test_reset_clears_history():
 async def test_minimax_route_uses_minimax_credentials(monkeypatch):
     from src.openclaw.chat.client import ChatClient
 
+    # Set MINIMAX_API_KEY in env so the contradiction check passes,
+    # and also set OPENROUTER_API_KEY to confirm it is NOT used.
+    monkeypatch.setenv("MINIMAX_API_KEY", "sk-minimax-test")
     monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-should-not-be-used")
     cfg = make_cfg(provider="minimax", model="MiniMax-M2.1")
     cfg.secrets.minimax_api_key = "sk-minimax-test"

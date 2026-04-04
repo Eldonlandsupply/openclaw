@@ -87,7 +87,7 @@ def _has_teams_meeting(event: dict) -> bool:
         return True
     if event.get("onlineMeetingUrl"):
         return True
-    if event.get("onlineMeeting", {}).get("joinUrl"):
+    if (event.get("onlineMeeting") or {}).get("joinUrl"):
         return True
     # Check body for teams join links as fallback
     body = event.get("bodyPreview", "").lower()
