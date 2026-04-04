@@ -232,6 +232,7 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 .muted{color:var(--ink4)}.mono{font-family:var(--mono)}
 ::selection{background:rgba(245,166,35,.25);color:var(--ink)}
 code{font-family:var(--mono);font-size:.9em;background:var(--bg4);border:1px solid var(--wire);border-radius:3px;padding:1px 5px;color:var(--amber)}
+@keyframes fadeSlideIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
 </style>
 </head>
@@ -378,10 +379,46 @@ const MEXA={
   file:{version:1,defaults:{security:'deny',ask:'on-miss',autoAllowSkills:true},
     agents:{main:{security:'allowlist',ask:'on-miss',allowlist:[{id:'e1',pattern:'git *',lastUsedAt:Date.now()-3600000},{id:'e2',pattern:'npm *'},{id:'e3',pattern:'ls *'}]},codebot:{security:'full',ask:'off',allowlist:[]}}}
 };
-// ConnectScreen: enter gateway URL + token to connect
+// ── GLOBAL TOAST ─────────────────────────────────────────────────
+// Module-level bus: any component calls pushToast(msg, type) without prop-drilling.
+const _toastBus=new Set();
+function pushToast(msg,type='ok'){
+  const id=Date.now()+Math.random();
+  _toastBus.forEach(fn=>fn({id,msg,type}));
+}
+function ToastLayer(){
+  const[toasts,setToasts]=useState([]);
+  useEffect(()=>{
+    const fn=(t)=>{
+      setToasts(prev=>[...prev.slice(-4),t]);
+      setTimeout(()=>setToasts(prev=>prev.filter(x=>x.id!==t.id)),3500);
+    };
+    _toastBus.add(fn);
+    return()=>_toastBus.delete(fn);
+  },[]);
+  if(!toasts.length)return null;
+  return h('div',{style:{position:'fixed',bottom:20,right:20,display:'flex',flexDirection:'column',gap:6,zIndex:500,pointerEvents:'none'}},
+    toasts.map(t=>h('div',{key:t.id,style:{
+      background:t.type==='err'?'var(--red2)':t.type==='warn'?'var(--amber3)':'var(--green2)',
+      border:`1px solid ${t.type==='err'?'rgba(255,68,85,.3)':t.type==='warn'?'rgba(245,166,35,.3)':'rgba(0,208,132,.3)'}`,
+      borderRadius:'var(--r2)',padding:'9px 14px',
+      fontFamily:'var(--mono)',fontSize:11,
+      color:t.type==='err'?'var(--red)':t.type==='warn'?'var(--amber)':'var(--green)',
+      boxShadow:'0 4px 16px rgba(0,0,0,.5)',
+      animation:'fadeSlideIn .18s ease',
+      minWidth:220,maxWidth:360,
+    }},t.msg))
+  );
+}
 // ── HEALTH PANEL ─────────────────────────────────────────────────
 function HealthPanel({health,loading,onRefresh}){
-  if(!health)return h('div',{className:'card'},h('div',{className:'ch'},h('span',{className:'cht'},'Gateway Health'),h('button',{className:'btn bts',onClick:onRefresh,disabled:loading},'Load')),h('div',{className:'cb'},h('div',{className:'emp'},h('div',{className:'empi'},'💊'),h('div',{className:'emps'},'Click Load to fetch health data'))));
+  if(!health)return h('div',{className:'card'},
+    h('div',{className:'ch'},h('span',{className:'cht'},'Gateway Health'),h('button',{className:'btn bts',onClick:onRefresh,disabled:loading},'Load')),
+    h('div',{className:'cb'},h('div',{className:'emp'},
+      loading?h('span',{className:'spin'}):h('div',{className:'empi'},'💊'),
+      h('div',{className:'emps'},loading?'Loading health…':'Awaiting gateway connection')
+    ))
+  );
   const ok=Object.values(health.checks||{}).every(c=>c.ok);
   return h('div',{className:'card'},
     h('div',{className:'ch'},h('span',{className:'cht'},'Gateway Health'),h('div',{className:'row',style:{gap:6}},h('span',{className:`pill ${ok?'po':'pw'}`},ok?'Healthy':'Degraded'),h('button',{className:'btn bts',onClick:onRefresh,disabled:loading},'Refresh'))),
@@ -400,7 +437,7 @@ function HealthPanel({health,loading,onRefresh}){
   );
 }
 // ── OVERVIEW ─────────────────────────────────────────────────────
-function OverviewTab({agents,cronJobs,sessions,health,healthLoading,onRefreshHealth,isDemo,auditLog,client,onNavAgent}){
+function OverviewTab({agents,cronJobs,sessions,health,healthLoading,onRefreshHealth,isDemo,auditLog,client,onNavAgent,pendingApprovals,setPendingApprovals}){
   const active=cronJobs.filter(j=>j.enabled).length;
   const activeSess=sessions.filter(s=>Date.now()-(s.updatedAt||s.updatedAtMs||0)<3600000).length;
   const[wakingId,setWakingId]=useState(null);const[wakeResults,setWakeResults]=useState({});
@@ -412,7 +449,8 @@ function OverviewTab({agents,cronJobs,sessions,health,healthLoading,onRefreshHea
         catch(er){const job=cronJobs.find(j=>j.agentId===a.id&&j.enabled);if(job){await client.req('cron.run',{id:job.id});pushA('event','cron.run',`${a.id} via ${job.name}`);}else throw new Error('no runnable job');}
       } else {pushA('event','agent.run',`${a.id} (demo)`);}
       setWakeResults(p=>({...p,[a.id]:'\u2713'}));
-    }catch{setWakeResults(p=>({...p,[a.id]:'\u2717'}));}
+      pushToast(`${aLbl(a)} woken`,'ok');
+    }catch(e){setWakeResults(p=>({...p,[a.id]:'\u2717'}));pushToast(`Wake failed: ${e.message}`,'err');}
     setWakingId(null);setTimeout(()=>setWakeResults(p=>{const n={...p};delete n[a.id];return n;}),3000);
   };
   return h(Fragment,null,
@@ -422,6 +460,7 @@ function OverviewTab({agents,cronJobs,sessions,health,healthLoading,onRefreshHea
       h('div',{className:'stat'},h('div',{className:'stl'},'Active Jobs'),h('div',{className:'stv cgr'},active),h('div',{className:'sts'},`${cronJobs.length} total`)),
       h('div',{className:'stat'},h('div',{className:'stl'},'Sessions (1h)'),h('div',{className:'stv cbl'},activeSess),h('div',{className:'sts'},`${sessions.length} loaded`))
     ),
+    pendingApprovals&&pendingApprovals.length>0&&h(LiveApprovalsPanel,{pendingApprovals,setPendingApprovals,client,isDemo}),
     h(HealthPanel,{health,loading:healthLoading,onRefresh:onRefreshHealth}),
     h('div',{className:'g2'},
       h('div',{className:'card'},
@@ -497,7 +536,8 @@ function ToolPolicyPanel({agentId,configRaw,configHash,configLoading,client,isDe
         pushA('update','config.patch',`${agentId} tools (demo)`);
       }
       setMsg('Tool policy written via config.patch ✓');setShowDiff(false);
-    }catch(e){setMsg('Error: '+e.message);}
+      pushToast('Tool policy saved','ok');
+    }catch(e){setMsg('Error: '+e.message);pushToast('Save failed: '+e.message,'err');}
     setSaving(false);
   };
 
@@ -1242,7 +1282,11 @@ function LolaPanel({client,isDemo}){
   },[client,isDemo]);
   useEffect(()=>{load();},[load]);
   if(ld)return h('div',{className:'emp'},h('div',{className:'empi'},'💼'),h('div',{className:'empt'},'Loading Lola…'));
-  if(err)return h('div',{className:'callout err'},err);
+  if(err)return h('div',{className:'col',style:{gap:8}},
+    h('div',{className:'callout warn'},'⚠ Lola panel requires the ',h('code',null,'lola.status'),' gateway extension. This may not be installed on your gateway.'),
+    h('div',{className:'callout err',style:{fontSize:10}},err),
+    h('button',{className:'btn btp bts',onClick:load},'Retry')
+  );
   if(!queue)return h('div',{className:'emp'},h('div',{className:'empi'},'💼'),h('div',{className:'emps'},'No data available'));
   const fmt=ms=>new Date(ms).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   const fmtAge=ms=>{const s=Math.floor((Date.now()-ms)/1000);if(s<60)return `${s}s ago`;if(s<3600)return `${Math.floor(s/60)}m ago`;return `${Math.floor(s/3600)}h ago`;};
@@ -1263,8 +1307,22 @@ function LolaPanel({client,isDemo}){
           ),
           h('div',{style:{fontSize:11,color:'var(--t2)',marginBottom:6}},item.summary),
           h('div',{className:'row',style:{gap:6}},
-            h('button',{className:'btn bts bto',style:{fontSize:10,padding:'3px 10px'},disabled:acting===item.id,onClick:async()=>{setActing(item.id);if(!isDemo&&client)try{await client.req('lola.approve',{id:item.id});}catch(e){setErr(e.message);}setActing('');load();}},'✓ Approve'),
-            h('button',{className:'btn bts btd',style:{fontSize:10,padding:'3px 10px'},disabled:acting===item.id,onClick:async()=>{setActing(item.id);if(!isDemo&&client)try{await client.req('lola.reject',{id:item.id});}catch(e){setErr(e.message);}setActing('');load();}},'✕ Reject'),
+            h('button',{className:'btn bts bto',style:{fontSize:10,padding:'3px 10px'},disabled:acting===item.id,onClick:async()=>{
+              setActing(item.id);
+              try{
+                if(!isDemo&&client)await client.req('exec.approval.resolve',{id:item.id,decision:'allow-once'});
+                pushToast('Lola action approved','ok');
+              }catch(e){setErr(e.message);pushToast('Approve failed: '+e.message,'err');}
+              setActing('');load();
+            }},'✓ Approve'),
+            h('button',{className:'btn bts btd',style:{fontSize:10,padding:'3px 10px'},disabled:acting===item.id,onClick:async()=>{
+              setActing(item.id);
+              try{
+                if(!isDemo&&client)await client.req('exec.approval.resolve',{id:item.id,decision:'deny'});
+                pushToast('Lola action rejected','warn');
+              }catch(e){setErr(e.message);pushToast('Reject failed: '+e.message,'err');}
+              setActing('');load();
+            }},'✕ Reject'),
           )
         ))
       ))
@@ -1308,6 +1366,76 @@ function LolaPanel({client,isDemo}){
     )
   );
 }
+// ── LIVE EXEC APPROVAL PANEL ─────────────────────────────────────
+// Surfaces real-time exec.approval.requested events from gateway.
+// Decision calls exec.approval.resolve with allow-once / allow-always / deny.
+function LiveApprovalsPanel({pendingApprovals,setPendingApprovals,client,isDemo}){
+  const[acting,setActing]=useState({});
+  const[msgs,setMsgs]=useState({});
+  const[now,setNow]=useState(Date.now());
+  // Tick every second so expiry countdowns stay live
+  useEffect(()=>{
+    if(!pendingApprovals.length)return;
+    const t=setInterval(()=>setNow(Date.now()),1000);
+    return()=>clearInterval(t);
+  },[pendingApprovals.length]);
+
+  const resolve=async(id,decision)=>{
+    setActing(p=>({...p,[id]:decision}));
+    try{
+      if(!isDemo&&client){
+        await client.req('exec.approval.resolve',{id,decision});
+        pushA('event','exec.approval.resolve',`${id} → ${decision}`);
+      }
+      setPendingApprovals(prev=>prev.filter(p=>p.id!==id));
+      pushToast(`Exec approval: ${decision}`,'ok');
+    }catch(e){
+      setMsgs(p=>({...p,[id]:'Error: '+e.message}));
+      pushToast('Approval failed: '+e.message,'err');
+    }
+    setActing(p=>{const n={...p};delete n[id];return n;});
+  };
+
+  if(!pendingApprovals.length)return null;
+
+  return h('div',{className:'card',style:{borderColor:'var(--amber)',boxShadow:'0 0 20px rgba(245,166,35,.08)'}},
+    h('div',{className:'ch',style:{background:'linear-gradient(90deg,rgba(245,166,35,.08),transparent)'}},
+      h('span',{className:'cht'},'Exec Approval Queue'),
+      h('span',{className:'pill pw'},`${pendingApprovals.length} pending`)
+    ),
+    h('div',{className:'cb'},
+      h('div',{className:'callout warn',style:{marginBottom:12,fontSize:10}},
+        'Agents are waiting for exec approval. Unresolved requests will time out (default 2 min).'
+      ),
+      h('div',{className:'col',style:{gap:8}},
+        pendingApprovals.map(item=>{
+          const req=item.request||{};
+          const busy=!!acting[item.id];
+          const expiresIn=item.expiresAtMs?Math.max(0,Math.round((item.expiresAtMs-now)/1000)):null;
+          return h('div',{key:item.id,style:{background:'var(--bg3)',border:'1px solid var(--wire2)',borderRadius:'var(--r2)',padding:'12px 14px'}},
+            h('div',{className:'row',style:{justifyContent:'space-between',marginBottom:6}},
+              h('div',{style:{fontFamily:'var(--mono)',fontSize:12,color:'var(--ink)',fontWeight:600,wordBreak:'break-all',flex:1,marginRight:8}},req.command||item.id),
+              expiresIn!==null&&h('span',{className:`pill ${expiresIn<30?'pde':'pw'}`,style:{flexShrink:0}},`${expiresIn}s`)
+            ),
+            h('div',{className:'kv',style:{marginBottom:8}},
+              req.agentId&&h(Fragment,null,h('span',{className:'kl'},'Agent'),h('span',{className:'kv-v'},req.agentId)),
+              req.cwd&&h(Fragment,null,h('span',{className:'kl'},'CWD'),h('span',{className:'kv-v'},req.cwd)),
+              req.security&&h(Fragment,null,h('span',{className:'kl'},'Security'),h('span',{className:'kv-v'},req.security)),
+              req.sessionKey&&h(Fragment,null,h('span',{className:'kl'},'Session'),h('span',{className:'kv-v'},req.sessionKey))
+            ),
+            msgs[item.id]&&h('div',{className:'callout err',style:{marginBottom:8,fontSize:10}},msgs[item.id]),
+            h('div',{className:'br',style:{gap:6}},
+              h('button',{className:'btn bto bts',disabled:busy,onClick:()=>resolve(item.id,'allow-once')},busy&&acting[item.id]==='allow-once'?h(Fragment,null,h('span',{className:'spin'}),' …'):'✓ Allow Once'),
+              h('button',{className:'btn bts',disabled:busy,onClick:()=>resolve(item.id,'allow-always'),style:{color:'var(--green)',borderColor:'rgba(0,208,132,.3)'}},busy&&acting[item.id]==='allow-always'?h(Fragment,null,h('span',{className:'spin'}),' …'):'✓ Always'),
+              h('button',{className:'btn btd bts',disabled:busy,onClick:()=>resolve(item.id,'deny')},busy&&acting[item.id]==='deny'?h(Fragment,null,h('span',{className:'spin'}),' …'):'✕ Deny')
+            )
+          );
+        })
+      )
+    )
+  );
+}
+
 // ── AGENT DETAIL ─────────────────────────────────────────────────
 function AgentDetail({agent,client,isDemo,onUpdated,configRaw,configHash,configLoading,onConfigRefresh,cronJobs,setCronJobs,onCronLoad,cronLoading,configSchema}){
   const[tab,setTab]=useState('overview');
@@ -1333,7 +1461,8 @@ function AgentDetail({agent,client,isDemo,onUpdated,configRaw,configHash,configL
         pushA('event','agent.run',`${agent.id} woken (demo)`);
       }
       setWakeMsg('✓ Agent woken');
-    }catch(e){setWakeMsg('✗ '+e.message);}
+      pushToast(`${aLbl(agent)} woken`,'ok');
+    }catch(e){setWakeMsg('✗ '+e.message);pushToast('Wake failed: '+e.message,'err');}
     setWaking(false);setTimeout(()=>setWakeMsg(''),3500);
   };
   const saveAgent=async()=>{
@@ -1500,6 +1629,9 @@ function App(){
   const[configRaw,setConfigRaw]=useState(null);const[configHash,setConfigHash]=useState(null);const[configLd,setConfigLd]=useState(false);
   const[configSchema,setConfigSchema]=useState(null);
   const[nodes,setNodes]=useState([]);const[nodesLd,setNodesLd]=useState(false);
+  const[lastHeartbeat,setLastHeartbeat]=useState(null);
+  const[pendingApprovals,setPendingApprovals]=useState([]);
+  const[connAttempt,setConnAttempt]=useState(0);
 
   useEffect(()=>{const t=setInterval(()=>setAuditLog([...ALOG]),2000);return()=>clearInterval(t);},[]);
 
@@ -1509,20 +1641,138 @@ function App(){
     catch(e){console.warn('agents.list error:',e.message);}
   },[]);
 
-  useEffect(()=>{const GW_URL='wss://openclaw-mc.fly.dev';const GW_TOK='7407e4ed4b164fd2d7d2b3138f8581a7736f97283ceb3b1c7439b7aadff4944e';let dead=false;const loadAll=async(c)=>{try{const r=await c.req('agents.list',{});const a=r.agents.map(x=>({...x,isDefault:x.id===r.defaultId}));setAgents(a);setSelId(prev=>prev||a[0]?.id||null);}catch(e){console.warn('agents.list:',e.message);}Promise.all([c.req('health',{}).then(h=>setHealth(h)).catch(()=>{}),c.req('cron.list',{includeDisabled:true}).then(r=>setCronJobs(r.jobs||[])).catch(()=>{}),c.req('sessions.list',{limit:50}).then(r=>setSessions(r.sessions||[])).catch(()=>{}),c.req('config.get',{}).then(r=>{setConfigRaw(r.raw||JSON.stringify(r.config||{}));setConfigHash(r.hash);}).catch(()=>{}),c.req('config.schema',{}).then(r=>setConfigSchema(r)).catch(()=>{}),c.req('node.list',{}).then(r=>setNodes(r.nodes||[])).catch(()=>{})]);};const connect=async(delay)=>{if(dead)return;if(delay)await new Promise(res=>setTimeout(res,delay));if(dead)return;try{const c=new GW(GW_URL,GW_TOK);await c.connect();if(dead){c.disconnect();return;}setClient(c);setGwSt('connected');setIsDemo(false);c.on('disconnect',()=>{setGwSt('disconnected');setClient(null);connect(5000);});c.on('event',ev=>{if(ev?.data?.method)pushA('event',ev.data.method,JSON.stringify(ev.data).slice(0,60));});await loadAll(c);}catch(e){console.warn('Connect failed:',e.message);setGwSt('disconnected');connect(8000);}};connect(0);return()=>{dead=true;};},[]);
+  useEffect(()=>{
+    const GW_URL='wss://openclaw-mc.fly.dev';
+    const GW_TOK='7407e4ed4b164fd2d7d2b3138f8581a7736f97283ceb3b1c7439b7aadff4944e';
+    let dead=false;
+    let attempt=0;
+
+    const loadAll=async(c)=>{
+      // Load agents first — required for sidebar
+      try{
+        const r=await c.req('agents.list',{});
+        const a=r.agents.map(x=>({...x,isDefault:x.id===r.defaultId}));
+        setAgents(a);setSelId(prev=>prev||a[0]?.id||null);
+      }catch(e){console.warn('agents.list:',e.message);}
+      // Parallel load of secondary data — fail individually, no mock fallback
+      Promise.all([
+        c.req('health',{}).then(h=>setHealth(h)).catch(e=>console.warn('health:',e.message)),
+        c.req('cron.list',{includeDisabled:true}).then(r=>setCronJobs(r.jobs||[])).catch(e=>console.warn('cron.list:',e.message)),
+        c.req('sessions.list',{limit:50}).then(r=>setSessions(r.sessions||[])).catch(e=>console.warn('sessions.list:',e.message)),
+        c.req('config.get',{}).then(r=>{setConfigRaw(r.raw||JSON.stringify(r.config||{}));setConfigHash(r.hash);}).catch(e=>console.warn('config.get:',e.message)),
+        c.req('config.schema',{}).then(r=>setConfigSchema(r)).catch(()=>{}),
+        c.req('node.list',{}).then(r=>setNodes(r.nodes||[])).catch(e=>console.warn('node.list:',e.message)),
+      ]);
+    };
+
+    const wireEvents=(c)=>{
+      // Heartbeat / keepalive
+      c.on('event',ev=>{
+        const {event,payload}=ev?.data||{};
+        if(!event)return;
+        // Audit log all events
+        pushA('event',event,JSON.stringify(payload||{}).slice(0,80));
+        // Update last heartbeat on any event
+        setLastHeartbeat(Date.now());
+        // Reactive state updates
+        switch(event){
+          case 'tick':
+          case 'heartbeat':
+            setLastHeartbeat(payload?.ts||Date.now());
+            break;
+          case 'health':
+            if(payload)setHealth(payload);
+            break;
+          case 'agent':
+            // Reload agents list when any agent event fires
+            c.req('agents.list',{}).then(r=>{
+              const a=r.agents.map(x=>({...x,isDefault:x.id===r.defaultId}));
+              setAgents(a);
+            }).catch(()=>{});
+            break;
+          case 'cron':
+            // Reload cron jobs when cron event fires
+            c.req('cron.list',{includeDisabled:true}).then(r=>setCronJobs(r.jobs||[])).catch(()=>{});
+            break;
+          case 'chat':
+            // Reload sessions on any chat activity so session list stays current
+            c.req('sessions.list',{limit:50}).then(r=>setSessions(r.sessions||[])).catch(()=>{});
+            break;
+          case 'node.pair.requested':
+          case 'node.pair.approved':
+          case 'node.pair.rejected':
+            c.req('node.list',{}).then(r=>setNodes(r.nodes||[])).catch(()=>{});
+            break;
+          case 'exec.approval.requested':
+            if(payload?.id){
+              setPendingApprovals(prev=>{
+                if(prev.find(p=>p.id===payload.id))return prev;
+                return[...prev,{id:payload.id,request:payload.request,createdAtMs:payload.createdAtMs,expiresAtMs:payload.expiresAtMs}];
+              });
+            }
+            break;
+          case 'exec.approval.resolved':
+            if(payload?.id){
+              setPendingApprovals(prev=>prev.filter(p=>p.id!==payload.id));
+            }
+            break;
+          case 'shutdown':
+            console.warn('Gateway shutdown:',payload?.reason);
+            break;
+          default:break;
+        }
+      });
+    };
+
+    const connect=async(delay,isRetry)=>{
+      if(dead)return;
+      if(delay>0){
+        if(isRetry)setGwSt('reconnecting');
+        await new Promise(res=>setTimeout(res,delay));
+      }
+      if(dead)return;
+      try{
+        const c=new GW(GW_URL,GW_TOK);
+        await c.connect();
+        if(dead){c.disconnect();return;}
+        attempt=0;
+        setConnAttempt(0);
+        setClient(c);setGwSt('connected');setIsDemo(false);
+        setLastHeartbeat(Date.now());
+        wireEvents(c);
+        c.on('disconnect',()=>{
+          setGwSt('reconnecting');setClient(null);
+          const backoff=Math.min(1000*Math.pow(2,attempt),30000);
+          attempt++;
+          setConnAttempt(attempt);
+          connect(backoff,true);
+        });
+        await loadAll(c);
+      }catch(e){
+        console.warn('Connect failed:',e.message);
+        const backoff=Math.min(1000*Math.pow(2,attempt),30000);
+        attempt++;
+        setConnAttempt(attempt);
+        setGwSt(attempt===1?'disconnected':'reconnecting');
+        connect(backoff,true);
+      }
+    };
+    connect(0,false);
+    return()=>{dead=true;};
+  },[]);
   const loadHealth=useCallback(async()=>{
     if(isDemo){setHealth(MHLTH);return;}if(!client)return;
-    setHealthLd(true);try{const h=await client.req('health',{});setHealth(h);}catch{setHealth(MHLTH);}setHealthLd(false);
+    setHealthLd(true);try{const h=await client.req('health',{});setHealth(h);}catch(e){console.warn('health refresh:',e.message);}setHealthLd(false);
   },[client,isDemo]);
 
   const loadCron=useCallback(async()=>{
     setCronLd(true);if(isDemo){setCronJobs(MCRON);setCronLd(false);return;}if(!client){setCronLd(false);return;}
-    try{const r=await client.req('cron.list',{includeDisabled:true});setCronJobs(r.jobs||[]);}catch{setCronJobs(MCRON);}setCronLd(false);
+    try{const r=await client.req('cron.list',{includeDisabled:true});setCronJobs(r.jobs||[]);}catch(e){console.warn('cron.list:',e.message);}setCronLd(false);
   },[client,isDemo]);
 
   const loadSessions=useCallback(async()=>{
     setSessLd(true);if(isDemo){setSessions(MSESS);setSessLd(false);return;}if(!client){setSessLd(false);return;}
-    try{const r=await client.req('sessions.list',{limit:50,includeDerivedTitles:false});setSessions(r.sessions||[]);}catch{setSessions(MSESS);}setSessLd(false);
+    try{const r=await client.req('sessions.list',{limit:50,includeDerivedTitles:false});setSessions(r.sessions||[]);}catch(e){console.warn('sessions.list:',e.message);}setSessLd(false);
   },[client,isDemo]);
 
   const loadConfig=useCallback(async()=>{
@@ -1535,7 +1785,7 @@ function App(){
     if(isDemo){setNodes(MNODES);setNodesLd(false);return;}
     if(!client){setNodesLd(false);return;}
     try{const r=await client.req('node.list',{});setNodes(r.nodes||[]);}
-    catch{setNodes(MNODES);}
+    catch(e){console.warn('node.list:',e.message);}
     setNodesLd(false);
   },[client,isDemo]);
 
@@ -1572,25 +1822,7 @@ function App(){
     setProjectsLd(false);
   },[]);
 
-  const handleConnect=useCallback(async(gc)=>{
-    setClient(gc);setGwSt('connected');setIsDemo(false);setView('main');
-    gc.on('disconnect',()=>setGwSt('disconnected'));
-    gc.on('event',ev=>{if(ev?.data?.method)pushA('event',ev.data.method,JSON.stringify(ev.data).slice(0,60));});
-    await loadAgents(gc,false);
-    // Eager parallel load
-    Promise.all([
-      gc.req('health',{}).then(h=>setHealth(h)).catch(()=>setHealth(MHLTH)),
-      gc.req('cron.list',{includeDisabled:true}).then(r=>setCronJobs(r.jobs||[])).catch(()=>setCronJobs(MCRON)),
-      gc.req('sessions.list',{limit:50}).then(r=>setSessions(r.sessions||[])).catch(()=>setSessions(MSESS)),
-      gc.req('config.get',{}).then(r=>{setConfigRaw(r.raw||JSON.stringify(r.config||{}));setConfigHash(r.hash);}).catch(()=>{}),
-      gc.req('config.schema',{}).then(r=>setConfigSchema(r)).catch(()=>{}),
-      gc.req('node.list',{}).then(r=>setNodes(r.nodes||[])).catch(()=>{}),
-    ]);
-  },[loadAgents]);
-
-
-
-  const doDisconnect=useCallback(()=>{client?.disconnect();setClient(null);setGwSt('disconnected');setIsDemo(false);setAgents([]);setSelId(null);setHealth(null);setCronJobs([]);setSessions([]);setConfigRaw(null);setConfigHash(null);setNodes([]);setView('connect');},[client]);
+  const doDisconnect=useCallback(()=>{client?.disconnect();setClient(null);setGwSt('disconnected');setIsDemo(false);setAgents([]);setSelId(null);setHealth(null);setCronJobs([]);setSessions([]);setConfigRaw(null);setConfigHash(null);setNodes([]);setPendingApprovals([]);setLastHeartbeat(null);},[client]);
 
   const filtered=useMemo(()=>{if(!filter.trim())return agents;const q=filter.toLowerCase();return agents.filter(a=>aLbl(a).toLowerCase().includes(q)||a.id.toLowerCase().includes(q));},[agents,filter]);
   const selAgent=useMemo(()=>agents.find(a=>a.id===selId)||null,[agents,selId]);
@@ -1599,12 +1831,12 @@ function App(){
 
 
   const sbItems=()=>{
-    if(nav==='fleet'||nav==='agent')return filtered.map(a=>h('div',{key:a.id,className:`si ${selId===a.id&&nav==='agent'?'on':''}`,onClick:()=>{setSelId(a.id);setNav('agent');}},h('div',{className:'sav'},aEmoji(a)),h('div',{className:'f1',style:{minWidth:0}},h('div',{className:'sn'},aLbl(a)),h('div',{className:'ss'},a.id)),h('div',{className:`sd ${a.isDefault?'ac':'gr'}`})));
-    if(nav==='cron')return cronJobs.map(j=>h('div',{key:j.id||j.name,className:'si'},h('div',{className:'sav'},'⏰'),h('div',{className:'f1',style:{minWidth:0}},h('div',{className:'sn'},j.name),h('div',{className:'ss'},cronSched(j.schedule))),h('div',{className:`sd ${j.enabled?'gr':''}`})));
+    if(nav==='fleet'||nav==='agent')return filtered.map(a=>h('div',{key:a.id,className:`si ${selId===a.id&&nav==='agent'?'on':''}`,onClick:()=>{setSelId(a.id);setNav('agent');}},h('div',{className:'sav'},aEmoji(a)),h('div',{className:'f1',style:{minWidth:0}},h('div',{className:'sn'},aLbl(a)),h('div',{className:'ss'},a.id)),h('div',{className:`sdot ${a.isDefault?'ac':'on'}`})));
+    if(nav==='cron')return cronJobs.map(j=>h('div',{key:j.id||j.name,className:'si'},h('div',{className:'sav'},'⏰'),h('div',{className:'f1',style:{minWidth:0}},h('div',{className:'sn'},j.name),h('div',{className:'ss'},cronSched(j.schedule))),h('div',{className:`sdot ${j.enabled?'on':''}`})));
     if(nav==='sessions')return sessions.map(s=>h('div',{key:s.key,className:'si'},h('div',{className:'sav'},'💬'),h('div',{className:'f1',style:{minWidth:0}},h('div',{className:'sn'},s.agentId||s.key),h('div',{className:'ss'},fmtT(s.updatedAt||s.updatedAtMs)))));
     if(nav==='projects')return (projects||[]).map(p=>h('div',{key:p.slug,className:'si'},h('div',{className:'sav'},'◉'),h('div',{className:'f1',style:{minWidth:0}},h('div',{className:'sn'},p.name||p.slug),h('div',{className:'ss'},p.slug))));
     if(nav==='topology')return agents.map(a=>h('div',{key:a.id,className:'si'},h('div',{className:'sav'},aEmoji(a)),h('div',{className:'f1',style:{minWidth:0}},h('div',{className:'sn'},aLbl(a)),h('div',{className:'ss'},'↔ all'))));
-    if(nav==='nodes')return nodes.map(n=>h('div',{key:n.nodeId,className:'si'},h('div',{className:'sav'},nodePlatformIcon(n.platform)),h('div',{className:'f1',style:{minWidth:0}},h('div',{className:'sn'},n.displayName||n.nodeId),h('div',{className:'ss'},n.connected?'connected':'offline')),h('div',{className:`sd ${n.connected?'on':''}`})));
+    if(nav==='nodes')return nodes.map(n=>h('div',{key:n.nodeId,className:'si'},h('div',{className:'sav'},nodePlatformIcon(n.platform)),h('div',{className:'f1',style:{minWidth:0}},h('div',{className:'sn'},n.displayName||n.nodeId),h('div',{className:'ss'},n.connected?'connected':'offline')),h('div',{className:`sdot ${n.connected?'on':''}`})));
     if(nav==='usage')return[h('div',{key:'c',className:'si'},h('div',{className:'sav'},'💰'),h('div',{className:'f1',style:{minWidth:0}},h('div',{className:'sn'},'Cost & Usage'),h('div',{className:'ss'},'usage.cost · usage.status'))),h('div',{key:'l',className:'si'},h('div',{className:'sav'},'📄'),h('div',{className:'f1',style:{minWidth:0}},h('div',{className:'sn'},'Gateway Logs'),h('div',{className:'ss'},'logs.tail live poll')))];
         if(nav==='config')return[h('div',{key:'cfg',className:'si'},h('div',{className:'sav'},'⚙'),h('div',{className:'f1',style:{minWidth:0}},h('div',{className:'sn'},'Config Editor'),h('div',{className:'ss'},'schema form + raw patch')))];
     return[h('div',{key:'ov',className:'si'},h('div',{className:'sav'},'▤'),h('div',{className:'f1',style:{minWidth:0}},h('div',{className:'sn'},'Fleet Overview'),h('div',{className:'ss'},'stats, health, audit')))];
@@ -1628,17 +1860,33 @@ function App(){
       h('button',{className:'rb',title:'Disconnect',onClick:doDisconnect},'⏏')
     ),
     h('div',{className:'sb'},
-      h('div',{className:'sbh'},h('div',{className:'sbht'},nav==='topology'?'Topology':nav==='sessions'?'Sessions':nav==='cron'?'Cron':nav==='config'?'Config':nav==='nodes'?'Nodes':nav==='usage'?'Usage':nav==='projects'?'Projects':nav==='overview'?'Overview':'Agents'),h('div',{className:'sbhc'},`${agents.length} agents · ${gwSt==='connected'?'live':'offline'}`)),
-      (nav==='fleet'||nav==='agent')&&h('div',{className:'sbs'},h('input',{value:filter,onChange:e=>setFilter(e.target.value),placeholder:'Search agents…'})),
+      h('div',{className:'sbh'},h('div',{className:'sbht'},nav==='topology'?'Topology':nav==='sessions'?'Sessions':nav==='cron'?'Cron':nav==='config'?'Config':nav==='nodes'?'Nodes':nav==='usage'?'Usage':nav==='projects'?'Projects':nav==='overview'?'Overview':'Agents'),h('div',{className:'sbhc'},`${agents.length} agents · ${gwSt==='connected'?'live':gwSt==='reconnecting'?'reconnecting…':'offline'}`)),
+      (nav==='fleet'||nav==='agent')&&h('div',{className:'sbsrch'},h('input',{value:filter,onChange:e=>setFilter(e.target.value),placeholder:'Search agents…'})),
       h('div',{className:'sbl'},sbItems()),
       (nav==='fleet'||nav==='agent')&&h('button',{className:'sbadd',onClick:()=>setShowCreate(true)},'+ New Agent')
     ),
     h('div',{className:'mn'},
       h('div',{className:'tb'},
         h('div',{className:'tbt'},topTitle),
-        h('div',{className:'row',style:{gap:8,flexShrink:0}},
-          configHash&&h('span',{style:{fontSize:9,color:'var(--t3)',fontFamily:'var(--mo)'}},'cfg:'+configHash.slice(0,8)),
-          h('div',{className:'srow'},h('div',{className:`sdot ${gwSt==='connected'?'gr':'re'}`}),h('span',{style:{fontSize:10,color:'var(--t3)',fontFamily:'var(--mo)'}},gwSt==='connected'?'LIVE':'OFFLINE'))
+        h('div',{className:'row',style:{gap:10,flexShrink:0,alignItems:'center'}},
+          pendingApprovals.length>0&&h('div',{
+            style:{display:'flex',alignItems:'center',gap:5,background:'rgba(245,166,35,.15)',border:'1px solid rgba(245,166,35,.35)',borderRadius:'var(--r1)',padding:'3px 9px',cursor:'pointer'},
+            onClick:()=>setNav('overview'),title:'Pending exec approvals'
+          },
+            h('span',{style:{fontSize:12,animation:'apulse 1.2s infinite'}},'🛡'),
+            h('span',{style:{fontFamily:'var(--mono)',fontSize:10,color:'var(--amber)',fontWeight:700}},pendingApprovals.length)
+          ),
+          configHash&&h('span',{style:{fontSize:9,color:'var(--ink4)',fontFamily:'var(--mono)'}},'cfg:'+configHash.slice(0,8)),
+          lastHeartbeat&&gwSt==='connected'&&h('span',{style:{fontSize:9,color:'var(--ink4)',fontFamily:'var(--mono)'}},'♥ '+fmtT(lastHeartbeat)),
+          connAttempt>0&&gwSt==='reconnecting'&&h('span',{style:{fontSize:9,color:'var(--amber)',fontFamily:'var(--mono)'}},'attempt '+connAttempt),
+          gwSt!=='connected'&&!isDemo&&h('button',{className:'btn bts',style:{fontSize:9,padding:'3px 9px',color:'var(--amber)',borderColor:'rgba(245,166,35,.3)'},onClick:()=>{setIsDemo(true);setAgents(MAGS.map((x,i)=>({...x,isDefault:i===0})));setCronJobs(MCRON);setSessions(MSESS);setHealth(MHLTH);setNodes(MNODES);setSelId(MAGS[0].id);pushToast('Demo mode active','warn');}},'DEMO'),
+          isDemo&&h('button',{className:'btn bts',style:{fontSize:9,padding:'3px 9px',color:'var(--red)',borderColor:'rgba(255,68,85,.3)'},onClick:()=>{setIsDemo(false);setAgents([]);setCronJobs([]);setSessions([]);setHealth(null);setNodes([]);}},'EXIT DEMO'),
+          h('div',{className:'srow'},
+            h('div',{className:`sdot2 ${gwSt==='connected'?'gr':gwSt==='reconnecting'?'yw':'re'}`}),
+            h('span',{style:{fontSize:10,color:'var(--ink4)',fontFamily:'var(--mono)'}},
+              gwSt==='connected'?'LIVE':gwSt==='reconnecting'?'RECONNECTING':'OFFLINE'
+            )
+          )
         )
       ),
       h('div',{className:'ct'},
@@ -1650,11 +1898,11 @@ function App(){
         nav==='nodes'?h(NodesTab,{nodes,loading:nodesLd,onLoad:loadNodes,client,isDemo}):
         nav==='usage'?h(UsageLogsWrapper,{client,isDemo}):
                 nav==='projects'?h(ProjectsTab,{projects,loading:projectsLd,agents,onNavAgent:(id)=>{setSelId(id);setNav('agent');}}):
-        h(OverviewTab,{agents,cronJobs,sessions,health,healthLoading:healthLd,onRefreshHealth:loadHealth,isDemo,auditLog,client,onNavAgent:(id)=>{setSelId(id);setNav('agent');}})
+        h(OverviewTab,{agents,cronJobs,sessions,health,healthLoading:healthLd,onRefreshHealth:loadHealth,isDemo,auditLog,client,onNavAgent:(id)=>{setSelId(id);setNav('agent');},pendingApprovals,setPendingApprovals})
       )
     ),
     showCreate&&h(CreateModal,{onClose:()=>setShowCreate(false),onCreate:a=>{setAgents(p=>[...p,a]);setSelId(a.id);setNav('agent');setShowCreate(false);},client,isDemo}),
-    null
+    h(ToastLayer)
   );
 }
 
