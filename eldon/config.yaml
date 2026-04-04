@@ -5,7 +5,7 @@ app:
 llm:
   provider: ${LLM_PROVIDER:minimax}
   chat_model: ${LLM_CHAT_MODEL:MiniMax-Text-01}
-  embedding_model: ${YOUR_EMBED_MODEL:}
+  embedding_model: ${LLM_EMBED_MODEL:}
   base_url: ${OPENAI_BASE_URL:https://api.minimax.io/v1}
 
 memory:
@@ -15,11 +15,11 @@ memory:
 
 connectors:
   cli:
-    enabled: ${CONNECTOR_CLI:true}
+    enabled: ${OPENCLAW_CONNECTOR_CLI:true}
   telegram:
-    enabled: ${CONNECTOR_TELEGRAM:false}
+    enabled: ${OPENCLAW_CONNECTOR_TELEGRAM:false}
   whatsapp:
-    enabled: ${CONNECTOR_WHATSAPP:false}
+    enabled: ${OPENCLAW_CONNECTOR_WHATSAPP:false}
     bridge_url: ${WHATSAPP_BRIDGE_URL:http://127.0.0.1:8181}
     bridge_db: ${WHATSAPP_BRIDGE_DB:/var/lib/wabridge/wabridge.db}
     poll_interval: ${WHATSAPP_POLL_INTERVAL:5}
