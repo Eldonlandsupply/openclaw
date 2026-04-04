@@ -241,10 +241,9 @@ class TestPollLoop:
     @pytest.mark.asyncio
     async def test_poll_loop_enqueues_messages(self):
         """
-        Poll loop must enqueue messages from getUpdates result.
-        Strategy: stop after exactly N calls by setting _running=False inside
-        fake_get so no real timing/sleep is needed. Each fake_get does
-        await asyncio.sleep(0) to yield control so the loop can process.
+        Poll loop uses 'async with self._session.get(...) as resp:', so
+        session.get must return an async context manager directly (not a
+        coroutine). Use a regular (sync) function that returns _mock_response.
         """
         c = _make_connector()
         c._running = True
@@ -252,10 +251,9 @@ class TestPollLoop:
         updates_first = [_text_update(text="looped", uid=1)]
         call_count = 0
 
-        async def fake_get(*args, **kwargs):
+        def fake_get(*args, **kwargs):
             nonlocal call_count
             call_count += 1
-            await asyncio.sleep(0)  # yield to event loop
             if call_count == 1:
                 return _mock_response(_updates_ok(updates_first))
             # Stop the loop on second call
@@ -266,7 +264,9 @@ class TestPollLoop:
         session.get = fake_get
         c._session = session
 
-        await c._poll_loop()
+        with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+            mock_sleep.side_effect = lambda _: asyncio.sleep(0)
+            await c._poll_loop()
 
         assert c._queue.qsize() >= 1
         msg = await c._queue.get()
@@ -275,18 +275,16 @@ class TestPollLoop:
     @pytest.mark.asyncio
     async def test_poll_loop_handles_api_error_gracefully(self):
         """
-        A getUpdates error response must not crash the loop.
-        Strategy: first call returns error, second call stops the loop.
-        asyncio.sleep is patched to a no-op so error backoff doesn't wait.
+        A getUpdates error response (ok=False) must not crash the loop.
+        session.get returns a sync callable that yields async CMs.
         """
         c = _make_connector()
         c._running = True
         call_count = 0
 
-        async def fake_get(*args, **kwargs):
+        def fake_get(*args, **kwargs):
             nonlocal call_count
             call_count += 1
-            await asyncio.sleep(0)
             if call_count == 1:
                 return _mock_response({"ok": False, "description": "Flood control"})
             c._running = False
@@ -384,25 +382,20 @@ class TestLifecycle:
     @pytest.mark.asyncio
     async def test_stop_cancels_poll_task(self):
         c = _make_connector()
-        mock_task = MagicMock()
-        mock_task.done.return_value = False
-        mock_task.cancel = MagicMock()
-        async def fake_await():
-            raise asyncio.CancelledError()
-        mock_task.__await__ = fake_await
-        c._poll_task = mock_task
+        # Use a real asyncio.Task wrapping a coroutine that immediately raises
+        # CancelledError, so stop() can await it safely.
+        async def _noop():
+            await asyncio.sleep(1000)
 
+        task = asyncio.create_task(_noop())
+        c._poll_task = task
         session = MagicMock()
         session.close = AsyncMock()
         c._session = session
 
-        with patch("asyncio.Task.__await__", side_effect=asyncio.CancelledError):
-            try:
-                await c.stop()
-            except asyncio.CancelledError:
-                pass
+        await c.stop()
 
-        mock_task.cancel.assert_called_once()
+        assert task.cancelled()
 
     @pytest.mark.asyncio
     async def test_messages_exits_when_stopped(self):

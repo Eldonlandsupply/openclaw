@@ -501,10 +501,9 @@ class TestFullPipelineIntegration:
             _make_update(chat_id=ALLOWED_CHAT_ID, text="second", uid=2),
         ]
 
-        async def fake_get(*args, **kwargs):
+        def fake_get(*args, **kwargs):
             nonlocal call_count
             call_count += 1
-            await asyncio.sleep(0)  # yield to event loop
             if call_count == 1:
                 return _mock_http_response({"ok": True, "result": updates})
             c._running = False

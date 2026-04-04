@@ -165,19 +165,19 @@ def transition_state(
 
     with _lock:
         if milestone_col:
-            c.execute(f"""
+            cur = c.execute(f"""
                 UPDATE meeting_lifecycle
                 SET state=?, last_error=?, retry_count = retry_count + ?,
                     {milestone_col} = COALESCE({milestone_col}, ?)
                 WHERE meeting_id=?
             """, (new_state.value, error, 1 if increment_retry else 0, now, meeting_id))
         else:
-            c.execute("""
+            cur = c.execute("""
                 UPDATE meeting_lifecycle
                 SET state=?, last_error=?, retry_count = retry_count + ?
                 WHERE meeting_id=?
             """, (new_state.value, error, 1 if increment_retry else 0, meeting_id))
-        updated = c.rowcount > 0
+        updated = cur.rowcount > 0
         c.commit()
 
     if updated:
@@ -239,11 +239,11 @@ def mark_cancelled(calendar_event_id: str) -> bool:
     c = _get_conn()
     now = _now()
     with _lock:
-        c.execute("""
+        cur = c.execute("""
             UPDATE meeting_lifecycle SET state='cancelled', cancelled_at=?
             WHERE calendar_event_id=? AND state NOT IN ('cancelled','failed','followup_drafted')
         """, (now, calendar_event_id))
-        updated = c.rowcount > 0
+        updated = cur.rowcount > 0
         c.commit()
     if updated:
         logger.info("Meeting cancelled calendar_event_id=%s", calendar_event_id)
