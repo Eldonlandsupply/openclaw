@@ -232,6 +232,7 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 .muted{color:var(--ink4)}.mono{font-family:var(--mono)}
 ::selection{background:rgba(245,166,35,.25);color:var(--ink)}
 code{font-family:var(--mono);font-size:.9em;background:var(--bg4);border:1px solid var(--wire);border-radius:3px;padding:1px 5px;color:var(--amber)}
+@keyframes fadeSlideIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
 </style>
 </head>
@@ -378,10 +379,46 @@ const MEXA={
   file:{version:1,defaults:{security:'deny',ask:'on-miss',autoAllowSkills:true},
     agents:{main:{security:'allowlist',ask:'on-miss',allowlist:[{id:'e1',pattern:'git *',lastUsedAt:Date.now()-3600000},{id:'e2',pattern:'npm *'},{id:'e3',pattern:'ls *'}]},codebot:{security:'full',ask:'off',allowlist:[]}}}
 };
-// ConnectScreen: enter gateway URL + token to connect
+// ── GLOBAL TOAST ─────────────────────────────────────────────────
+// Module-level bus: any component calls pushToast(msg, type) without prop-drilling.
+const _toastBus=new Set();
+function pushToast(msg,type='ok'){
+  const id=Date.now()+Math.random();
+  _toastBus.forEach(fn=>fn({id,msg,type}));
+}
+function ToastLayer(){
+  const[toasts,setToasts]=useState([]);
+  useEffect(()=>{
+    const fn=(t)=>{
+      setToasts(prev=>[...prev.slice(-4),t]);
+      setTimeout(()=>setToasts(prev=>prev.filter(x=>x.id!==t.id)),3500);
+    };
+    _toastBus.add(fn);
+    return()=>_toastBus.delete(fn);
+  },[]);
+  if(!toasts.length)return null;
+  return h('div',{style:{position:'fixed',bottom:20,right:20,display:'flex',flexDirection:'column',gap:6,zIndex:500,pointerEvents:'none'}},
+    toasts.map(t=>h('div',{key:t.id,style:{
+      background:t.type==='err'?'var(--red2)':t.type==='warn'?'var(--amber3)':'var(--green2)',
+      border:`1px solid ${t.type==='err'?'rgba(255,68,85,.3)':t.type==='warn'?'rgba(245,166,35,.3)':'rgba(0,208,132,.3)'}`,
+      borderRadius:'var(--r2)',padding:'9px 14px',
+      fontFamily:'var(--mono)',fontSize:11,
+      color:t.type==='err'?'var(--red)':t.type==='warn'?'var(--amber)':'var(--green)',
+      boxShadow:'0 4px 16px rgba(0,0,0,.5)',
+      animation:'fadeSlideIn .18s ease',
+      minWidth:220,maxWidth:360,
+    }},t.msg))
+  );
+}
 // ── HEALTH PANEL ─────────────────────────────────────────────────
 function HealthPanel({health,loading,onRefresh}){
-  if(!health)return h('div',{className:'card'},h('div',{className:'ch'},h('span',{className:'cht'},'Gateway Health'),h('button',{className:'btn bts',onClick:onRefresh,disabled:loading},'Load')),h('div',{className:'cb'},h('div',{className:'emp'},h('div',{className:'empi'},'💊'),h('div',{className:'emps'},'Click Load to fetch health data'))));
+  if(!health)return h('div',{className:'card'},
+    h('div',{className:'ch'},h('span',{className:'cht'},'Gateway Health'),h('button',{className:'btn bts',onClick:onRefresh,disabled:loading},'Load')),
+    h('div',{className:'cb'},h('div',{className:'emp'},
+      loading?h('span',{className:'spin'}):h('div',{className:'empi'},'💊'),
+      h('div',{className:'emps'},loading?'Loading health…':'Awaiting gateway connection')
+    ))
+  );
   const ok=Object.values(health.checks||{}).every(c=>c.ok);
   return h('div',{className:'card'},
     h('div',{className:'ch'},h('span',{className:'cht'},'Gateway Health'),h('div',{className:'row',style:{gap:6}},h('span',{className:`pill ${ok?'po':'pw'}`},ok?'Healthy':'Degraded'),h('button',{className:'btn bts',onClick:onRefresh,disabled:loading},'Refresh'))),
@@ -412,7 +449,8 @@ function OverviewTab({agents,cronJobs,sessions,health,healthLoading,onRefreshHea
         catch(er){const job=cronJobs.find(j=>j.agentId===a.id&&j.enabled);if(job){await client.req('cron.run',{id:job.id});pushA('event','cron.run',`${a.id} via ${job.name}`);}else throw new Error('no runnable job');}
       } else {pushA('event','agent.run',`${a.id} (demo)`);}
       setWakeResults(p=>({...p,[a.id]:'\u2713'}));
-    }catch{setWakeResults(p=>({...p,[a.id]:'\u2717'}));}
+      pushToast(`${aLbl(a)} woken`,'ok');
+    }catch(e){setWakeResults(p=>({...p,[a.id]:'\u2717'}));pushToast(`Wake failed: ${e.message}`,'err');}
     setWakingId(null);setTimeout(()=>setWakeResults(p=>{const n={...p};delete n[a.id];return n;}),3000);
   };
   return h(Fragment,null,
@@ -498,7 +536,8 @@ function ToolPolicyPanel({agentId,configRaw,configHash,configLoading,client,isDe
         pushA('update','config.patch',`${agentId} tools (demo)`);
       }
       setMsg('Tool policy written via config.patch ✓');setShowDiff(false);
-    }catch(e){setMsg('Error: '+e.message);}
+      pushToast('Tool policy saved','ok');
+    }catch(e){setMsg('Error: '+e.message);pushToast('Save failed: '+e.message,'err');}
     setSaving(false);
   };
 
@@ -1243,7 +1282,11 @@ function LolaPanel({client,isDemo}){
   },[client,isDemo]);
   useEffect(()=>{load();},[load]);
   if(ld)return h('div',{className:'emp'},h('div',{className:'empi'},'💼'),h('div',{className:'empt'},'Loading Lola…'));
-  if(err)return h('div',{className:'callout err'},err);
+  if(err)return h('div',{className:'col',style:{gap:8}},
+    h('div',{className:'callout warn'},'⚠ Lola panel requires the ',h('code',null,'lola.status'),' gateway extension. This may not be installed on your gateway.'),
+    h('div',{className:'callout err',style:{fontSize:10}},err),
+    h('button',{className:'btn btp bts',onClick:load},'Retry')
+  );
   if(!queue)return h('div',{className:'emp'},h('div',{className:'empi'},'💼'),h('div',{className:'emps'},'No data available'));
   const fmt=ms=>new Date(ms).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   const fmtAge=ms=>{const s=Math.floor((Date.now()-ms)/1000);if(s<60)return `${s}s ago`;if(s<3600)return `${Math.floor(s/60)}m ago`;return `${Math.floor(s/3600)}h ago`;};
@@ -1264,8 +1307,22 @@ function LolaPanel({client,isDemo}){
           ),
           h('div',{style:{fontSize:11,color:'var(--t2)',marginBottom:6}},item.summary),
           h('div',{className:'row',style:{gap:6}},
-            h('button',{className:'btn bts bto',style:{fontSize:10,padding:'3px 10px'},disabled:acting===item.id,onClick:async()=>{setActing(item.id);if(!isDemo&&client)try{await client.req('lola.approve',{id:item.id});}catch(e){setErr(e.message);}setActing('');load();}},'✓ Approve'),
-            h('button',{className:'btn bts btd',style:{fontSize:10,padding:'3px 10px'},disabled:acting===item.id,onClick:async()=>{setActing(item.id);if(!isDemo&&client)try{await client.req('lola.reject',{id:item.id});}catch(e){setErr(e.message);}setActing('');load();}},'✕ Reject'),
+            h('button',{className:'btn bts bto',style:{fontSize:10,padding:'3px 10px'},disabled:acting===item.id,onClick:async()=>{
+              setActing(item.id);
+              try{
+                if(!isDemo&&client)await client.req('exec.approval.resolve',{id:item.id,decision:'allow-once'});
+                pushToast('Lola action approved','ok');
+              }catch(e){setErr(e.message);pushToast('Approve failed: '+e.message,'err');}
+              setActing('');load();
+            }},'✓ Approve'),
+            h('button',{className:'btn bts btd',style:{fontSize:10,padding:'3px 10px'},disabled:acting===item.id,onClick:async()=>{
+              setActing(item.id);
+              try{
+                if(!isDemo&&client)await client.req('exec.approval.resolve',{id:item.id,decision:'deny'});
+                pushToast('Lola action rejected','warn');
+              }catch(e){setErr(e.message);pushToast('Reject failed: '+e.message,'err');}
+              setActing('');load();
+            }},'✕ Reject'),
           )
         ))
       ))
@@ -1315,6 +1372,13 @@ function LolaPanel({client,isDemo}){
 function LiveApprovalsPanel({pendingApprovals,setPendingApprovals,client,isDemo}){
   const[acting,setActing]=useState({});
   const[msgs,setMsgs]=useState({});
+  const[now,setNow]=useState(Date.now());
+  // Tick every second so expiry countdowns stay live
+  useEffect(()=>{
+    if(!pendingApprovals.length)return;
+    const t=setInterval(()=>setNow(Date.now()),1000);
+    return()=>clearInterval(t);
+  },[pendingApprovals.length]);
 
   const resolve=async(id,decision)=>{
     setActing(p=>({...p,[id]:decision}));
@@ -1324,8 +1388,10 @@ function LiveApprovalsPanel({pendingApprovals,setPendingApprovals,client,isDemo}
         pushA('event','exec.approval.resolve',`${id} → ${decision}`);
       }
       setPendingApprovals(prev=>prev.filter(p=>p.id!==id));
+      pushToast(`Exec approval: ${decision}`,'ok');
     }catch(e){
       setMsgs(p=>({...p,[id]:'Error: '+e.message}));
+      pushToast('Approval failed: '+e.message,'err');
     }
     setActing(p=>{const n={...p};delete n[id];return n;});
   };
@@ -1345,7 +1411,7 @@ function LiveApprovalsPanel({pendingApprovals,setPendingApprovals,client,isDemo}
         pendingApprovals.map(item=>{
           const req=item.request||{};
           const busy=!!acting[item.id];
-          const expiresIn=item.expiresAtMs?Math.max(0,Math.round((item.expiresAtMs-Date.now())/1000)):null;
+          const expiresIn=item.expiresAtMs?Math.max(0,Math.round((item.expiresAtMs-now)/1000)):null;
           return h('div',{key:item.id,style:{background:'var(--bg3)',border:'1px solid var(--wire2)',borderRadius:'var(--r2)',padding:'12px 14px'}},
             h('div',{className:'row',style:{justifyContent:'space-between',marginBottom:6}},
               h('div',{style:{fontFamily:'var(--mono)',fontSize:12,color:'var(--ink)',fontWeight:600,wordBreak:'break-all',flex:1,marginRight:8}},req.command||item.id),
@@ -1395,7 +1461,8 @@ function AgentDetail({agent,client,isDemo,onUpdated,configRaw,configHash,configL
         pushA('event','agent.run',`${agent.id} woken (demo)`);
       }
       setWakeMsg('✓ Agent woken');
-    }catch(e){setWakeMsg('✗ '+e.message);}
+      pushToast(`${aLbl(agent)} woken`,'ok');
+    }catch(e){setWakeMsg('✗ '+e.message);pushToast('Wake failed: '+e.message,'err');}
     setWaking(false);setTimeout(()=>setWakeMsg(''),3500);
   };
   const saveAgent=async()=>{
@@ -1627,6 +1694,15 @@ function App(){
             // Reload cron jobs when cron event fires
             c.req('cron.list',{includeDisabled:true}).then(r=>setCronJobs(r.jobs||[])).catch(()=>{});
             break;
+          case 'chat':
+            // Reload sessions on any chat activity so session list stays current
+            c.req('sessions.list',{limit:50}).then(r=>setSessions(r.sessions||[])).catch(()=>{});
+            break;
+          case 'node.pair.requested':
+          case 'node.pair.approved':
+          case 'node.pair.rejected':
+            c.req('node.list',{}).then(r=>setNodes(r.nodes||[])).catch(()=>{});
+            break;
           case 'exec.approval.requested':
             if(payload?.id){
               setPendingApprovals(prev=>{
@@ -1803,6 +1879,8 @@ function App(){
           configHash&&h('span',{style:{fontSize:9,color:'var(--ink4)',fontFamily:'var(--mono)'}},'cfg:'+configHash.slice(0,8)),
           lastHeartbeat&&gwSt==='connected'&&h('span',{style:{fontSize:9,color:'var(--ink4)',fontFamily:'var(--mono)'}},'♥ '+fmtT(lastHeartbeat)),
           connAttempt>0&&gwSt==='reconnecting'&&h('span',{style:{fontSize:9,color:'var(--amber)',fontFamily:'var(--mono)'}},'attempt '+connAttempt),
+          gwSt!=='connected'&&!isDemo&&h('button',{className:'btn bts',style:{fontSize:9,padding:'3px 9px',color:'var(--amber)',borderColor:'rgba(245,166,35,.3)'},onClick:()=>{setIsDemo(true);setAgents(MAGS.map((x,i)=>({...x,isDefault:i===0})));setCronJobs(MCRON);setSessions(MSESS);setHealth(MHLTH);setNodes(MNODES);setSelId(MAGS[0].id);pushToast('Demo mode active','warn');}},'DEMO'),
+          isDemo&&h('button',{className:'btn bts',style:{fontSize:9,padding:'3px 9px',color:'var(--red)',borderColor:'rgba(255,68,85,.3)'},onClick:()=>{setIsDemo(false);setAgents([]);setCronJobs([]);setSessions([]);setHealth(null);setNodes([]);}},'EXIT DEMO'),
           h('div',{className:'srow'},
             h('div',{className:`sdot2 ${gwSt==='connected'?'gr':gwSt==='reconnecting'?'yw':'re'}`}),
             h('span',{style:{fontSize:10,color:'var(--ink4)',fontFamily:'var(--mono)'}},
@@ -1824,7 +1902,7 @@ function App(){
       )
     ),
     showCreate&&h(CreateModal,{onClose:()=>setShowCreate(false),onCreate:a=>{setAgents(p=>[...p,a]);setSelId(a.id);setNav('agent');setShowCreate(false);},client,isDemo}),
-    null
+    h(ToastLayer)
   );
 }
 
