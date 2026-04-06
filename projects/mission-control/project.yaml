@@ -28,7 +28,7 @@ tags:
 
 related_source: mission-control/
 
-related_agents: []  # Mission Control itself is not an agent; it governs agents.
+related_agents: [] # Mission Control itself is not an agent; it governs agents.
 
 related_workflows:
   - connect-to-gateway

@@ -3,10 +3,10 @@ name: Validate Project Bindings
 on:
   push:
     paths:
-      - 'projects/**'
+      - "projects/**"
   pull_request:
     paths:
-      - 'projects/**'
+      - "projects/**"
 
 jobs:
   validate:
@@ -18,7 +18,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "3.12"
 
       - name: Install dependencies
         run: pip install pyyaml jsonschema

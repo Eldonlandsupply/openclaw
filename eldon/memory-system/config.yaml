@@ -31,14 +31,14 @@ exclude_patterns:
   - "*.egg-info"
 
 # Chunking
-max_chunk_size: 500       # tokens approx
+max_chunk_size: 500 # tokens approx
 chunk_overlap: 50
 
 # Embedding backend (tried in order)
 embedding_backends:
-  - openai                # uses OPENROUTER_API_KEY + base_url
+  - openai # uses OPENROUTER_API_KEY + base_url
   - sentence_transformers # offline fallback
-  - tfidf                 # last resort, no deps
+  - tfidf # last resort, no deps
 
 # OpenAI-compatible embedding endpoint
 openai_embed_model: text-embedding-3-small
@@ -51,7 +51,7 @@ st_model: all-MiniLM-L6-v2
 vector_db: chroma
 
 # Background daemon
-scan_interval_seconds: 600   # 10 minutes
+scan_interval_seconds: 600 # 10 minutes
 
 # Search
 top_k: 8

@@ -14,7 +14,8 @@ export class InboxAgent {
   }
 
   draftFromTriaged(items: InboxTriageItem[], now = new Date()): MemoryDraftRecord[] {
-    if (!this.memory) {
+    const memory = this.memory;
+    if (!memory) {
       return items.map((item) => ({
         id: item.id,
         text: `Draft for: ${item.subject}`,
@@ -26,7 +27,7 @@ export class InboxAgent {
     }
 
     return items.map((item) =>
-      this.memory.writeDraft(
+      memory.writeDraft(
         {
           id: item.id,
           text: `Draft for: ${item.subject}`,

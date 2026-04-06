@@ -25,10 +25,10 @@ no architectural benefit.
 
 ## Required env vars
 
-| Variable | Description |
-|----------|-------------|
+| Variable                | Description                                                              |
+| ----------------------- | ------------------------------------------------------------------------ |
 | `SUPABASE_ACCESS_TOKEN` | Personal access token from https://supabase.com/dashboard/account/tokens |
-| `SUPABASE_PROJECT_REF` | Project ID from Supabase Dashboard → Settings → General |
+| `SUPABASE_PROJECT_REF`  | Project ID from Supabase Dashboard → Settings → General                  |
 
 Set in `/opt/openclaw/.env` (Pi) or local `.env`:
 

@@ -88,6 +88,16 @@ export function readStringOrNumberParam(
 export function readNumberParam(
   params: Record<string, unknown>,
   key: string,
+  options: { required: true; label?: string; integer?: boolean },
+): number;
+export function readNumberParam(
+  params: Record<string, unknown>,
+  key: string,
+  options?: { required?: boolean; label?: string; integer?: boolean },
+): number | undefined;
+export function readNumberParam(
+  params: Record<string, unknown>,
+  key: string,
   options: { required?: boolean; label?: string; integer?: boolean } = {},
 ): number | undefined {
   const { required = false, label = key, integer = false } = options;

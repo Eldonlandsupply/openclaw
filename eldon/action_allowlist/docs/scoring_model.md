@@ -14,6 +14,7 @@ composite = (
 ```
 
 Penalties:
+
 - execution_mode == manual_only: -2.0
 - no owner assigned: -1.5
 - no trigger_definition: -1.0
@@ -21,6 +22,7 @@ Penalties:
 Score range: 0–10. Top 100 maintained by composite score descending.
 
 ## Weight Rationale
+
 Profit impact weighted heaviest (30%) — this is a profit-maximization system, not an activity tracker.
 Time saved second (20%) — executive leverage is the primary mechanism for profit impact.
 Frequency third (15%) — high-frequency automations compound in value.

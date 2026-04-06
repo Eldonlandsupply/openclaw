@@ -59,7 +59,11 @@ export const GitHubActionRequestSchema = z
         allowAutoApproveHighRisk: z.boolean().default(false),
         allowMessagingWrites: z.boolean().default(false),
       })
-      .default({}),
+      .default(() => ({
+        allowAutoApproveWrites: false,
+        allowAutoApproveHighRisk: false,
+        allowMessagingWrites: false,
+      })),
   })
   .strict();
 

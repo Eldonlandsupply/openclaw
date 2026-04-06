@@ -9,7 +9,8 @@ export class CalendarAgent {
   }
 
   draftCalendarNotes(events: CalendarRiskItem[], now = new Date()): DraftRecord[] {
-    if (!this.memory) {
+    const memory = this.memory;
+    if (!memory) {
       return events.map((event) => ({
         id: event.id,
         text: `Prep for: ${event.title}`,
@@ -21,7 +22,7 @@ export class CalendarAgent {
     }
 
     return events.map((event) =>
-      this.memory.writeDraft(
+      memory.writeDraft(
         {
           id: event.id,
           text: `Prep for: ${event.title}`,

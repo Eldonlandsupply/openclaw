@@ -24,12 +24,12 @@ No local install required — the server runs at `https://mcp.supabase.com/mcp`.
 
 ## MCP server URL patterns
 
-| Mode | URL |
-|------|-----|
-| Read-only, project-scoped (recommended) | `https://mcp.supabase.com/mcp?project_ref=<ref>&read_only=true` |
-| Read-only, all projects | `https://mcp.supabase.com/mcp?read_only=true` |
-| Read-write, project-scoped | `https://mcp.supabase.com/mcp?project_ref=<ref>` |
-| Feature-restricted | `https://mcp.supabase.com/mcp?project_ref=<ref>&read_only=true&features=database,docs` |
+| Mode                                    | URL                                                                                    |
+| --------------------------------------- | -------------------------------------------------------------------------------------- |
+| Read-only, project-scoped (recommended) | `https://mcp.supabase.com/mcp?project_ref=<ref>&read_only=true`                        |
+| Read-only, all projects                 | `https://mcp.supabase.com/mcp?read_only=true`                                          |
+| Read-write, project-scoped              | `https://mcp.supabase.com/mcp?project_ref=<ref>`                                       |
+| Feature-restricted                      | `https://mcp.supabase.com/mcp?project_ref=<ref>&read_only=true&features=database,docs` |
 
 Replace `<ref>` with your Project ID from Supabase Dashboard → Settings → General.
 
@@ -41,12 +41,14 @@ The MCP server uses OAuth 2.1. The gateway authenticates via `SUPABASE_ACCESS_TO
 (a personal access token from https://supabase.com/dashboard/account/tokens).
 
 Set in `.env`:
+
 ```
 SUPABASE_ACCESS_TOKEN=sbp_...
 SUPABASE_PROJECT_REF=abcdefghijklmnop
 ```
 
 Wire into `~/.openclaw/openclaw.json`:
+
 ```json5
 {
   skills: {
@@ -68,6 +70,7 @@ Wire into `~/.openclaw/openclaw.json`:
 ## Available tools (by feature group)
 
 **database** (default on)
+
 - `list_tables` — list tables in specified schemas
 - `list_extensions` — list installed Postgres extensions
 - `list_migrations` — list applied migrations
@@ -75,30 +78,37 @@ Wire into `~/.openclaw/openclaw.json`:
 - `execute_sql` — run arbitrary SQL ⚠️ write when not read-only
 
 **debugging** (default on)
+
 - `get_logs` — fetch service logs (api, postgres, auth, storage, realtime, edge functions)
 - `get_advisors` — security/performance advisory notices
 
 **development** (default on)
+
 - `get_project_url` — get the project API URL
 - `get_publishable_keys` — get anon/publishable keys (client-safe)
 - `generate_typescript_types` — generate TS types from schema
 
 **docs** (default on)
+
 - `search_docs` — search Supabase documentation
 
 **functions** (default on)
+
 - `list_edge_functions` — list deployed edge functions
 - `get_edge_function` — get edge function source
 - `deploy_edge_function` — deploy/update an edge function ⚠️ write
 
 **account** (default on, disabled when project_ref is set)
+
 - `list_projects`, `get_project`, `create_project`, `pause_project`, `restore_project`
 - `list_organizations`, `get_organization`
 
 **branching** (default on, paid plan only)
+
 - `create_branch`, `list_branches`, `merge_branch`, `delete_branch`, `reset_branch`, `rebase_branch`
 
 **storage** (disabled by default)
+
 - `list_storage_buckets`, `get_storage_config`, `update_storage_config`
 
 ---

@@ -4,7 +4,7 @@
 **Source files:** `eldon/` (repo root)  
 **Status:** Active — Production  
 **Owner:** Eldonlandsupply  
-**Deployment:** Raspberry Pi at Eldon Land Supply, systemd service `openclaw.service`  
+**Deployment:** Raspberry Pi at Eldon Land Supply, systemd service `openclaw.service`
 
 ---
 
@@ -18,7 +18,7 @@ to the actual business communication channels and systems.
 **Channels:** Telegram, Gmail, Outlook  
 **Actions:** Top 100 business automation actions, risk-gated  
 **Integrations:** Attio CRM  
-**Memory:** Semantic search with ChromaDB/FAISS  
+**Memory:** Semantic search with ChromaDB/FAISS
 
 ---
 
@@ -34,20 +34,21 @@ Python runtime implements the Eldon-specific orchestration on top.
 
 ## What Systems It Touches
 
-| System | How |
-|--------|-----|
-| Telegram | Bot API via telegram connector |
-| Gmail | Gmail connector with OAuth |
-| Outlook | Outlook connector via MSAL |
-| Attio CRM | REST API via `eldon/src/openclaw/integrations/attio/` |
-| OpenClaw Gateway | Optional; runtime can run standalone |
-| systemd (Pi) | `eldon/deploy/systemd/openclaw.service` |
+| System           | How                                                   |
+| ---------------- | ----------------------------------------------------- |
+| Telegram         | Bot API via telegram connector                        |
+| Gmail            | Gmail connector with OAuth                            |
+| Outlook          | Outlook connector via MSAL                            |
+| Attio CRM        | REST API via `eldon/src/openclaw/integrations/attio/` |
+| OpenClaw Gateway | Optional; runtime can run standalone                  |
+| systemd (Pi)     | `eldon/deploy/systemd/openclaw.service`               |
 
 ---
 
 ## How to Run It
 
 ### On the Raspberry Pi (production)
+
 ```bash
 # Status
 sudo systemctl status openclaw
@@ -62,6 +63,7 @@ journalctl -u openclaw -f
 ```
 
 ### Local development
+
 ```bash
 cd eldon
 cp config/env.example .env
@@ -71,6 +73,7 @@ python -m src.openclaw.main
 ```
 
 ### Pi bootstrap (first-time)
+
 ```bash
 bash eldon/scripts/pi/bootstrap.sh
 bash eldon/scripts/pi/install.sh
@@ -81,18 +84,18 @@ bash eldon/scripts/pi/install_service.sh
 
 ## Authoritative Files
 
-| File | Purpose |
-|------|---------|
-| `eldon/src/openclaw/main.py` | Entry point |
-| `eldon/src/openclaw/config.py` | Configuration loader |
-| `eldon/config/config.yaml` | Runtime config (committed template) |
-| `eldon/config/env.example` | Environment variable template |
-| `eldon/action_allowlist/config.yaml` | Top 100 action allowlist governance |
-| `eldon/gateway/app/gateway/pipeline.py` | Request pipeline |
-| `eldon/gateway/app/gateway/risk.py` | Risk scoring engine |
-| `eldon/memory-system/` | Semantic memory subsystem |
-| `eldon/docs/operations.md` | Operations runbook |
-| `eldon/scripts/doctor.py` | Health diagnostic tool |
+| File                                    | Purpose                             |
+| --------------------------------------- | ----------------------------------- |
+| `eldon/src/openclaw/main.py`            | Entry point                         |
+| `eldon/src/openclaw/config.py`          | Configuration loader                |
+| `eldon/config/config.yaml`              | Runtime config (committed template) |
+| `eldon/config/env.example`              | Environment variable template       |
+| `eldon/action_allowlist/config.yaml`    | Top 100 action allowlist governance |
+| `eldon/gateway/app/gateway/pipeline.py` | Request pipeline                    |
+| `eldon/gateway/app/gateway/risk.py`     | Risk scoring engine                 |
+| `eldon/memory-system/`                  | Semantic memory subsystem           |
+| `eldon/docs/operations.md`              | Operations runbook                  |
+| `eldon/scripts/doctor.py`               | Health diagnostic tool              |
 
 ---
 
@@ -118,7 +121,7 @@ python eldon/action_allowlist/scripts/validate_actions.py
 
 1. **Single Pi deployment** — no redundancy. If the Pi fails, the service stops.
 2. **Secrets in .env** — rotated manually. No secrets manager integration.
-3. **Memory store not backed up** — ChromaDB/FAISS data in `/opt/openclaw/data/` 
+3. **Memory store not backed up** — ChromaDB/FAISS data in `/opt/openclaw/data/`
    should be backed up on a schedule.
 4. **Action allowlist governance** — new actions require manual audit and scoring
    before inclusion. Process is documented but not enforced by CI.

@@ -185,20 +185,20 @@ export function normalizeWhatsAppEvent(payload: unknown): WhatsAppNormalizedEven
 export function normalizeGraphNotifications(payload: unknown): GraphNormalizedNotification[] {
   const body = typeof payload === "object" && payload ? (payload as Record<string, unknown>) : {};
   const value = Array.isArray(body.value) ? body.value : [];
-  return value
-    .map((item) => {
-      if (!item || typeof item !== "object") {
-        return null;
-      }
-      const entry = item as Record<string, unknown>;
-      return {
-        subscriptionId: typeof entry.subscriptionId === "string" ? entry.subscriptionId : undefined,
-        tenantId: typeof entry.tenantId === "string" ? entry.tenantId : undefined,
-        resource: typeof entry.resource === "string" ? entry.resource : undefined,
-        changeType: typeof entry.changeType === "string" ? entry.changeType : undefined,
-      } satisfies GraphNormalizedNotification;
-    })
-    .filter((item): item is GraphNormalizedNotification => item !== null);
+  const result: GraphNormalizedNotification[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object") {
+      continue;
+    }
+    const entry = item as Record<string, unknown>;
+    result.push({
+      subscriptionId: typeof entry.subscriptionId === "string" ? entry.subscriptionId : undefined,
+      tenantId: typeof entry.tenantId === "string" ? entry.tenantId : undefined,
+      resource: typeof entry.resource === "string" ? entry.resource : undefined,
+      changeType: typeof entry.changeType === "string" ? entry.changeType : undefined,
+    });
+  }
+  return result;
 }
 
 function createDefaultDispatcher(): WebhookEventDispatcher {

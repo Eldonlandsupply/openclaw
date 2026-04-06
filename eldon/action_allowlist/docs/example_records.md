@@ -135,5 +135,15 @@ Rule applied: Activity ≠ value. Reject any action where the primary beneficiar
 ## 7. Audit Log Entry
 
 ```jsonl
-{"ts":"2025-01-15T06:30:01Z","action_id":"ACT-0002","action_name":"daily_priority_brief","trigger":"scheduled","mode":"auto_execute","outcome":"success","output_summary":"Brief delivered: 3 decisions [contract renewal, vendor deadline, stale deal ACT-0001], 2 risks [permit stall day 11, invoice overdue $14k], 4 open commitments","approved_by":null,"execution_ms":1240}
+{
+  "ts": "2025-01-15T06:30:01Z",
+  "action_id": "ACT-0002",
+  "action_name": "daily_priority_brief",
+  "trigger": "scheduled",
+  "mode": "auto_execute",
+  "outcome": "success",
+  "output_summary": "Brief delivered: 3 decisions [contract renewal, vendor deadline, stale deal ACT-0001], 2 risks [permit stall day 11, invoice overdue $14k], 4 open commitments",
+  "approved_by": null,
+  "execution_ms": 1240
+}
 ```
