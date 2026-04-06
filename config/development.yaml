@@ -1,0 +1,4 @@
+app:
+  api_host: 127.0.0.1
+scheduler:
+  tick_seconds: 15

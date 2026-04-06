@@ -1,0 +1,55 @@
+[build-system]
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "openclaw"
+version = "0.1.0"
+description = "OpenClaw Python runtime configuration"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+  "pydantic>=2.11.0,<3.0.0",
+  "pydantic-settings>=2.11.0,<3.0.0",
+  "python-dotenv>=1.1.0,<2.0.0",
+  "PyYAML>=6.0.2,<7.0.0",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.4.0,<9.0.0",
+  "pytest-cov>=6.2.0,<7.0.0",
+  "mypy>=1.18.0,<2.0.0",
+  "ruff>=0.13.0,<1.0.0",
+  "pre-commit>=4.3.0,<5.0.0",
+  "types-PyYAML>=6.0.12.20250822,<7.0.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["src", "tests", "scripts"]
+include = ["src/openclaw/**/*.py", "tests/**/*.py", "scripts/preflight.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N", "S"]
+ignore = ["S603", "S607"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.11"
+mypy_path = ["src"]
+strict = true
+warn_unused_configs = true
+show_error_codes = true
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101"]

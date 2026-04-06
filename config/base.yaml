@@ -1,0 +1,7 @@
+app:
+  app_name: openclaw
+  api_host: 127.0.0.1
+  api_port: 18789
+  default_agent: default
+scheduler:
+  tick_seconds: 30
