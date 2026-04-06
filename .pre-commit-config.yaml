@@ -103,3 +103,22 @@ repos:
         language: system
         pass_filenames: false
         types: [swift]
+
+  # Python quality gates
+  - repo: local
+    hooks:
+      - id: ruff-fix
+        name: ruff --fix
+        entry: uv run ruff check --fix .
+        language: system
+        pass_filenames: false
+      - id: ruff-format
+        name: ruff format
+        entry: uv run ruff format .
+        language: system
+        pass_filenames: false
+      - id: mypy
+        name: mypy
+        entry: uv run mypy src
+        language: system
+        pass_filenames: false

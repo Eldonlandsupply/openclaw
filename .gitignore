@@ -73,7 +73,6 @@ docs/.local/
 IDENTITY.md
 USER.md
 .tgz
-.idea
 
 # local tooling
 .serena/
@@ -106,3 +105,24 @@ config/ngrok/*.local.yaml
 **/token-cache.json
 **/token-cache.enc.json
 ~/.openclaw/credentials/
+
+# Python runtime and tooling
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+*.egg-info/
+
+# Runtime directories
+var/logs/*
+!var/logs/.gitkeep
+var/tmp/*
+!var/tmp/.gitkeep
+var/cache/*
+!var/cache/.gitkeep
+
+# Keep shared PyCharm run configs only
+.idea/*
+!.idea/runConfigurations/
+!.idea/runConfigurations/*.xml
