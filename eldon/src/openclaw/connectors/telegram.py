@@ -148,7 +148,9 @@ class TelegramConnector(BaseConnector):
             "Telegram message received",
             extra={"chat_id": chat_id, "text_len": len(text)},
         )
-        await self._queue.put(Message(text=text, source="telegram", chat_id=str(chat_id)))
+        await self._queue.put(
+            Message(text=text, source="telegram", chat_id=str(chat_id))
+        )
 
     async def messages(self) -> AsyncIterator[Message]:
         while True:
@@ -163,7 +165,7 @@ class TelegramConnector(BaseConnector):
         """Send text to chat_id with auto-chunking and retry on transient errors."""
         if not chat_id or not self._session:
             return
-        chunks = [text[i: i + _MAX_MSG_LEN] for i in range(0, len(text), _MAX_MSG_LEN)]
+        chunks = [text[i : i + _MAX_MSG_LEN] for i in range(0, len(text), _MAX_MSG_LEN)]
         for chunk in chunks:
             await self._send_chunk(chat_id, chunk)
 

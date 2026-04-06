@@ -2,6 +2,7 @@ import time
 from collections import defaultdict, deque
 from .config import MessagingConfig
 
+
 class MessagePolicy:
     def __init__(self, config: MessagingConfig):
         self.config = config

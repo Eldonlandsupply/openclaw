@@ -153,7 +153,10 @@ def resolve_llm_provider(
 
     # Explicit contradiction checks: reject mismatched base URLs
     if resolved_provider == "minimax" and cleaned_base_url:
-        if _looks_like_openrouter_base(cleaned_base_url) or "minimax" not in cleaned_base_url.lower():
+        if (
+            _looks_like_openrouter_base(cleaned_base_url)
+            or "minimax" not in cleaned_base_url.lower()
+        ):
             raise LLMProviderResolutionError(
                 f"Invalid config: provider=minimax cannot use base_url={cleaned_base_url!r}. "
                 f"The base URL must be a MiniMax endpoint."
@@ -169,7 +172,9 @@ def resolve_llm_provider(
     # Contradiction check: selected provider key missing but another provider's key present
     _check_contradictory_env(resolved_provider, env_map)
 
-    api_key, api_key_source = _pick_api_key(resolved_provider, env_map, configured_api_key)
+    api_key, api_key_source = _pick_api_key(
+        resolved_provider, env_map, configured_api_key
+    )
     if not api_key:
         required = _PROVIDER_KEY_VAR[resolved_provider]
         raise LLMProviderResolutionError(

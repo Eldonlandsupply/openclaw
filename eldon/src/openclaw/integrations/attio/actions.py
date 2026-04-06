@@ -29,6 +29,7 @@ def _make_client(api_key: str) -> AttioClient:
 
 # ── attio_search ──────────────────────────────────────────────────────────
 
+
 class AttioSearchAction(BaseAction):
     """
     Search Attio records.
@@ -52,7 +53,9 @@ class AttioSearchAction(BaseAction):
         object_type, query = parts[0].lower(), parts[1]
 
         if dry_run:
-            logger.info("DRY RUN attio_search", extra={"object": object_type, "query": query})
+            logger.info(
+                "DRY RUN attio_search", extra={"object": object_type, "query": query}
+            )
             return ActionResult(
                 success=True,
                 output=f"[dry_run] would search {object_type} for: {query}",
@@ -62,7 +65,9 @@ class AttioSearchAction(BaseAction):
         try:
             records = await client.search_records(object_type, query)
             if not records:
-                return ActionResult(success=True, output=f"No {object_type} found for '{query}'.")
+                return ActionResult(
+                    success=True, output=f"No {object_type} found for '{query}'."
+                )
             lines = [f"Found {len(records)} {object_type}:"]
             for r in records:
                 record_id = r.get("id", {}).get("record_id", "?")
@@ -82,6 +87,7 @@ class AttioSearchAction(BaseAction):
 
 
 # ── attio_note ────────────────────────────────────────────────────────────
+
 
 class AttioNoteAction(BaseAction):
     """
@@ -134,6 +140,7 @@ class AttioNoteAction(BaseAction):
 
 # ── attio_task ────────────────────────────────────────────────────────────
 
+
 class AttioTaskAction(BaseAction):
     """
     Create a task in Attio.
@@ -149,7 +156,10 @@ class AttioTaskAction(BaseAction):
 
     async def run(self, args: str, dry_run: bool = False) -> ActionResult:
         if not args.strip():
-            return ActionResult(success=False, error="Usage: attio_task <content> [linked:<obj>:<id>] [due:<ISO>]")
+            return ActionResult(
+                success=False,
+                error="Usage: attio_task <content> [linked:<obj>:<id>] [due:<ISO>]",
+            )
 
         tokens = args.split()
         content_parts = []
@@ -171,13 +181,19 @@ class AttioTaskAction(BaseAction):
 
         if dry_run:
             logger.info("DRY RUN attio_task", extra={"content": content})
-            return ActionResult(success=True, output=f"[dry_run] would create task: {content}")
+            return ActionResult(
+                success=True, output=f"[dry_run] would create task: {content}"
+            )
 
         client = _make_client(self._api_key)
         try:
-            task = await client.create_task(content, linked_object, linked_record_id, deadline_at)
+            task = await client.create_task(
+                content, linked_object, linked_record_id, deadline_at
+            )
             task_id = task.get("id", {}).get("task_id", "?")
-            return ActionResult(success=True, output=f"Task created: {task_id} — {content}")
+            return ActionResult(
+                success=True, output=f"Task created: {task_id} — {content}"
+            )
         except Exception as exc:
             return ActionResult(success=False, error=str(exc))
         finally:
@@ -185,6 +201,7 @@ class AttioTaskAction(BaseAction):
 
 
 # ── attio_tasks ───────────────────────────────────────────────────────────
+
 
 class AttioTasksAction(BaseAction):
     """
@@ -228,6 +245,7 @@ class AttioTasksAction(BaseAction):
 
 
 # ── attio_upsert ──────────────────────────────────────────────────────────
+
 
 class AttioUpsertAction(BaseAction):
     """
@@ -289,7 +307,9 @@ class AttioUpsertAction(BaseAction):
         try:
             record = await client.upsert_record(object_type, matching_attr, values)
             record_id = record.get("id", {}).get("record_id", "?")
-            return ActionResult(success=True, output=f"Record upserted: {object_type}/{record_id}")
+            return ActionResult(
+                success=True, output=f"Record upserted: {object_type}/{record_id}"
+            )
         except Exception as exc:
             return ActionResult(success=False, error=str(exc))
         finally:
@@ -297,6 +317,7 @@ class AttioUpsertAction(BaseAction):
 
 
 # ── Factory ───────────────────────────────────────────────────────────────
+
 
 def build_attio_actions(api_key: str) -> list[BaseAction]:
     """Return all Attio actions, ready to register."""

@@ -27,14 +27,16 @@ from openclaw.actions.base import ActionResult, BaseAction
 logger = logging.getLogger(__name__)
 
 # Path to the allowlist JSON catalogue (relative to repo root)
-_ALLOWLIST_JSON = Path(__file__).resolve().parents[4] / "action_allowlist" / "top_100_actions.json"
+_ALLOWLIST_JSON = (
+    Path(__file__).resolve().parents[4] / "action_allowlist" / "top_100_actions.json"
+)
 
 # execution_mode values that require out-of-band approval
 _APPROVAL_MODES = {"approval_required"}
 # execution_mode values that should be flagged as needing review before send
-_REVIEW_MODES   = {"draft_then_review"}
+_REVIEW_MODES = {"draft_then_review"}
 # Risk score above which auto-execution is hard-blocked
-_MAX_AUTO_RISK  = 3
+_MAX_AUTO_RISK = 3
 
 
 def _load_allowlist_meta() -> dict[str, dict]:
@@ -58,6 +60,7 @@ def _load_allowlist_meta() -> dict[str, dict]:
 
 
 # ── Built-in actions ───────────────────────────────────────────────────────
+
 
 class EchoAction(BaseAction):
     name = "echo"
@@ -91,37 +94,45 @@ class MemoryReadAction(BaseAction):
 
 class HelpAction(BaseAction):
     """List all registered and allowed actions with their status."""
+
     name = "help"
 
     def __init__(self, registry: "ActionRegistry") -> None:
         self._registry = registry
 
     async def run(self, args: str, dry_run: bool = False) -> ActionResult:
-        allowed   = sorted(self._registry._allowlist)
-        meta      = self._registry._meta
-        lines     = ["Available actions:"]
+        allowed = sorted(self._registry._allowlist)
+        meta = self._registry._meta
+        lines = ["Available actions:"]
         for name in allowed:
-            reg_status  = "[registered]" if name in self._registry._actions else "[NOT REGISTERED]"
-            risk        = ""
-            mode        = ""
+            reg_status = (
+                "[registered]"
+                if name in self._registry._actions
+                else "[NOT REGISTERED]"
+            )
+            risk = ""
+            mode = ""
             if name in meta:
-                m    = meta[name]
+                m = meta[name]
                 risk = f"risk={m.get('risk_score', '?')}"
                 mode = f"mode={m.get('execution_mode', '?')}"
             lines.append(f"  {name}  {reg_status}  {risk}  {mode}".rstrip())
         if not allowed:
-            lines = ["No actions are currently allowed. Check actions.allowlist in config.yaml."]
+            lines = [
+                "No actions are currently allowed. Check actions.allowlist in config.yaml."
+            ]
         return ActionResult(success=True, output="\n".join(lines))
 
 
 # ── Registry ───────────────────────────────────────────────────────────────
 
+
 class ActionRegistry:
     def __init__(self, allowlist: list[str], dry_run: bool = True) -> None:
-        self._allowlist: set[str]        = set(allowlist)
-        self._dry_run:   bool            = dry_run
-        self._actions:   dict[str, BaseAction] = {}
-        self._meta:      dict[str, dict] = _load_allowlist_meta()
+        self._allowlist: set[str] = set(allowlist)
+        self._dry_run: bool = dry_run
+        self._actions: dict[str, BaseAction] = {}
+        self._meta: dict[str, dict] = _load_allowlist_meta()
 
         self._register_builtins()
         self._warn_unimplemented()
@@ -138,8 +149,7 @@ class ActionRegistry:
     def _warn_unimplemented(self) -> None:
         """Warn at startup for every allowlisted action with no registered handler."""
         missing = [
-            name for name in sorted(self._allowlist)
-            if name not in self._actions
+            name for name in sorted(self._allowlist) if name not in self._actions
         ]
         if missing:
             logger.warning(
@@ -174,12 +184,14 @@ class ActionRegistry:
         # Gate 1: allowlist
         if not self.is_allowed(name):
             logger.warning("action blocked — not in allowlist", extra={"action": name})
-            return ActionResult(success=False, error=f"action '{name}' not in allowlist")
+            return ActionResult(
+                success=False, error=f"action '{name}' not in allowlist"
+            )
 
         # Gate 2: risk / execution_mode from catalogue
         meta = self._meta.get(name, {})
         execution_mode = meta.get("execution_mode", "")
-        risk_score     = float(meta.get("risk_score", 0))
+        risk_score = float(meta.get("risk_score", 0))
 
         if execution_mode in _APPROVAL_MODES:
             logger.warning(
@@ -222,10 +234,7 @@ class ActionRegistry:
             if result.success and execution_mode in _REVIEW_MODES and not self._dry_run:
                 result = ActionResult(
                     success=True,
-                    output=(
-                        f"[DRAFT — review before sending]\n"
-                        f"{result.output}"
-                    ),
+                    output=(f"[DRAFT — review before sending]\n{result.output}"),
                     error=result.error,
                 )
 

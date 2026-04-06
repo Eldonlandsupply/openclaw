@@ -33,10 +33,16 @@ logger = logging.getLogger(__name__)
 
 FailureCategory = Literal["routing", "tool", "memory", "policy", "unknown"]
 
-_ROUTING_SIGNALS = frozenset({"no_handler", "routing_error", "dispatch_failed", "unknown_action"})
-_TOOL_SIGNALS    = frozenset({"tool_error", "tool_timeout", "tool_unavailable", "action_failed"})
-_MEMORY_SIGNALS  = frozenset({"memory_miss", "memory_write_failed", "retrieval_error"})
-_POLICY_SIGNALS  = frozenset({"blocked_high_risk", "approval_required", "policy_violation", "injection_detected"})
+_ROUTING_SIGNALS = frozenset(
+    {"no_handler", "routing_error", "dispatch_failed", "unknown_action"}
+)
+_TOOL_SIGNALS = frozenset(
+    {"tool_error", "tool_timeout", "tool_unavailable", "action_failed"}
+)
+_MEMORY_SIGNALS = frozenset({"memory_miss", "memory_write_failed", "retrieval_error"})
+_POLICY_SIGNALS = frozenset(
+    {"blocked_high_risk", "approval_required", "policy_violation", "injection_detected"}
+)
 
 
 def _classify_failure(entry: dict[str, Any]) -> FailureCategory:
@@ -61,6 +67,7 @@ def _classify_failure(entry: dict[str, Any]) -> FailureCategory:
 
 
 # ── Trace loading ──────────────────────────────────────────────────────────
+
 
 def _load_audit_traces(
     audit_log_path: Path,
@@ -114,6 +121,7 @@ def _load_audit_traces(
 
 # ── Failure clustering ─────────────────────────────────────────────────────
 
+
 @dataclass
 class FailureCluster:
     category: FailureCategory
@@ -150,6 +158,7 @@ def _cluster_failures(
 
 # ── Optimizer report ───────────────────────────────────────────────────────
 
+
 @dataclass
 class OptimizerReport:
     run_id: str
@@ -180,11 +189,13 @@ class OptimizerReport:
 
 # ── LLM client protocol (injected) ────────────────────────────────────────
 
+
 class LLMClient(Protocol):
     async def complete(self, prompt: str, max_tokens: int = 512) -> str: ...
 
 
 # ── Main optimizer ─────────────────────────────────────────────────────────
+
 
 class NightlyOptimizer:
     """
@@ -231,7 +242,12 @@ class NightlyOptimizer:
         # 2. Cluster failures
         clusters = _cluster_failures(traces)
         failures_found = sum(c.count for c in clusters.values())
-        logger.info("optimizer[%s]: %d failures across %d categories", run_id, failures_found, len(clusters))
+        logger.info(
+            "optimizer[%s]: %d failures across %d categories",
+            run_id,
+            failures_found,
+            len(clusters),
+        )
 
         for cat, cluster in clusters.items():
             if cluster.count > 0:
@@ -265,7 +281,9 @@ class NightlyOptimizer:
         patterns_crystallized = len(new_patterns)
         if new_patterns:
             names = [p.name for p in new_patterns]
-            notes.append(f"crystallized {patterns_crystallized} new pattern(s): {names}")
+            notes.append(
+                f"crystallized {patterns_crystallized} new pattern(s): {names}"
+            )
             logger.info("optimizer[%s]: crystallized patterns: %s", run_id, names)
 
         # 4. Score existing ADAS designs against observed outcomes
@@ -296,11 +314,17 @@ class NightlyOptimizer:
                 try:
                     candidate = await generate_next(self._adas, self._llm, generation)
                     adas_candidates = 1
-                    notes.append(f"ADAS candidate generated: {candidate.name} (gen {generation})")
-                    logger.info("optimizer[%s]: ADAS candidate: %s", run_id, candidate.name)
+                    notes.append(
+                        f"ADAS candidate generated: {candidate.name} (gen {generation})"
+                    )
+                    logger.info(
+                        "optimizer[%s]: ADAS candidate: %s", run_id, candidate.name
+                    )
                 except Exception as exc:
                     notes.append(f"ADAS generate_next failed: {exc}")
-                    logger.warning("optimizer[%s]: ADAS generate_next error: %s", run_id, exc)
+                    logger.warning(
+                        "optimizer[%s]: ADAS generate_next error: %s", run_id, exc
+                    )
             else:
                 notes.append("ADAS: no active designs to evolve from")
         else:

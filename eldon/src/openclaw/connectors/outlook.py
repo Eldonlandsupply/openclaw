@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 import asyncio
 import re
@@ -10,6 +9,7 @@ from openclaw.logging import get_logger
 
 logger = get_logger(__name__)
 _GRAPH = "https://graph.microsoft.com/v1.0"
+
 
 class OutlookConnector(BaseConnector):
     name = "outlook"
@@ -36,12 +36,15 @@ class OutlookConnector(BaseConnector):
         if self._token and time.time() < self._token_expiry - 60:
             return self._token
         url = f"https://login.microsoftonline.com/{self._tenant_id}/oauth2/v2.0/token"
-        async with self._session.post(url, data={
-            "grant_type": "client_credentials",
-            "client_id": self._client_id,
-            "client_secret": self._client_secret,
-            "scope": "https://graph.microsoft.com/.default",
-        }) as resp:
+        async with self._session.post(
+            url,
+            data={
+                "grant_type": "client_credentials",
+                "client_id": self._client_id,
+                "client_secret": self._client_secret,
+                "scope": "https://graph.microsoft.com/.default",
+            },
+        ) as resp:
             data = await resp.json()
         if "access_token" not in data:
             raise RuntimeError(f"Token error: {data}")
@@ -55,18 +58,32 @@ class OutlookConnector(BaseConnector):
                 token = await self._get_token()
                 headers = {"Authorization": f"Bearer {token}"}
                 url = f"{_GRAPH}/users/{self._user}/mailFolders/Inbox/messages"
-                params = {"$filter": "isRead eq false", "$top": "10", "$orderby": "receivedDateTime asc"}
-                async with self._session.get(url, headers=headers, params=params) as resp:
+                params = {
+                    "$filter": "isRead eq false",
+                    "$top": "10",
+                    "$orderby": "receivedDateTime asc",
+                }
+                async with self._session.get(
+                    url, headers=headers, params=params
+                ) as resp:
                     data = await resp.json()
                 for msg in data.get("value", []):
                     msg_id = msg["id"]
-                    sender = msg.get("from", {}).get("emailAddress", {}).get("address", "")
+                    sender = (
+                        msg.get("from", {}).get("emailAddress", {}).get("address", "")
+                    )
                     subject = msg.get("subject", "")
-                    body = re.sub(r"<[^>]+>", "", msg.get("body", {}).get("content", "")).strip()
+                    body = re.sub(
+                        r"<[^>]+>", "", msg.get("body", {}).get("content", "")
+                    ).strip()
                     text = f"[Outlook from {sender}] Subject: {subject}\n{body[:500]}"
-                    await self._queue.put(Message(text=text, source="outlook", chat_id=sender))
+                    await self._queue.put(
+                        Message(text=text, source="outlook", chat_id=sender)
+                    )
                     patch_url = f"{_GRAPH}/users/{self._user}/messages/{msg_id}"
-                    await self._session.patch(patch_url, headers=headers, json={"isRead": True})
+                    await self._session.patch(
+                        patch_url, headers=headers, json={"isRead": True}
+                    )
             except Exception as exc:
                 logger.warning("Outlook poll error", extra={"error": str(exc)})
             await asyncio.sleep(self._poll_interval)
@@ -81,8 +98,11 @@ class OutlookConnector(BaseConnector):
                     return
 
     async def send(self, chat_id, text):  # replies disabled
-        logger.info('Outlook reply suppressed (auth not configured)', extra={'to': chat_id})
+        logger.info(
+            "Outlook reply suppressed (auth not configured)", extra={"to": chat_id}
+        )
         return
+
     async def _send_disabled(self, chat_id, text):
         if not chat_id or not self._session:
             return
@@ -90,9 +110,13 @@ class OutlookConnector(BaseConnector):
             token = await self._get_token()
             headers = {"Authorization": f"Bearer {token}"}
             url = f"{_GRAPH}/users/{self._user}/sendMail"
-            payload = {"message": {"subject": "OpenClaw Reply",
-                "body": {"contentType": "Text", "content": text},
-                "toRecipients": [{"emailAddress": {"address": chat_id}}]}}
+            payload = {
+                "message": {
+                    "subject": "OpenClaw Reply",
+                    "body": {"contentType": "Text", "content": text},
+                    "toRecipients": [{"emailAddress": {"address": chat_id}}],
+                }
+            }
             async with self._session.post(url, headers=headers, json=payload) as resp:
                 if resp.status not in (200, 202):
                     logger.warning("Outlook send failed", extra={"status": resp.status})
