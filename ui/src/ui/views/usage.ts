@@ -1861,7 +1861,7 @@ function renderCostClawViews(
       formatCost(day.totalCost),
       `${deltaCost >= 0 ? "+" : ""}${formatCost(deltaCost)}`,
       `${deltaTokens >= 0 ? "+" : ""}${formatTokens(deltaTokens)}`,
-      `${day.totalTokens > 0 ? formatCost(day.totalCost / day.totalTokens, 6) : "$0.000000"}`,
+      day.totalTokens > 0 ? formatCost(day.totalCost / day.totalTokens, 6) : "$0.000000",
     ];
   });
   const regressionRows = workflowMetrics
@@ -1871,7 +1871,7 @@ function renderCostClawViews(
       `${metric.regressionSessions}`,
       `${metric.retries}`,
       `${metric.retryLoops}`,
-      `${metric.changeMomentum.toFixed(4)}`,
+      metric.changeMomentum.toFixed(4),
     ])
     .slice(0, 10);
   const subagentRows = workflowMetrics

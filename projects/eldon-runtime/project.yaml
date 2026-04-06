@@ -32,7 +32,7 @@ tags:
 related_source: eldon/
 
 related_agents:
-  - eldon-main  # Primary business automation agent running on the Pi
+  - eldon-main # Primary business automation agent running on the Pi
 
 related_workflows:
   - ingest-telegram-message

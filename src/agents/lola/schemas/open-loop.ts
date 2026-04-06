@@ -11,7 +11,7 @@ export interface OpenLoop {
   owner?: string;
   dueDate?: string;
   status?: string;
-  writeStatus?: "pending_approval" | "approved" | "rejected" | "applied" | "written";
+  writeStatus?: "pending_approval" | "approved" | "rejected" | "applied" | "written" | "proposed";
   lastTouchAt?: string;
   nextTouchAt?: string;
   riskIfMissed?: string;

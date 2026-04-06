@@ -20,10 +20,10 @@ first run.
 
 Openclaw reads from two sources — never mix them:
 
-| Source | Contains |
-|--------|----------|
+| Source        | Contains                                                            |
+| ------------- | ------------------------------------------------------------------- |
 | `config.yaml` | Non-secret settings; uses `${VAR}` / `${VAR:default}` interpolation |
-| `.env` | Secrets and env overrides; **never commit this file** |
+| `.env`        | Secrets and env overrides; **never commit this file**               |
 
 **Hard rule**: only `.env.example` is committed to the repo. `.env` is in `.gitignore`.
 
@@ -275,11 +275,11 @@ vector_store_path=.data/vector_store
 
 ## Recommended model IDs
 
-| Use case | Model |
-|----------|-------|
-| Most efficient | `gpt-5-nano` |
-| More capable / efficient | `gpt-5-mini` |
-| Embeddings | `text-embedding-3-small` |
+| Use case                 | Model                    |
+| ------------------------ | ------------------------ |
+| Most efficient           | `gpt-5-nano`             |
+| More capable / efficient | `gpt-5-mini`             |
+| Embeddings               | `text-embedding-3-small` |
 
 ---
 
@@ -290,6 +290,7 @@ vector_store_path=.data/vector_store
 Cause: placeholder never replaced in `.env`, or `config.yaml` is not using `${YOUR_CHAT_MODEL}`.
 
 Fix:
+
 1. Set `YOUR_CHAT_MODEL=gpt-5-nano` in `.env`
 2. Confirm `config.yaml` has `chat_model: ${YOUR_CHAT_MODEL}`
 
@@ -302,6 +303,7 @@ Fix: Set `YOUR_EMBED_MODEL=text-embedding-3-small` in `.env`, or set `ENABLE_MEM
 ### Secrets accidentally committed
 
 Fix immediately:
+
 1. Remove secrets from git history
 2. Rotate all compromised keys
 3. Confirm `.gitignore` includes `.env`
@@ -310,17 +312,18 @@ Fix immediately:
 
 ## Fail-fast gates (doctor enforces these)
 
-| Condition | Error |
-|-----------|-------|
-| `YOUR_CHAT_MODEL` still placeholder | `llm.chat_model is still a placeholder` |
-| `YOUR_EMBED_MODEL` still placeholder | `llm.embedding_model is still a placeholder` |
+| Condition                              | Error                                                  |
+| -------------------------------------- | ------------------------------------------------------ |
+| `YOUR_CHAT_MODEL` still placeholder    | `llm.chat_model is still a placeholder`                |
+| `YOUR_EMBED_MODEL` still placeholder   | `llm.embedding_model is still a placeholder`           |
 | `memory.enabled=true` + no embed model | `Memory is enabled but llm.embedding_model is not set` |
-| `config.yaml` missing | `Missing config.yaml` |
+| `config.yaml` missing                  | `Missing config.yaml`                                  |
 
 ---
 
 ## Startup verification
 
 After `python -m openclaw`:
+
 - Logs must show the resolved `chat_model`
 - If memory is enabled, logs must show the `embedding_model`

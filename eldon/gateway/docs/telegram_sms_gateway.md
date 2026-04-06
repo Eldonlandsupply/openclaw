@@ -68,12 +68,14 @@ python gateway/scripts/run_gateway.py
 ### 6. Expose Pi publicly (for Telegram webhooks)
 
 Option A — ngrok (dev/testing):
+
 ```bash
 ngrok http 8443
 # Use the https URL for webhook registration
 ```
 
 Option B — DuckDNS + port forward (production):
+
 - Register at duckdns.org, set GATEWAY_BASE_URL=https://yourname.duckdns.org
 - Port forward 443→8443 on your router, or use nginx with TLS
 
@@ -97,25 +99,25 @@ sudo journalctl -u openclaw-gateway -f
 
 ## Env Vars
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `TELEGRAM_BOT_TOKEN` | Yes | — | Bot token from @BotFather |
-| `ALLOWED_TELEGRAM_CHAT_IDS` | Yes | — | Comma-separated allowed chat IDs |
-| `ALLOWED_TELEGRAM_USER_IDS` | No | — | Comma-separated allowed user IDs |
-| `TELEGRAM_WEBHOOK_SECRET` | Recommended | — | Shared secret for webhook verification |
-| `ENABLE_TELEGRAM` | No | `true` | Enable Telegram channel |
-| `ENABLE_SMS` | No | `false` | Enable SMS channel |
-| `TWILIO_ACCOUNT_SID` | If SMS | — | Twilio account SID |
-| `TWILIO_AUTH_TOKEN` | If SMS | — | Twilio auth token |
-| `TWILIO_PHONE_NUMBER` | If SMS | — | Your Twilio number (E.164) |
-| `ALLOWED_SMS_NUMBERS` | If SMS | — | Comma-separated allowed numbers |
-| `ENABLE_RAW_SHELL` | No | `false` | Allow arbitrary shell (keep false) |
-| `ENABLE_COMMAND_CONFIRMATION` | No | `true` | Require APPROVE for HIGH-risk |
-| `GATEWAY_PORT` | No | `8443` | Server port |
-| `GATEWAY_BASE_URL` | Webhook setup | — | Public URL for webhook registration |
-| `DATA_DIR` | No | `./data` | Data/audit log directory |
-| `AGENTS_DIR` | No | `./agents` | Agent spec storage directory |
-| `LOG_LEVEL` | No | `INFO` | Logging level |
+| Variable                      | Required      | Default    | Description                            |
+| ----------------------------- | ------------- | ---------- | -------------------------------------- |
+| `TELEGRAM_BOT_TOKEN`          | Yes           | —          | Bot token from @BotFather              |
+| `ALLOWED_TELEGRAM_CHAT_IDS`   | Yes           | —          | Comma-separated allowed chat IDs       |
+| `ALLOWED_TELEGRAM_USER_IDS`   | No            | —          | Comma-separated allowed user IDs       |
+| `TELEGRAM_WEBHOOK_SECRET`     | Recommended   | —          | Shared secret for webhook verification |
+| `ENABLE_TELEGRAM`             | No            | `true`     | Enable Telegram channel                |
+| `ENABLE_SMS`                  | No            | `false`    | Enable SMS channel                     |
+| `TWILIO_ACCOUNT_SID`          | If SMS        | —          | Twilio account SID                     |
+| `TWILIO_AUTH_TOKEN`           | If SMS        | —          | Twilio auth token                      |
+| `TWILIO_PHONE_NUMBER`         | If SMS        | —          | Your Twilio number (E.164)             |
+| `ALLOWED_SMS_NUMBERS`         | If SMS        | —          | Comma-separated allowed numbers        |
+| `ENABLE_RAW_SHELL`            | No            | `false`    | Allow arbitrary shell (keep false)     |
+| `ENABLE_COMMAND_CONFIRMATION` | No            | `true`     | Require APPROVE for HIGH-risk          |
+| `GATEWAY_PORT`                | No            | `8443`     | Server port                            |
+| `GATEWAY_BASE_URL`            | Webhook setup | —          | Public URL for webhook registration    |
+| `DATA_DIR`                    | No            | `./data`   | Data/audit log directory               |
+| `AGENTS_DIR`                  | No            | `./agents` | Agent spec storage directory           |
+| `LOG_LEVEL`                   | No            | `INFO`     | Logging level                          |
 
 ---
 
@@ -135,19 +137,19 @@ sudo journalctl -u openclaw-gateway -f
 
 ### Telegram (full set)
 
-| Command | Risk | Notes |
-|---|---|---|
-| `status` | LOW | System health, CPU, memory, disk, temp |
-| `health` | LOW | Quick health check |
-| `queue status` | LOW | Show pending tasks |
-| `list agents` | LOW | Show configured agents |
-| `help` | LOW | Command list |
-| `check failed jobs` | LOW | Recent job failures |
-| `run morning brief` | MEDIUM | Morning workflow |
-| `git pull` | MEDIUM | Pull latest repo |
-| `create agent <description>` | MEDIUM | Generate agent YAML spec |
-| `schedule <task>` | MEDIUM | Schedule a task |
-| `restart openclaw` | **HIGH** | Requires APPROVE token |
+| Command                      | Risk     | Notes                                  |
+| ---------------------------- | -------- | -------------------------------------- |
+| `status`                     | LOW      | System health, CPU, memory, disk, temp |
+| `health`                     | LOW      | Quick health check                     |
+| `queue status`               | LOW      | Show pending tasks                     |
+| `list agents`                | LOW      | Show configured agents                 |
+| `help`                       | LOW      | Command list                           |
+| `check failed jobs`          | LOW      | Recent job failures                    |
+| `run morning brief`          | MEDIUM   | Morning workflow                       |
+| `git pull`                   | MEDIUM   | Pull latest repo                       |
+| `create agent <description>` | MEDIUM   | Generate agent YAML spec               |
+| `schedule <task>`            | MEDIUM   | Schedule a task                        |
+| `restart openclaw`           | **HIGH** | Requires APPROVE token                 |
 
 ### SMS (subset)
 

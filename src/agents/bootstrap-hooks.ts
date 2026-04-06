@@ -35,13 +35,20 @@ async function loadRoleKitFile(kitsDir: string, fileName: string): Promise<strin
  * Resolves the roleKit for a given agentId from config.
  * Returns null if not configured or not a recognised kit.
  */
-function resolveRoleKit(cfg: OpenClawConfig | undefined, agentId: string | undefined): string | null {
-  if (!cfg || !agentId) return null;
+function resolveRoleKit(
+  cfg: OpenClawConfig | undefined,
+  agentId: string | undefined,
+): string | null {
+  if (!cfg || !agentId) {
+    return null;
+  }
   const entry = (cfg.agents?.list ?? []).find(
     (a) => a?.id?.toLowerCase() === agentId.toLowerCase(),
   );
   const kit = entry?.roleKit?.trim().toLowerCase();
-  if (!kit || !VALID_ROLE_KITS.has(kit)) return null;
+  if (!kit || !VALID_ROLE_KITS.has(kit)) {
+    return null;
+  }
   return kit;
 }
 
@@ -62,7 +69,9 @@ async function injectRoleKitFiles(
   agentId: string | undefined,
 ): Promise<WorkspaceBootstrapFile[]> {
   const kit = resolveRoleKit(cfg, agentId);
-  if (!kit) return files;
+  if (!kit) {
+    return files;
+  }
 
   const kitsDir = resolveRoleKitsDir();
   const [agentsMd, toolsMd] = await Promise.all([
@@ -70,7 +79,9 @@ async function injectRoleKitFiles(
     loadRoleKitFile(kitsDir, `${kit}/TOOLS.md`),
   ]);
 
-  if (!agentsMd && !toolsMd) return files;
+  if (!agentsMd && !toolsMd) {
+    return files;
+  }
 
   const injected: WorkspaceBootstrapFile[] = [];
 

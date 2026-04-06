@@ -17,15 +17,9 @@
     "execution_mode": "draft_then_review",
     "trigger_type": "threshold",
     "trigger_definition": "Invoice due date + 7 days with no payment recorded",
-    "required_inputs": [
-      "accounts_receivable",
-      "invoice_register"
-    ],
+    "required_inputs": ["accounts_receivable", "invoice_register"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "accounting_system",
-      "email"
-    ],
+    "system_dependencies": ["accounting_system", "email"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -36,11 +30,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "invoices",
-      "collections",
-      "revenue"
-    ],
+    "tags": ["invoices", "collections", "revenue"],
     "composite_score": 8.95,
     "rank": 1
   },
@@ -62,15 +52,9 @@
     "execution_mode": "draft_then_review",
     "trigger_type": "threshold",
     "trigger_definition": "Proposal sent + 5 business days with no response detected",
-    "required_inputs": [
-      "sent_proposals",
-      "email_responses"
-    ],
+    "required_inputs": ["sent_proposals", "email_responses"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "gmail",
-      "outlook"
-    ],
+    "system_dependencies": ["gmail", "outlook"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -81,11 +65,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "proposals",
-      "revenue",
-      "followup"
-    ],
+    "tags": ["proposals", "revenue", "followup"],
     "composite_score": 8.75,
     "rank": 2
   },
@@ -107,16 +87,9 @@
     "execution_mode": "draft_then_review",
     "trigger_type": "schedule",
     "trigger_definition": "Every Monday and Thursday 08:00",
-    "required_inputs": [
-      "crm_pipeline",
-      "email_history"
-    ],
+    "required_inputs": ["crm_pipeline", "email_history"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "crm",
-      "gmail",
-      "outlook"
-    ],
+    "system_dependencies": ["crm", "gmail", "outlook"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -127,11 +100,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "pipeline",
-      "revenue",
-      "followup"
-    ],
+    "tags": ["pipeline", "revenue", "followup"],
     "composite_score": 8.7,
     "rank": 3
   },
@@ -153,19 +122,9 @@
     "execution_mode": "draft_then_review",
     "trigger_type": "schedule",
     "trigger_definition": "Daily at 07:00 local time",
-    "required_inputs": [
-      "email_inbox",
-      "calendar",
-      "open_tasks"
-    ],
-    "optional_inputs": [
-      "crm_pipeline"
-    ],
-    "system_dependencies": [
-      "gmail",
-      "outlook",
-      "calendar"
-    ],
+    "required_inputs": ["email_inbox", "calendar", "open_tasks"],
+    "optional_inputs": ["crm_pipeline"],
+    "system_dependencies": ["gmail", "outlook", "calendar"],
     "owner": "openclaw",
     "approver": "matthew.tynski@gmail.com",
     "escalation_path": "CEO",
@@ -176,11 +135,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "daily",
-      "ceo",
-      "brief"
-    ],
+    "tags": ["daily", "ceo", "brief"],
     "composite_score": 8.65,
     "rank": 4
   },
@@ -202,14 +157,9 @@
     "execution_mode": "draft_then_review",
     "trigger_type": "threshold",
     "trigger_definition": "Document sent for signature + 3 business days with no execution",
-    "required_inputs": [
-      "document_signature_tracker"
-    ],
+    "required_inputs": ["document_signature_tracker"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "docusign",
-      "email"
-    ],
+    "system_dependencies": ["docusign", "email"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -220,11 +170,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "signatures",
-      "contracts",
-      "deals"
-    ],
+    "tags": ["signatures", "contracts", "deals"],
     "composite_score": 8.15,
     "rank": 5
   },
@@ -246,16 +192,9 @@
     "execution_mode": "draft_then_review",
     "trigger_type": "schedule",
     "trigger_definition": "Every Friday 15:00",
-    "required_inputs": [
-      "crm_pipeline"
-    ],
-    "optional_inputs": [
-      "email_history"
-    ],
-    "system_dependencies": [
-      "crm",
-      "email"
-    ],
+    "required_inputs": ["crm_pipeline"],
+    "optional_inputs": ["email_history"],
+    "system_dependencies": ["crm", "email"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -266,11 +205,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "pipeline",
-      "weekly",
-      "review"
-    ],
+    "tags": ["pipeline", "weekly", "review"],
     "composite_score": 8.1,
     "rank": 6
   },
@@ -292,18 +227,9 @@
     "execution_mode": "draft_then_review",
     "trigger_type": "event",
     "trigger_definition": "BD meeting flagged in calendar ends",
-    "required_inputs": [
-      "meeting_notes",
-      "attendee_context"
-    ],
-    "optional_inputs": [
-      "crm_record"
-    ],
-    "system_dependencies": [
-      "calendar",
-      "gmail",
-      "outlook"
-    ],
+    "required_inputs": ["meeting_notes", "attendee_context"],
+    "optional_inputs": ["crm_record"],
+    "system_dependencies": ["calendar", "gmail", "outlook"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -314,12 +240,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "bd",
-      "revenue",
-      "followup",
-      "meetings"
-    ],
+    "tags": ["bd", "revenue", "followup", "meetings"],
     "composite_score": 8.05,
     "rank": 7
   },
@@ -341,15 +262,9 @@
     "execution_mode": "draft_then_review",
     "trigger_type": "schedule",
     "trigger_definition": "Weekly on Monday 08:00; also after each meeting transcript processed",
-    "required_inputs": [
-      "email_history",
-      "meeting_transcripts"
-    ],
+    "required_inputs": ["email_history", "meeting_transcripts"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "gmail",
-      "outlook"
-    ],
+    "system_dependencies": ["gmail", "outlook"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -360,11 +275,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "commitments",
-      "ceo",
-      "relationships"
-    ],
+    "tags": ["commitments", "ceo", "relationships"],
     "composite_score": 8.0,
     "rank": 8
   },
@@ -386,15 +297,9 @@
     "execution_mode": "draft_then_review",
     "trigger_type": "schedule",
     "trigger_definition": "Every Monday 09:00; also threshold: 14 days since last response",
-    "required_inputs": [
-      "interconnection_tracker",
-      "utility_contacts"
-    ],
+    "required_inputs": ["interconnection_tracker", "utility_contacts"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "email",
-      "project_tracker"
-    ],
+    "system_dependencies": ["email", "project_tracker"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -405,12 +310,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "utility",
-      "interconnection",
-      "energy",
-      "followup"
-    ],
+    "tags": ["utility", "interconnection", "energy", "followup"],
     "composite_score": 7.95,
     "rank": 9
   },
@@ -432,14 +332,9 @@
     "execution_mode": "recommend_only",
     "trigger_type": "schedule",
     "trigger_definition": "Daily at 09:00 and 14:00",
-    "required_inputs": [
-      "email_inbox"
-    ],
+    "required_inputs": ["email_inbox"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "gmail",
-      "outlook"
-    ],
+    "system_dependencies": ["gmail", "outlook"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -450,11 +345,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "inbox",
-      "ceo",
-      "triage"
-    ],
+    "tags": ["inbox", "ceo", "triage"],
     "composite_score": 7.9,
     "rank": 10
   },
@@ -476,18 +367,9 @@
     "execution_mode": "draft_then_review",
     "trigger_type": "schedule",
     "trigger_definition": "30 min before each calendar event with external attendees",
-    "required_inputs": [
-      "calendar",
-      "email_history"
-    ],
-    "optional_inputs": [
-      "crm_contact"
-    ],
-    "system_dependencies": [
-      "calendar",
-      "gmail",
-      "outlook"
-    ],
+    "required_inputs": ["calendar", "email_history"],
+    "optional_inputs": ["crm_contact"],
+    "system_dependencies": ["calendar", "gmail", "outlook"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -498,11 +380,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "meeting",
-      "prep",
-      "ceo"
-    ],
+    "tags": ["meeting", "prep", "ceo"],
     "composite_score": 7.85,
     "rank": 11
   },
@@ -524,16 +402,9 @@
     "execution_mode": "draft_then_review",
     "trigger_type": "event",
     "trigger_definition": "Within 15 min of calendar event end time",
-    "required_inputs": [
-      "meeting_notes_or_transcript",
-      "attendee_list"
-    ],
+    "required_inputs": ["meeting_notes_or_transcript", "attendee_list"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "calendar",
-      "gmail",
-      "outlook"
-    ],
+    "system_dependencies": ["calendar", "gmail", "outlook"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -544,11 +415,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "meetings",
-      "actions",
-      "followup"
-    ],
+    "tags": ["meetings", "actions", "followup"],
     "composite_score": 7.85,
     "rank": 12
   },
@@ -570,14 +437,9 @@
     "execution_mode": "auto_execute",
     "trigger_type": "schedule",
     "trigger_definition": "Daily 08:00 \u2014 refresh and surface items aging past threshold",
-    "required_inputs": [
-      "task_system",
-      "project_tracker"
-    ],
+    "required_inputs": ["task_system", "project_tracker"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "task_system"
-    ],
+    "system_dependencies": ["task_system"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -588,11 +450,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "tracking",
-      "execution",
-      "open_items"
-    ],
+    "tags": ["tracking", "execution", "open_items"],
     "composite_score": 7.85,
     "rank": 13
   },
@@ -614,16 +472,9 @@
     "execution_mode": "auto_execute",
     "trigger_type": "event",
     "trigger_definition": "Email sent to external party or meeting with external party ends",
-    "required_inputs": [
-      "sent_email_log",
-      "calendar"
-    ],
+    "required_inputs": ["sent_email_log", "calendar"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "email",
-      "calendar",
-      "task_system"
-    ],
+    "system_dependencies": ["email", "calendar", "task_system"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -634,11 +485,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "followup",
-      "scheduling",
-      "execution"
-    ],
+    "tags": ["followup", "scheduling", "execution"],
     "composite_score": 7.85,
     "rank": 14
   },
@@ -660,15 +507,9 @@
     "execution_mode": "draft_then_review",
     "trigger_type": "schedule",
     "trigger_definition": "Daily at 12:00 and 17:00",
-    "required_inputs": [
-      "open_approvals",
-      "pending_tasks"
-    ],
+    "required_inputs": ["open_approvals", "pending_tasks"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "task_system",
-      "email"
-    ],
+    "system_dependencies": ["task_system", "email"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -679,11 +520,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "approvals",
-      "ceo",
-      "batching"
-    ],
+    "tags": ["approvals", "ceo", "batching"],
     "composite_score": 7.8,
     "rank": 15
   },
@@ -705,17 +542,9 @@
     "execution_mode": "recommend_only",
     "trigger_type": "schedule",
     "trigger_definition": "Every Monday 08:00",
-    "required_inputs": [
-      "email_history",
-      "contact_list"
-    ],
-    "optional_inputs": [
-      "crm"
-    ],
-    "system_dependencies": [
-      "gmail",
-      "outlook"
-    ],
+    "required_inputs": ["email_history", "contact_list"],
+    "optional_inputs": ["crm"],
+    "system_dependencies": ["gmail", "outlook"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -726,11 +555,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "relationships",
-      "partners",
-      "watchlist"
-    ],
+    "tags": ["relationships", "partners", "watchlist"],
     "composite_score": 7.8,
     "rank": 16
   },
@@ -752,16 +577,9 @@
     "execution_mode": "draft_then_review",
     "trigger_type": "schedule",
     "trigger_definition": "Weekly on Wednesday 09:00",
-    "required_inputs": [
-      "contract_register"
-    ],
-    "optional_inputs": [
-      "crm"
-    ],
-    "system_dependencies": [
-      "email",
-      "document_store"
-    ],
+    "required_inputs": ["contract_register"],
+    "optional_inputs": ["crm"],
+    "system_dependencies": ["email", "document_store"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -772,11 +590,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "contracts",
-      "revenue",
-      "renewals"
-    ],
+    "tags": ["contracts", "revenue", "renewals"],
     "composite_score": 7.75,
     "rank": 17
   },
@@ -798,15 +612,9 @@
     "execution_mode": "draft_then_review",
     "trigger_type": "schedule",
     "trigger_definition": "Every Tuesday and Friday 09:00 during active transactions",
-    "required_inputs": [
-      "diligence_checklist",
-      "deal_parties"
-    ],
+    "required_inputs": ["diligence_checklist", "deal_parties"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "document_store",
-      "email"
-    ],
+    "system_dependencies": ["document_store", "email"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -817,11 +625,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "diligence",
-      "deals",
-      "execution"
-    ],
+    "tags": ["diligence", "deals", "execution"],
     "composite_score": 7.75,
     "rank": 18
   },
@@ -843,15 +647,9 @@
     "execution_mode": "recommend_only",
     "trigger_type": "event",
     "trigger_definition": "New emails containing action-implied language processed twice daily",
-    "required_inputs": [
-      "email_inbox"
-    ],
+    "required_inputs": ["email_inbox"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "gmail",
-      "outlook",
-      "task_system"
-    ],
+    "system_dependencies": ["gmail", "outlook", "task_system"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -862,11 +660,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "email",
-      "tasks",
-      "capture"
-    ],
+    "tags": ["email", "tasks", "capture"],
     "composite_score": 7.75,
     "rank": 19
   },
@@ -888,20 +682,9 @@
     "execution_mode": "draft_then_review",
     "trigger_type": "schedule",
     "trigger_definition": "Every Friday at 16:00",
-    "required_inputs": [
-      "email_inbox",
-      "open_tasks",
-      "calendar",
-      "crm_pipeline"
-    ],
-    "optional_inputs": [
-      "project_statuses"
-    ],
-    "system_dependencies": [
-      "gmail",
-      "outlook",
-      "calendar"
-    ],
+    "required_inputs": ["email_inbox", "open_tasks", "calendar", "crm_pipeline"],
+    "optional_inputs": ["project_statuses"],
+    "system_dependencies": ["gmail", "outlook", "calendar"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -912,12 +695,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "weekly",
-      "ceo",
-      "brief",
-      "strategy"
-    ],
+    "tags": ["weekly", "ceo", "brief", "strategy"],
     "composite_score": 7.7,
     "rank": 20
   },
@@ -939,15 +717,9 @@
     "execution_mode": "draft_then_review",
     "trigger_type": "schedule",
     "trigger_definition": "Every Friday 14:00",
-    "required_inputs": [
-      "project_statuses",
-      "milestone_tracker"
-    ],
+    "required_inputs": ["project_statuses", "milestone_tracker"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "project_tracker",
-      "email"
-    ],
+    "system_dependencies": ["project_tracker", "email"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -958,11 +730,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "reports",
-      "admin",
-      "weekly"
-    ],
+    "tags": ["reports", "admin", "weekly"],
     "composite_score": 7.7,
     "rank": 21
   },
@@ -984,14 +752,9 @@
     "execution_mode": "recommend_only",
     "trigger_type": "schedule",
     "trigger_definition": "Daily at 09:00",
-    "required_inputs": [
-      "approval_queue"
-    ],
+    "required_inputs": ["approval_queue"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "task_system",
-      "email"
-    ],
+    "system_dependencies": ["task_system", "email"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -1002,11 +765,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "approvals",
-      "workflow",
-      "execution"
-    ],
+    "tags": ["approvals", "workflow", "execution"],
     "composite_score": 7.65,
     "rank": 22
   },
@@ -1028,14 +787,9 @@
     "execution_mode": "draft_then_review",
     "trigger_type": "event",
     "trigger_definition": "Meeting ends and action items are extracted (follows ACT-0009)",
-    "required_inputs": [
-      "extracted_action_items",
-      "attendee_email_list"
-    ],
+    "required_inputs": ["extracted_action_items", "attendee_email_list"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "email"
-    ],
+    "system_dependencies": ["email"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -1046,11 +800,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "meetings",
-      "accountability",
-      "execution"
-    ],
+    "tags": ["meetings", "accountability", "execution"],
     "composite_score": 7.65,
     "rank": 23
   },
@@ -1072,14 +822,9 @@
     "execution_mode": "recommend_only",
     "trigger_type": "threshold",
     "trigger_definition": "Milestone projected late by 3+ days based on current progress",
-    "required_inputs": [
-      "project_schedule",
-      "milestone_tracker"
-    ],
+    "required_inputs": ["project_schedule", "milestone_tracker"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "project_tracker"
-    ],
+    "system_dependencies": ["project_tracker"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -1090,11 +835,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Requires project scheduler integration \u2014 OPEN ITEM",
-    "tags": [
-      "projects",
-      "milestones",
-      "slippage"
-    ],
+    "tags": ["projects", "milestones", "slippage"],
     "composite_score": 7.55,
     "rank": 24
   },
@@ -1116,15 +857,9 @@
     "execution_mode": "recommend_only",
     "trigger_type": "threshold",
     "trigger_definition": "Blocker item open for 3+ days with no status change",
-    "required_inputs": [
-      "blocker_log",
-      "project_tracker"
-    ],
+    "required_inputs": ["blocker_log", "project_tracker"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "project_tracker",
-      "email"
-    ],
+    "system_dependencies": ["project_tracker", "email"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -1135,11 +870,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "blockers",
-      "escalation",
-      "execution"
-    ],
+    "tags": ["blockers", "escalation", "execution"],
     "composite_score": 7.55,
     "rank": 25
   },
@@ -1161,15 +892,9 @@
     "execution_mode": "recommend_only",
     "trigger_type": "schedule",
     "trigger_definition": "Every Monday 07:30",
-    "required_inputs": [
-      "crm_pipeline",
-      "email_history"
-    ],
+    "required_inputs": ["crm_pipeline", "email_history"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "crm",
-      "email"
-    ],
+    "system_dependencies": ["crm", "email"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -1180,11 +905,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "pipeline",
-      "prioritization",
-      "revenue"
-    ],
+    "tags": ["pipeline", "prioritization", "revenue"],
     "composite_score": 7.5,
     "rank": 26
   },
@@ -1206,15 +927,9 @@
     "execution_mode": "recommend_only",
     "trigger_type": "threshold",
     "trigger_definition": "5 days before vendor deadline; again if missed",
-    "required_inputs": [
-      "vendor_schedule",
-      "project_tracker"
-    ],
+    "required_inputs": ["vendor_schedule", "project_tracker"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "project_tracker",
-      "email"
-    ],
+    "system_dependencies": ["project_tracker", "email"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -1225,11 +940,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "vendors",
-      "deadlines",
-      "projects"
-    ],
+    "tags": ["vendors", "deadlines", "projects"],
     "composite_score": 7.5,
     "rank": 27
   },
@@ -1251,15 +962,9 @@
     "execution_mode": "recommend_only",
     "trigger_type": "schedule",
     "trigger_definition": "Every Wednesday 09:00",
-    "required_inputs": [
-      "commercial_issue_log",
-      "email_history"
-    ],
+    "required_inputs": ["commercial_issue_log", "email_history"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "email",
-      "task_system"
-    ],
+    "system_dependencies": ["email", "task_system"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -1270,11 +975,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "commercial",
-      "issues",
-      "execution"
-    ],
+    "tags": ["commercial", "issues", "execution"],
     "composite_score": 7.5,
     "rank": 28
   },
@@ -1296,14 +997,9 @@
     "execution_mode": "draft_then_review",
     "trigger_type": "schedule",
     "trigger_definition": "Daily at 07:00",
-    "required_inputs": [
-      "ercot_data_feed",
-      "regulatory_feed"
-    ],
+    "required_inputs": ["ercot_data_feed", "regulatory_feed"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "data_feeds"
-    ],
+    "system_dependencies": ["data_feeds"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -1314,12 +1010,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Requires ERCOT/market data feed integration \u2014 OPEN ITEM",
-    "tags": [
-      "energy",
-      "ercot",
-      "market",
-      "intelligence"
-    ],
+    "tags": ["energy", "ercot", "market", "intelligence"],
     "composite_score": 7.5,
     "rank": 29
   },
@@ -1341,13 +1032,9 @@
     "execution_mode": "recommend_only",
     "trigger_type": "threshold",
     "trigger_definition": "30 days and 7 days before permit deadline",
-    "required_inputs": [
-      "permit_register"
-    ],
+    "required_inputs": ["permit_register"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "project_tracker"
-    ],
+    "system_dependencies": ["project_tracker"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -1358,12 +1045,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "Requires permit register \u2014 OPEN ITEM to build",
-    "tags": [
-      "permits",
-      "deadlines",
-      "energy",
-      "projects"
-    ],
+    "tags": ["permits", "deadlines", "energy", "projects"],
     "composite_score": 7.45,
     "rank": 30
   },
@@ -1385,15 +1067,9 @@
     "execution_mode": "recommend_only",
     "trigger_type": "event",
     "trigger_definition": "Email or document contains risk-flagging keywords",
-    "required_inputs": [
-      "email_inbox",
-      "document_store"
-    ],
+    "required_inputs": ["email_inbox", "document_store"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "gmail",
-      "outlook"
-    ],
+    "system_dependencies": ["gmail", "outlook"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -1404,11 +1080,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "risk",
-      "commercial",
-      "contracts"
-    ],
+    "tags": ["risk", "commercial", "contracts"],
     "composite_score": 7.4,
     "rank": 31
   },
@@ -1430,14 +1102,9 @@
     "execution_mode": "draft_then_review",
     "trigger_type": "threshold",
     "trigger_definition": "Document requested + 3 business days with no receipt",
-    "required_inputs": [
-      "document_request_log"
-    ],
+    "required_inputs": ["document_request_log"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "email",
-      "document_store"
-    ],
+    "system_dependencies": ["email", "document_store"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -1448,11 +1115,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "documents",
-      "collection",
-      "transactions"
-    ],
+    "tags": ["documents", "collection", "transactions"],
     "composite_score": 7.3,
     "rank": 32
   },
@@ -1474,13 +1137,9 @@
     "execution_mode": "recommend_only",
     "trigger_type": "schedule",
     "trigger_definition": "Every Sunday evening and daily at 08:00",
-    "required_inputs": [
-      "calendar"
-    ],
+    "required_inputs": ["calendar"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "calendar"
-    ],
+    "system_dependencies": ["calendar"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -1491,11 +1150,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "calendar",
-      "ceo",
-      "delegation"
-    ],
+    "tags": ["calendar", "ceo", "delegation"],
     "composite_score": 7.25,
     "rank": 33
   },
@@ -1517,14 +1172,9 @@
     "execution_mode": "auto_execute",
     "trigger_type": "event",
     "trigger_definition": "New email received \u2014 continuous processing",
-    "required_inputs": [
-      "email_inbox"
-    ],
+    "required_inputs": ["email_inbox"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "gmail",
-      "outlook"
-    ],
+    "system_dependencies": ["gmail", "outlook"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -1535,11 +1185,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "inbox",
-      "routing",
-      "admin"
-    ],
+    "tags": ["inbox", "routing", "admin"],
     "composite_score": 7.15,
     "rank": 34
   },
@@ -1561,14 +1207,9 @@
     "execution_mode": "draft_then_review",
     "trigger_type": "threshold",
     "trigger_definition": "Permit application submitted + 21 days no response",
-    "required_inputs": [
-      "permit_application_tracker"
-    ],
+    "required_inputs": ["permit_application_tracker"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "email",
-      "project_tracker"
-    ],
+    "system_dependencies": ["email", "project_tracker"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -1579,11 +1220,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "permits",
-      "regulatory",
-      "energy"
-    ],
+    "tags": ["permits", "regulatory", "energy"],
     "composite_score": 7.15,
     "rank": 35
   },
@@ -1605,15 +1242,9 @@
     "execution_mode": "recommend_only",
     "trigger_type": "schedule",
     "trigger_definition": "Monthly analysis run on first day of each month",
-    "required_inputs": [
-      "task_history",
-      "email_patterns"
-    ],
+    "required_inputs": ["task_history", "email_patterns"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "task_system",
-      "email"
-    ],
+    "system_dependencies": ["task_system", "email"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -1624,11 +1255,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "automation",
-      "patterns",
-      "system_improvement"
-    ],
+    "tags": ["automation", "patterns", "system_improvement"],
     "composite_score": 7.1,
     "rank": 36
   },
@@ -1650,15 +1277,9 @@
     "execution_mode": "recommend_only",
     "trigger_type": "threshold",
     "trigger_definition": "Email to key partner contact + 5 business days no reply",
-    "required_inputs": [
-      "email_history",
-      "key_partner_list"
-    ],
+    "required_inputs": ["email_history", "key_partner_list"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "gmail",
-      "outlook"
-    ],
+    "system_dependencies": ["gmail", "outlook"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -1669,11 +1290,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "partners",
-      "escalation",
-      "revenue"
-    ],
+    "tags": ["partners", "escalation", "revenue"],
     "composite_score": 7.05,
     "rank": 37
   },
@@ -1695,16 +1312,9 @@
     "execution_mode": "draft_then_review",
     "trigger_type": "schedule",
     "trigger_definition": "24 hours before each meeting with 3+ attendees",
-    "required_inputs": [
-      "calendar",
-      "open_action_items",
-      "prior_meeting_notes"
-    ],
+    "required_inputs": ["calendar", "open_action_items", "prior_meeting_notes"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "calendar",
-      "email"
-    ],
+    "system_dependencies": ["calendar", "email"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -1715,11 +1325,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "meetings",
-      "agenda",
-      "admin"
-    ],
+    "tags": ["meetings", "agenda", "admin"],
     "composite_score": 7.05,
     "rank": 38
   },
@@ -1741,14 +1347,9 @@
     "execution_mode": "recommend_only",
     "trigger_type": "schedule",
     "trigger_definition": "Weekly on Monday 08:00",
-    "required_inputs": [
-      "ceo_task_queue",
-      "staff_capability_map"
-    ],
+    "required_inputs": ["ceo_task_queue", "staff_capability_map"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "task_system"
-    ],
+    "system_dependencies": ["task_system"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -1759,11 +1360,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "delegation",
-      "ceo",
-      "admin"
-    ],
+    "tags": ["delegation", "ceo", "admin"],
     "composite_score": 7.05,
     "rank": 39
   },
@@ -1785,14 +1382,9 @@
     "execution_mode": "draft_then_review",
     "trigger_type": "event",
     "trigger_definition": "Inbound email classified as routine request type",
-    "required_inputs": [
-      "email_inbox"
-    ],
+    "required_inputs": ["email_inbox"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "gmail",
-      "outlook"
-    ],
+    "system_dependencies": ["gmail", "outlook"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -1803,11 +1395,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "email",
-      "drafting",
-      "admin"
-    ],
+    "tags": ["email", "drafting", "admin"],
     "composite_score": 7.0,
     "rank": 40
   },
@@ -1829,13 +1417,9 @@
     "execution_mode": "recommend_only",
     "trigger_type": "schedule",
     "trigger_definition": "Every Sunday 20:00",
-    "required_inputs": [
-      "crm_data"
-    ],
+    "required_inputs": ["crm_data"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "crm"
-    ],
+    "system_dependencies": ["crm"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -1846,11 +1430,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "CRM integration OPEN ITEM",
-    "tags": [
-      "crm",
-      "hygiene",
-      "pipeline"
-    ],
+    "tags": ["crm", "hygiene", "pipeline"],
     "composite_score": 7.0,
     "rank": 41
   },
@@ -1872,15 +1452,9 @@
     "execution_mode": "recommend_only",
     "trigger_type": "schedule",
     "trigger_definition": "Every Monday 08:30",
-    "required_inputs": [
-      "open_task_list",
-      "issue_tracker"
-    ],
+    "required_inputs": ["open_task_list", "issue_tracker"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "task_system",
-      "email"
-    ],
+    "system_dependencies": ["task_system", "email"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -1891,11 +1465,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "issues",
-      "escalation",
-      "admin"
-    ],
+    "tags": ["issues", "escalation", "admin"],
     "composite_score": 6.95,
     "rank": 42
   },
@@ -1917,13 +1487,9 @@
     "execution_mode": "recommend_only",
     "trigger_type": "schedule",
     "trigger_definition": "Every Friday reviewing next week's calendar",
-    "required_inputs": [
-      "calendar"
-    ],
+    "required_inputs": ["calendar"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "calendar"
-    ],
+    "system_dependencies": ["calendar"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -1934,11 +1500,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "focus",
-      "calendar",
-      "ceo"
-    ],
+    "tags": ["focus", "calendar", "ceo"],
     "composite_score": 6.9,
     "rank": 43
   },
@@ -1960,14 +1522,9 @@
     "execution_mode": "auto_execute",
     "trigger_type": "event",
     "trigger_definition": "New raw note or transcript added to intake folder",
-    "required_inputs": [
-      "raw_notes_or_transcript"
-    ],
+    "required_inputs": ["raw_notes_or_transcript"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "knowledge_base",
-      "file_storage"
-    ],
+    "system_dependencies": ["knowledge_base", "file_storage"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -1978,11 +1535,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "notes",
-      "admin",
-      "knowledge"
-    ],
+    "tags": ["notes", "admin", "knowledge"],
     "composite_score": 6.9,
     "rank": 44
   },
@@ -2004,14 +1557,9 @@
     "execution_mode": "recommend_only",
     "trigger_type": "threshold",
     "trigger_definition": "Budget variance > 10% detected in financial system",
-    "required_inputs": [
-      "budget_actuals",
-      "project_budgets"
-    ],
+    "required_inputs": ["budget_actuals", "project_budgets"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "accounting_system"
-    ],
+    "system_dependencies": ["accounting_system"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -2022,11 +1570,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Requires accounting system integration \u2014 currently OPEN ITEM",
-    "tags": [
-      "budget",
-      "finance",
-      "variance"
-    ],
+    "tags": ["budget", "finance", "variance"],
     "composite_score": 6.8,
     "rank": 45
   },
@@ -2048,15 +1592,9 @@
     "execution_mode": "recommend_only",
     "trigger_type": "schedule",
     "trigger_definition": "First Monday of each month",
-    "required_inputs": [
-      "action_allowlist",
-      "audit_log",
-      "task_patterns"
-    ],
+    "required_inputs": ["action_allowlist", "audit_log", "task_patterns"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "action_allowlist_system"
-    ],
+    "system_dependencies": ["action_allowlist_system"],
     "owner": "openclaw",
     "approver": "matthew.tynski@gmail.com",
     "escalation_path": "CEO",
@@ -2067,11 +1605,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "system",
-      "audit",
-      "allowlist"
-    ],
+    "tags": ["system", "audit", "allowlist"],
     "composite_score": 6.8,
     "rank": 46
   },
@@ -2093,17 +1627,9 @@
     "execution_mode": "draft_then_review",
     "trigger_type": "schedule",
     "trigger_definition": "First Monday of each month",
-    "required_inputs": [
-      "project_statuses",
-      "pipeline_summary"
-    ],
-    "optional_inputs": [
-      "financial_summary"
-    ],
-    "system_dependencies": [
-      "email",
-      "project_tracker"
-    ],
+    "required_inputs": ["project_statuses", "pipeline_summary"],
+    "optional_inputs": ["financial_summary"],
+    "system_dependencies": ["email", "project_tracker"],
     "owner": "openclaw",
     "approver": "matthew.tynski@gmail.com",
     "escalation_path": "CEO",
@@ -2114,11 +1640,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "investors",
-      "monthly",
-      "update"
-    ],
+    "tags": ["investors", "monthly", "update"],
     "composite_score": 6.7,
     "rank": 47
   },
@@ -2140,15 +1662,9 @@
     "execution_mode": "draft_then_review",
     "trigger_type": "schedule",
     "trigger_definition": "Every Friday 13:00",
-    "required_inputs": [
-      "public_data_feeds",
-      "competitor_list"
-    ],
+    "required_inputs": ["public_data_feeds", "competitor_list"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "web_search",
-      "memory_system"
-    ],
+    "system_dependencies": ["web_search", "memory_system"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -2159,11 +1675,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Requires web search integration \u2014 OPEN ITEM",
-    "tags": [
-      "competitive",
-      "intelligence",
-      "market"
-    ],
+    "tags": ["competitive", "intelligence", "market"],
     "composite_score": 6.35,
     "rank": 48
   },
@@ -2185,14 +1697,9 @@
     "execution_mode": "recommend_only",
     "trigger_type": "event",
     "trigger_definition": "New document received or created",
-    "required_inputs": [
-      "new_document",
-      "folder_structure"
-    ],
+    "required_inputs": ["new_document", "folder_structure"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "file_storage"
-    ],
+    "system_dependencies": ["file_storage"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -2203,11 +1710,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Requires file storage integration \u2014 OPEN ITEM",
-    "tags": [
-      "files",
-      "organization",
-      "admin"
-    ],
+    "tags": ["files", "organization", "admin"],
     "composite_score": 6.2,
     "rank": 49
   },
@@ -2229,15 +1732,9 @@
     "execution_mode": "auto_execute",
     "trigger_type": "schedule",
     "trigger_definition": "5th and 10th of each month",
-    "required_inputs": [
-      "staff_list",
-      "expense_report_status"
-    ],
+    "required_inputs": ["staff_list", "expense_report_status"],
     "optional_inputs": [],
-    "system_dependencies": [
-      "email",
-      "accounting_system"
-    ],
+    "system_dependencies": ["email", "accounting_system"],
     "owner": "openclaw",
     "approver": null,
     "escalation_path": "CEO",
@@ -2248,11 +1745,7 @@
     "review_due_date": null,
     "enabled": true,
     "notes": "",
-    "tags": [
-      "expenses",
-      "admin",
-      "finance"
-    ],
+    "tags": ["expenses", "admin", "finance"],
     "composite_score": 5.5,
     "rank": 50
   },
@@ -2289,9 +1782,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0052",
@@ -2326,9 +1817,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0053",
@@ -2363,9 +1852,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0054",
@@ -2400,9 +1887,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0055",
@@ -2437,9 +1922,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0056",
@@ -2474,9 +1957,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0057",
@@ -2511,9 +1992,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0058",
@@ -2548,9 +2027,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0059",
@@ -2585,9 +2062,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0060",
@@ -2622,9 +2097,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0061",
@@ -2659,9 +2132,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0062",
@@ -2696,9 +2167,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0063",
@@ -2733,9 +2202,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0064",
@@ -2770,9 +2237,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0065",
@@ -2807,9 +2272,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0066",
@@ -2844,9 +2307,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0067",
@@ -2881,9 +2342,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0068",
@@ -2918,9 +2377,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0069",
@@ -2955,9 +2412,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0070",
@@ -2992,9 +2447,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0071",
@@ -3029,9 +2482,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0072",
@@ -3066,9 +2517,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0073",
@@ -3103,9 +2552,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0074",
@@ -3140,9 +2587,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0075",
@@ -3177,9 +2622,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0076",
@@ -3214,9 +2657,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0077",
@@ -3251,9 +2692,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0078",
@@ -3288,9 +2727,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0079",
@@ -3325,9 +2762,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0080",
@@ -3362,9 +2797,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0081",
@@ -3399,9 +2832,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0082",
@@ -3436,9 +2867,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0083",
@@ -3473,9 +2902,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0084",
@@ -3510,9 +2937,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0085",
@@ -3547,9 +2972,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0086",
@@ -3584,9 +3007,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0087",
@@ -3621,9 +3042,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0088",
@@ -3658,9 +3077,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0089",
@@ -3695,9 +3112,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0090",
@@ -3732,9 +3147,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0091",
@@ -3769,9 +3182,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0092",
@@ -3806,9 +3217,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0093",
@@ -3843,9 +3252,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0094",
@@ -3880,9 +3287,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0095",
@@ -3917,9 +3322,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0096",
@@ -3954,9 +3357,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0097",
@@ -3991,9 +3392,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0098",
@@ -4028,9 +3427,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0099",
@@ -4065,9 +3462,7 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   },
   {
     "action_id": "ACT-0100",
@@ -4102,8 +3497,6 @@
     "review_due_date": null,
     "enabled": false,
     "notes": "Proposed \u2014 needs full definition before enabling",
-    "tags": [
-      "proposed"
-    ]
+    "tags": ["proposed"]
   }
 ]

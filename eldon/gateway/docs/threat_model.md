@@ -18,20 +18,20 @@
 
 ## Threats and Mitigations
 
-| Threat | Mitigation |
-|---|---|
-| Unknown sender sending commands | Allowlist rejects before any processing |
-| Attacker spoofing Telegram webhook | `TELEGRAM_WEBHOOK_SECRET` header verified via `hmac.compare_digest` |
-| Replay attack (resending old message) | `message_id` dedupe set (in-memory, resets on restart) |
-| High-risk command executed without consent | Confirmation token required; expires in 120s; sender must match |
-| Confirmation token stolen from chat | Token is short-lived (120s); only original sender can redeem |
-| Arbitrary shell injection | `ENABLE_RAW_SHELL=false` by default; registry blocks unregistered commands |
-| Secret leaked in logs | Audit log explicitly excludes secret fields; no stack traces to users |
-| `.env` committed to git | `.env` in `.gitignore`; only `.env.example` committed |
-| Bot token exposed | Rotate via @BotFather; update `.env` on Pi |
-| Attachment upload with malicious file | MIME type allowlist; size limit (20MB); no auto-execution |
-| Pi physically compromised | Out of scope for software controls; use disk encryption |
-| Twilio webhook spoofing | OPEN ITEM: Twilio signature validation not yet implemented |
+| Threat                                     | Mitigation                                                                 |
+| ------------------------------------------ | -------------------------------------------------------------------------- |
+| Unknown sender sending commands            | Allowlist rejects before any processing                                    |
+| Attacker spoofing Telegram webhook         | `TELEGRAM_WEBHOOK_SECRET` header verified via `hmac.compare_digest`        |
+| Replay attack (resending old message)      | `message_id` dedupe set (in-memory, resets on restart)                     |
+| High-risk command executed without consent | Confirmation token required; expires in 120s; sender must match            |
+| Confirmation token stolen from chat        | Token is short-lived (120s); only original sender can redeem               |
+| Arbitrary shell injection                  | `ENABLE_RAW_SHELL=false` by default; registry blocks unregistered commands |
+| Secret leaked in logs                      | Audit log explicitly excludes secret fields; no stack traces to users      |
+| `.env` committed to git                    | `.env` in `.gitignore`; only `.env.example` committed                      |
+| Bot token exposed                          | Rotate via @BotFather; update `.env` on Pi                                 |
+| Attachment upload with malicious file      | MIME type allowlist; size limit (20MB); no auto-execution                  |
+| Pi physically compromised                  | Out of scope for software controls; use disk encryption                    |
+| Twilio webhook spoofing                    | OPEN ITEM: Twilio signature validation not yet implemented                 |
 
 ---
 

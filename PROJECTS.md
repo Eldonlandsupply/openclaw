@@ -13,7 +13,7 @@ but operate independently. This file is the human-readable entry point.
 
 Web-based operational control plane for the OpenClaw agent ecosystem.  
 **Source:** `mission-control/`  
-**Status:** Active — Production  
+**Status:** Active — Production
 
 The canonical operator interface for managing the agent fleet. Connects directly
 to the OpenClaw gateway via WebSocket. No build step, no framework, no dependencies.
@@ -27,7 +27,7 @@ to the OpenClaw gateway via WebSocket. No build step, no framework, no dependenc
 
 Bespoke Python agent runtime deployed 24/7 on a Raspberry Pi.  
 **Source:** `eldon/`  
-**Status:** Active — Production  
+**Status:** Active — Production
 
 Custom orchestration layer for Eldon Land Supply business automation.
 Handles Telegram, Gmail, and Outlook. Integrates Attio CRM. Runs the

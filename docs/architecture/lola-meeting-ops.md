@@ -7,12 +7,14 @@ Pre-meeting dossiers and post-meeting notes for every Teams meeting on Matthew's
 ## What This Does
 
 **Pre-meeting (T-20 minutes):**
+
 - Polls Matthew's Outlook calendar for upcoming Teams meetings
 - Classifies attendees as internal (Eldon) or external
 - Enriches external attendees from Attio CRM and prior email threads
 - Sends a dossier email to Matthew (and internal attendees if configured)
 
 **Post-meeting:**
+
 - Waits for the meeting to end
 - Fetches transcript (retries for up to 60 minutes — transcript publication is delayed)
 - Fetches recap if available
@@ -48,15 +50,15 @@ ATTIO_API_KEY=<your_attio_key>
 
 **Application permissions** (not delegated — this runs as a background service):
 
-| Permission | Required | Purpose |
-|---|---|---|
-| `Calendars.Read` | ✅ Required | Read Matthew's calendar |
-| `Mail.ReadWrite` | ✅ Required | Create draft emails in Drafts folder |
-| `Mail.Send` | ✅ Required | Send dossier emails |
-| `Mail.Read` | ✅ Required | Search prior email threads for context |
-| `OnlineMeetings.Read` | ✅ Required | Fetch Teams meeting metadata |
+| Permission                       | Required    | Purpose                                   |
+| -------------------------------- | ----------- | ----------------------------------------- |
+| `Calendars.Read`                 | ✅ Required | Read Matthew's calendar                   |
+| `Mail.ReadWrite`                 | ✅ Required | Create draft emails in Drafts folder      |
+| `Mail.Send`                      | ✅ Required | Send dossier emails                       |
+| `Mail.Read`                      | ✅ Required | Search prior email threads for context    |
+| `OnlineMeetings.Read`            | ✅ Required | Fetch Teams meeting metadata              |
 | `OnlineMeetingArtifact.Read.All` | ✅ Required | Fetch transcripts (Teams Premium feature) |
-| `User.Read.All` | Optional | Resolve attendee display names |
+| `User.Read.All`                  | Optional    | Resolve attendee display names            |
 
 > **Note:** `OnlineMeetingArtifact.Read.All` requires Teams Premium on the tenant.
 > If not available, transcript collection falls back to partial — notes are still
@@ -65,6 +67,7 @@ ATTIO_API_KEY=<your_attio_key>
 ### Grant Admin Consent
 
 After adding these permissions in the Azure portal:
+
 1. Go to **API permissions** → click **Grant admin consent for [tenant]**
 2. All permissions must show ✅ **Granted**
 
@@ -113,6 +116,7 @@ The scheduler is an asyncio background task that starts alongside the LOLA gatew
 Teams transcripts are typically available 5–30 minutes after a meeting ends, depending on meeting length and tenant processing load.
 
 The system:
+
 - Marks state as `transcript_pending` while waiting
 - Polls every 5 minutes (configurable)
 - Falls back gracefully if transcript never arrives — notes are still generated from recap/attendee list with `source_confidence: low`
@@ -140,21 +144,25 @@ sudo journalctl -u openclaw -n 100 --no-pager | grep meeting_ops
 ## Disable or Narrow the Workflow
 
 **Disable entirely:**
+
 ```env
 LOLA_MEETINGS_ENABLED=false
 ```
 
 **Only process meetings Matthew organises:**
+
 ```env
 LOLA_MEETINGS_ORGANIZER_ONLY=true
 ```
 
 **Block personal calendar items:**
+
 ```env
 LOLA_MEETINGS_BLOCKED_CATEGORIES=Personal,Private
 ```
 
 **Don't send dossier to other Eldon attendees (Matthew only):**
+
 ```env
 LOLA_MEETINGS_DOSSIER_INTERNAL=false
 ```

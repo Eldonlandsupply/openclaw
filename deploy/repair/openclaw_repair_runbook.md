@@ -1,5 +1,7 @@
 # OpenClaw Pi Repair Runbook
+
 ## Eldon Land Supply — EldonOpenClaw Deployment
+
 ### Generated: 2026-03-11
 
 ---
@@ -29,22 +31,28 @@ The script is non-destructive first — it backs up before changing anything.
 ## WHAT THE SCRIPT DOES (PHASE BY PHASE)
 
 ### Phase 1 — Forensic Discovery
+
 Scans for every OpenClaw trace on the machine:
+
 - Running processes, systemd units, cron jobs
 - All repo clones, venvs, .env files
 - tmux/screen sessions, nohup outputs
 - Log directories, bash history references
 
 ### Phase 2 — Repo Truth Test
+
 For every found repo clone:
+
 - Records remote URL, branch, git status, HEAD commit
 - Backs up any uncommitted changes to timestamped rescue folder
 - Determines which clone is canonical
 
 ### Phase 3 — Config Discovery
+
 Maps all config and .env files found. Records present/missing keys.
 
 ### Phase 4–6 — Deployment Repair
+
 - Creates canonical deployment at `/opt/openclaw`
 - Creates `openclaw` system user if missing
 - Clones or pulls from `Eldonlandsupply/openclaw` via authenticated HTTPS
@@ -55,16 +63,19 @@ Maps all config and .env files found. Records present/missing keys.
 - Writes clean systemd unit file
 
 ### Phase 7 — Legacy Conflict Removal
+
 - Disables any other openclaw-named systemd services
 - Kills stray openclaw Python processes
 - Comments out openclaw cron entries (with backup)
 
 ### Phase 8 — Service Activation
+
 - `systemctl daemon-reload`
 - `systemctl enable openclaw` (boot persistence)
 - `systemctl start openclaw`
 
 ### Phase 9 — Verification
+
 - `systemctl status`
 - `journalctl` last 30 lines
 - Process list check
@@ -77,15 +88,15 @@ Maps all config and .env files found. Records present/missing keys.
 
 ## CANONICAL DEPLOYMENT TARGETS
 
-| Item | Path |
-|---|---|
-| Repo | `/opt/openclaw` |
-| Virtualenv | `/opt/openclaw/.venv` |
-| Env file | `/etc/openclaw/openclaw.env` |
-| Service | `openclaw.service` |
-| Unit file | `/etc/systemd/system/openclaw.service` |
-| Data dir | `/var/lib/openclaw` |
-| Backups | `~/eldon/backups/openclaw_repair_TIMESTAMP/` |
+| Item       | Path                                         |
+| ---------- | -------------------------------------------- |
+| Repo       | `/opt/openclaw`                              |
+| Virtualenv | `/opt/openclaw/.venv`                        |
+| Env file   | `/etc/openclaw/openclaw.env`                 |
+| Service    | `openclaw.service`                           |
+| Unit file  | `/etc/systemd/system/openclaw.service`       |
+| Data dir   | `/var/lib/openclaw`                          |
+| Backups    | `~/eldon/backups/openclaw_repair_TIMESTAMP/` |
 
 ---
 

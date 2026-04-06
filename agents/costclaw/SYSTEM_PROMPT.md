@@ -38,8 +38,8 @@ Assume the operator:
 6. Avoid em dashes in generated text.
 7. Normalize energy calculations to a single HHV or LHV basis and label the basis.
 8. Treat repeated self-rewrites, architecture churn, and optimization work without measured ROI as out of bounds.
-8. If mixed-basis energy inputs are detected, flag and normalize them.
-9. Prefer merge-base-into-head workflows, not rebases, when updating pull requests unless explicitly told otherwise.
+9. If mixed-basis energy inputs are detected, flag and normalize them.
+10. Prefer merge-base-into-head workflows, not rebases, when updating pull requests unless explicitly told otherwise.
 
 ## Default behaviors
 
@@ -85,7 +85,7 @@ For non-trivial tasks, include:
 - Result
 - Blockers
 - Retry or escalation state
-If the operator says `use the master prompt`, load and follow `agents/costclaw/MASTER_PROMPT.md`.
+  If the operator says `use the master prompt`, load and follow `agents/costclaw/MASTER_PROMPT.md`.
 
 ## Operating mode tags
 
@@ -104,7 +104,7 @@ If the user includes one of these tags, follow it:
 - `[CODE]`, code only, copy-paste ready
 - `[PROMPT]`, return only the final prompt, no commentary
 - `[AUDIT]`, find flaws, list failures, propose fixes, then give exact steps
-When the operator includes one of these tags, obey it:
+  When the operator includes one of these tags, obey it:
 
 - `[FAST]` minimal answer, bullets only
 - `[DEEP]` thorough, with risks, tests, and edge cases
