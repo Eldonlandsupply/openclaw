@@ -196,7 +196,12 @@ type AgentConfigEntry = {
 
 type ConfigSnapshot = {
   agents?: {
-    defaults?: { workspace?: string; model?: unknown; models?: Record<string, { alias?: string }>; bootstrapMaxChars?: number };
+    defaults?: {
+      workspace?: string;
+      model?: unknown;
+      models?: Record<string, { alias?: string }>;
+      bootstrapMaxChars?: number;
+    };
     list?: AgentConfigEntry[];
   };
   tools?: {
@@ -295,11 +300,22 @@ function bytesToApproxChars(bytes?: number): number {
   return bytes ?? 0;
 }
 
-function renderBootstrapBudget(files: Array<{ name: string; size?: number; missing: boolean }>, maxChars: number) {
+function renderBootstrapBudget(
+  files: Array<{ name: string; size?: number; missing: boolean }>,
+  maxChars: number,
+) {
   if (files.length === 0) {
     return nothing;
   }
-  const BOOTSTRAP_NAMES = new Set(["AGENTS.md", "SOUL.md", "TOOLS.md", "IDENTITY.md", "USER.md", "HEARTBEAT.md", "BOOTSTRAP.md"]);
+  const BOOTSTRAP_NAMES = new Set([
+    "AGENTS.md",
+    "SOUL.md",
+    "TOOLS.md",
+    "IDENTITY.md",
+    "USER.md",
+    "HEARTBEAT.md",
+    "BOOTSTRAP.md",
+  ]);
   const bootstrapFiles = files.filter((f) => BOOTSTRAP_NAMES.has(f.name) && !f.missing);
   if (bootstrapFiles.length === 0) {
     return nothing;
@@ -309,7 +325,11 @@ function renderBootstrapBudget(files: Array<{ name: string; size?: number; missi
   const overBudget = totalChars > maxChars;
   const warnThreshold = 0.8;
   const nearLimit = !overBudget && totalChars / maxChars >= warnThreshold;
-  const barColor = overBudget ? "var(--danger, #ff4d4d)" : nearLimit ? "var(--warn, #ffb347)" : "var(--accent, #00ff88)";
+  const barColor = overBudget
+    ? "var(--danger, #ff4d4d)"
+    : nearLimit
+      ? "var(--warn, #ffb347)"
+      : "var(--accent, #00ff88)";
   const statusLabel = overBudget
     ? "over budget — truncation active"
     : nearLimit
@@ -317,7 +337,7 @@ function renderBootstrapBudget(files: Array<{ name: string; size?: number; missi
       : "ok";
   const statusClass = overBudget ? "danger" : nearLimit ? "warn" : "ok";
 
-  return html\`
+  return html`
     <div class="bootstrap-budget" style="margin-top: 14px;">
       <div class="row" style="justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
         <div class="label">Bootstrap Budget</div>
@@ -336,7 +356,7 @@ function renderBootstrapBudget(files: Array<{ name: string; size?: number; missi
           const filePct = Math.min(100, Math.round((chars / maxChars) * 100));
           const fileOver = chars > maxChars;
           const chipColor = fileOver ? "var(--danger, #ff4d4d)" : "rgba(255,255,255,0.12)";
-          return html\`
+          return html`
             <div style="
               display: flex; align-items: center; gap: 5px;
               background: ${chipColor}; border-radius: 4px;
@@ -344,11 +364,11 @@ function renderBootstrapBudget(files: Array<{ name: string; size?: number; missi
               <span>${f.name}</span>
               <span class="muted">${chars.toLocaleString()}ch (${filePct}%)</span>
             </div>
-          \`;
+          `;
         })}
       </div>
     </div>
-  \`;
+  `;
 }
 
 function resolveAgentConfig(config: Record<string, unknown> | null, agentId: string) {
@@ -2042,4 +2062,3 @@ function renderAgentSkillRow(
     </div>
   `;
 }
-
