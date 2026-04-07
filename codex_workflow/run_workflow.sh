@@ -9,15 +9,20 @@ RUN_LOG="codex_workflow/out/run.log"
 mkdir -p codex_workflow/out codex_workflow/out/logs
 : > "$RUN_LOG"
 
+CURRENT_STAGE="init"
+CURRENT_MESSAGE="workflow bootstrapping"
+
 write_status() {
   local result="$1"
   local stage="$2"
   local message="$3"
+  local exit_code="$4"
   cat > "$STATUS_JSON" <<JSON
 {
   "result": "$result",
   "stage": "$stage",
   "message": "$message",
+  "exit_code": $exit_code,
   "config_path": "$CONFIG_PATH",
   "runtime_contract": "$RUNTIME_JSON",
   "run_log": "$RUN_LOG"
@@ -25,23 +30,55 @@ write_status() {
 JSON
 }
 
-run_cmd() {
-  local stage="$1"
-  local cmd="$2"
-  echo "[RUN] ${stage}: ${cmd}" | tee -a "$RUN_LOG"
-  if bash -lc "$cmd" >>"$RUN_LOG" 2>&1; then
-    echo "[OK] ${stage}" | tee -a "$RUN_LOG"
-    return 0
+on_exit() {
+  local code="$1"
+  if [[ "$code" -eq 0 ]]; then
+    write_status "success" "$CURRENT_STAGE" "$CURRENT_MESSAGE" "$code"
+  else
+    write_status "failed" "$CURRENT_STAGE" "$CURRENT_MESSAGE" "$code"
   fi
-  local code=$?
-  echo "[ERROR] ${stage} failed with exit code ${code}" | tee -a "$RUN_LOG"
-  write_status "failed" "$stage" "command failed with exit code ${code}"
-  exit "$code"
+}
+trap 'on_exit $?' EXIT
+
+run_argv_step() {
+  local stage="$1"
+  shift
+  CURRENT_STAGE="$stage"
+  CURRENT_MESSAGE="running"
+  echo "[RUN] ${stage}: $*" | tee -a "$RUN_LOG"
+  if "$@" >>"$RUN_LOG" 2>&1; then
+    echo "[OK] ${stage}" | tee -a "$RUN_LOG"
+    CURRENT_MESSAGE="completed"
+    return 0
+  else
+    local code=$?
+    CURRENT_MESSAGE="failed with exit code ${code}"
+    echo "[ERROR] ${stage} failed with exit code ${code}" | tee -a "$RUN_LOG"
+    return "$code"
+  fi
 }
 
-write_status "running" "preflight" "workflow started"
-run_cmd "preflight" "./codex_workflow/preflight.sh '$CONFIG_PATH' '$RUNTIME_JSON'"
-run_cmd "input_validation" "python3 codex_workflow/validate_inputs.py --config '$CONFIG_PATH' --schema codex_workflow/config.schema.json --emit-runtime '$RUNTIME_JSON'"
+run_command_step() {
+  local stage="$1"
+  local timeout_seconds="$2"
+  local command="$3"
+  CURRENT_STAGE="$stage"
+  CURRENT_MESSAGE="running"
+  echo "[RUN] ${stage}: ${command}" | tee -a "$RUN_LOG"
+  if timeout "${timeout_seconds}s" bash -lc "$command" >>"$RUN_LOG" 2>&1; then
+    echo "[OK] ${stage}" | tee -a "$RUN_LOG"
+    CURRENT_MESSAGE="completed"
+    return 0
+  else
+    local code=$?
+    CURRENT_MESSAGE="failed with exit code ${code}"
+    echo "[WARN] ${stage} failed with exit code ${code}" | tee -a "$RUN_LOG"
+    return "$code"
+  fi
+}
+
+run_argv_step "preflight" ./codex_workflow/preflight.sh "$CONFIG_PATH" "$RUNTIME_JSON"
+run_argv_step "input_validation" python3 codex_workflow/validate_inputs.py --config "$CONFIG_PATH" --schema codex_workflow/config.schema.json --emit-runtime "$RUNTIME_JSON"
 
 MODE="$(python3 - <<'PY' "$RUNTIME_JSON"
 import json, pathlib, sys
@@ -51,7 +88,8 @@ PY
 )"
 
 if [[ "$MODE" == "validate_only" ]]; then
-  write_status "success" "final_output" "validation-only mode complete"
+  CURRENT_STAGE="final_output"
+  CURRENT_MESSAGE="validation-only mode complete"
   echo "[OK] workflow complete (validate_only)"
   exit 0
 fi
@@ -73,21 +111,20 @@ for line in "${STEP_LINES[@]}"; do
   SUCCESS=0
   while [[ "$ATTEMPT" -le "$RETRIES" ]]; do
     ATTEMPT=$((ATTEMPT + 1))
-    echo "[RUN] ${STEP_ID}.attempt_${ATTEMPT}: ${STEP_CMD}" | tee -a "$RUN_LOG"
-    if timeout "${STEP_TIMEOUT}s" bash -lc "$STEP_CMD" >>"$RUN_LOG" 2>&1; then
-      echo "[OK] ${STEP_ID}.attempt_${ATTEMPT}" | tee -a "$RUN_LOG"
+    STAGE_NAME="${STEP_ID}.attempt_${ATTEMPT}"
+    if run_command_step "$STAGE_NAME" "$STEP_TIMEOUT" "$STEP_CMD"; then
       SUCCESS=1
       break
     fi
-    CODE=$?
-    echo "[WARN] ${STEP_ID}.attempt_${ATTEMPT} failed with exit code ${CODE}" | tee -a "$RUN_LOG"
   done
 
   if [[ "$SUCCESS" -ne 1 ]]; then
-    write_status "failed" "$STEP_ID" "all attempts failed"
+    CURRENT_STAGE="$STEP_ID"
+    CURRENT_MESSAGE="all attempts failed"
     exit 30
   fi
 done
 
-write_status "success" "final_output" "workflow complete"
+CURRENT_STAGE="final_output"
+CURRENT_MESSAGE="workflow complete"
 echo "[OK] workflow complete"
