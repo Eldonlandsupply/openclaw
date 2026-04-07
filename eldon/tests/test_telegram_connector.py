@@ -15,7 +15,7 @@ Covers:
  - sendMessage success path
  - sendMessage retry on transient 500
  - sendMessage permanent 400/403 → no retry
- - Long message chunked into ≤4096-char pieces
+ - Long message is sent as a single complete reply
  - stop() cancels poll task and closes session
  - messages() async generator yields queued items and exits when stopped
 """
@@ -325,14 +325,14 @@ class TestSend:
         session.post.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_send_chunks_long_message(self):
+    async def test_send_long_message_single_reply(self):
         c = _make_connector()
         session = MagicMock()
         session.post.return_value = _mock_response({"ok": True}, status=200)
         c._session = session
-        long_text = "x" * 9000  # ceil(9000/4096) == 3 chunks
+        long_text = "x" * 9000
         await c.send(str(ALLOWED_CHAT_ID), long_text)
-        assert session.post.call_count == 3
+        assert session.post.call_count == 1
 
     @pytest.mark.asyncio
     async def test_send_retries_on_transient_error(self):
