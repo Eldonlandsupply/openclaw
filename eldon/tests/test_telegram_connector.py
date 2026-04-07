@@ -264,8 +264,7 @@ class TestPollLoop:
         session.get = fake_get
         c._session = session
 
-        with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-            mock_sleep.side_effect = lambda _: asyncio.sleep(0)
+        with patch("asyncio.sleep", new=AsyncMock(return_value=None)):
             await c._poll_loop()
 
         assert c._queue.qsize() >= 1
@@ -294,8 +293,7 @@ class TestPollLoop:
         session.get = fake_get
         c._session = session
 
-        with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-            mock_sleep.side_effect = lambda _: asyncio.sleep(0)
+        with patch("asyncio.sleep", new=AsyncMock(return_value=None)):
             await c._poll_loop()
 
         # Must reach here without raising
