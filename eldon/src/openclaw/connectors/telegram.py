@@ -26,7 +26,6 @@ logger = get_logger(__name__)
 
 _API = "https://api.telegram.org/bot{token}/{method}"
 _TOKEN_RE = re.compile(r"^\d+:[A-Za-z0-9_-]{35,}$")
-_MAX_MSG_LEN = 4096
 _SEND_RETRIES = 3
 _SEND_BACKOFF = (1.0, 2.0, 4.0)
 
