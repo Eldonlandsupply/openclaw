@@ -99,6 +99,12 @@ describe("lola telegram intake", () => {
     expect(result.outcome).toBe("pass");
   });
 
+  it("accepts follow-up operations when only M365_GRAPH_ACCESS_TOKEN alias is set", () => {
+    process.env.M365_GRAPH_ACCESS_TOKEN = "test-token";
+    const result = evaluateTelegramIntake(ctx("What follow-ups am I missing?") as never);
+    expect(result.outcome).toBe("pass");
+  });
+
   it("routes generic questions to conversational path", () => {
     const result = evaluateTelegramIntake(ctx("Summarize this thread for me.") as never);
     expect(result.outcome).toBe("pass");
