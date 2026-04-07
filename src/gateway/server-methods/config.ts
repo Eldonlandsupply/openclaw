@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from "node:util";
 import type { GatewayRequestHandlers, RespondFn } from "./types.js";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../../agents/agent-scope.js";
 import { listChannelPlugins } from "../../channels/plugins/index.js";
@@ -290,6 +291,21 @@ export const configHandlers: GatewayRequestHandlers = {
         errorShape(ErrorCodes.INVALID_REQUEST, "invalid config", {
           details: { issues: validated.issues },
         }),
+      );
+      return;
+    }
+    if (isDeepStrictEqual(validated.config, snapshot.config)) {
+      respond(
+        true,
+        {
+          ok: true,
+          noOp: true,
+          path: CONFIG_PATH,
+          config: redactConfigObject(validated.config),
+          restart: null,
+          sentinel: null,
+        },
+        undefined,
       );
       return;
     }

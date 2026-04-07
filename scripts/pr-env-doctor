@@ -34,12 +34,18 @@ else
   fail 'not inside a git repository'
 fi
 
-if git remote -v | grep -q '.'; then
-  pass 'git remote configured'
-  printf 'Configured remotes:\n'
-  git remote -v
+if git remote get-url origin >/dev/null 2>&1; then
+  pass 'origin remote configured'
+  printf 'Configured remote names:\n'
+  git remote
 else
-  fail 'no git remotes configured'
+  fail 'origin remote is not configured'
+fi
+
+if git ls-remote --exit-code origin refs/heads/main >/dev/null 2>&1; then
+  pass 'origin/main is reachable'
+else
+  fail 'origin/main is not reachable'
 fi
 
 printf '\n'
@@ -68,10 +74,12 @@ fi
 
 printf 'Environment is NOT ready for PR creation (%d failure(s)).\n' "$failures"
 printf '\nSuggested fixes:\n'
-printf '1) Add a remote, for example:\n'
+printf '1) Add origin remote, for example:\n'
 printf "   git remote add origin https://github.com/<owner>/<repo>.git\n"
-printf '2) Verify network path to GitHub:\n'
+printf '2) Ensure main exists on origin and fetch it:\n'
+printf '   git fetch origin main\n'
+printf '3) Verify network path to GitHub:\n'
 printf '   curl -I https://github.com\n'
-printf '3) Install and authenticate gh:\n'
+printf '4) Install and authenticate gh:\n'
 printf '   gh auth login\n'
 exit 1

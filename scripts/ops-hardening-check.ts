@@ -1,7 +1,10 @@
+import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { promisify } from "node:util";
 
 const REPO_ROOT = process.cwd();
+const execFileAsync = promisify(execFile);
 
 const CRITICAL_SHELL_FILES = ["scripts/auth-monitor.sh", "scripts/termux-auth-widget.sh"];
 
@@ -14,6 +17,15 @@ function isCommentOrEmpty(line: string): boolean {
 
 async function main() {
   const failures: string[] = [];
+
+  try {
+    await execFileAsync("git", ["ls-files", "--error-unmatch", ".env"], { cwd: REPO_ROOT });
+    failures.push(
+      ".env is tracked in git, remove it from version control and keep secrets in local-only files",
+    );
+  } catch {
+    // Expected: .env should not be tracked.
+  }
 
   for (const relPath of CRITICAL_SHELL_FILES) {
     const absPath = path.join(REPO_ROOT, relPath);

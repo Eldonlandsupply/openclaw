@@ -262,6 +262,30 @@ describe("security audit", () => {
     expect(finding?.detail).toContain("sandbox=all");
   });
 
+  it("treats BRAVE_SEARCH_API_KEY as enabling web_search in small model audit", async () => {
+    const cfg: OpenClawConfig = {
+      agents: { defaults: { model: { primary: "ollama/mistral-8b" } } },
+      tools: {
+        web: {
+          search: {},
+          fetch: { enabled: false },
+        },
+      },
+      browser: { enabled: false },
+    };
+
+    const res = await runSecurityAudit({
+      config: cfg,
+      includeFilesystem: false,
+      includeChannelSecurity: false,
+      env: { BRAVE_SEARCH_API_KEY: "alias-key" },
+    });
+
+    const finding = res.findings.find((f) => f.checkId === "models.small_params");
+    expect(finding?.severity).toBe("critical");
+    expect(finding?.detail).toContain("web_search");
+  });
+
   it("flags tools.elevated allowFrom wildcard as critical", async () => {
     const cfg: OpenClawConfig = {
       tools: {

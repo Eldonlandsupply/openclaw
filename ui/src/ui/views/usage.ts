@@ -1564,12 +1564,13 @@ const buildCostClawSnapshots = (
   totals: UsageTotals,
   daily: CostDailyEntry[],
 ): { kpis: CostClawKpiSnapshot; workflowMetrics: CostClawWorkflowMetrics[] } => {
+  const sessionsWithUsage = sessions.filter((session) => Boolean(session.usage));
   const workflowMetrics = buildCostClawWorkflowMetrics(sessions);
-  const successfulTasks = sessions.filter(
+  const successfulTasks = sessionsWithUsage.filter(
     (session) => (session.usage?.messageCounts?.errors ?? 0) === 0,
   ).length;
-  const totalTasks = sessions.length || 1;
-  const totalToolCalls = sessions.reduce(
+  const totalTasks = sessionsWithUsage.length || 1;
+  const totalToolCalls = sessionsWithUsage.reduce(
     (sum, session) =>
       sum + (session.usage?.toolUsage?.totalCalls ?? session.usage?.messageCounts?.toolCalls ?? 0),
     0,
@@ -1683,8 +1684,13 @@ const buildCostClawSnapshots = (
       },
       {
         label: "regressions_introduced",
-        value: `${sessions.filter((session) => (session.usage?.messageCounts?.errors ?? 0) > 0).length}`,
+        value: `${sessionsWithUsage.filter((session) => (session.usage?.messageCounts?.errors ?? 0) > 0).length}`,
         sub: "Sessions with errors in range",
+      },
+      {
+        label: "sessions_missing_usage",
+        value: `${sessions.length - sessionsWithUsage.length}`,
+        sub: "Excluded from workflow-derived KPIs",
       },
     ],
     secondary: [

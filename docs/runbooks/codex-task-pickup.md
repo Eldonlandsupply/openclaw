@@ -21,6 +21,7 @@ Define repeatable steps for Codex workers to poll MCP-backed tasks, ingest attac
 1. Poll the MCP task queue for `status=queued`.
 2. Claim one task with an optimistic lock.
 3. Validate the payload using `schemas/task_item.schema.json`.
+   - `schemas/parcels.schema.json` is a custom validator config for `scripts/validate_geojson.py`, not a JSON Schema draft file.
 4. Resolve attachment references from S3-compatible storage via signed URLs.
 5. Route execution using `/architecture/task-routing-spec`.
 6. Record a `Browser Rejection` rationale.

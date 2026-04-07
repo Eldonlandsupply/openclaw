@@ -15,6 +15,7 @@ import { resolveToolProfilePolicy } from "../agents/tool-policy.js";
 import { resolveBrowserConfig } from "../browser/config.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { resolveGatewayAuth } from "../gateway/auth.js";
+import { normalizeSecretInput } from "../utils/normalize-secret-input.js";
 
 export type SecurityAuditFinding = {
   checkId: string;
@@ -222,11 +223,12 @@ function resolveToolPolicies(params: {
 function hasWebSearchKey(cfg: OpenClawConfig, env: NodeJS.ProcessEnv): boolean {
   const search = cfg.tools?.web?.search;
   return Boolean(
-    search?.apiKey ||
-    search?.perplexity?.apiKey ||
-    env.BRAVE_API_KEY ||
-    env.PERPLEXITY_API_KEY ||
-    env.OPENROUTER_API_KEY,
+    normalizeSecretInput(search?.apiKey) ||
+    normalizeSecretInput(search?.perplexity?.apiKey) ||
+    normalizeSecretInput(env.BRAVE_API_KEY) ||
+    normalizeSecretInput(env.BRAVE_SEARCH_API_KEY) ||
+    normalizeSecretInput(env.PERPLEXITY_API_KEY) ||
+    normalizeSecretInput(env.OPENROUTER_API_KEY),
   );
 }
 

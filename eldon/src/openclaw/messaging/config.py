@@ -46,7 +46,11 @@ class MessagingConfig(BaseModel):
         return cls(
             enabled=enabled_raw.lower() == "true",
             provider=provider,
-            allowed_recipients=[r for r in recipients_raw.split(",") if r.strip()],
+            allowed_recipients=[
+                recipient.strip()
+                for recipient in recipients_raw.split(",")
+                if recipient.strip()
+            ],
             rate_limit_per_hour=int(
                 os.getenv("MESSAGING_RATE_LIMIT_PER_HOUR")
                 or os.getenv("IMESSAGE_RATE_LIMIT_PER_HOUR", "10")
