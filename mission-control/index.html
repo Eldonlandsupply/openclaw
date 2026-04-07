@@ -2380,26 +2380,32 @@
       //   2. Find+update the specific entry
       //   3. Send the entire agents object in the patch
       //
-      // This function takes the raw config JSON, an agentId, and a partial AgentConfig,
+      function isPlainObject(value) {
+        return value && typeof value === "object" && !Array.isArray(value);
+      }
+      function deepMergeObjects(base, patch) {
+        if (!isPlainObject(base) || !isPlainObject(patch)) return patch;
+        const out = { ...base };
+        Object.keys(patch).forEach((k) => {
+          const next = patch[k];
+          out[k] =
+            isPlainObject(next) && isPlainObject(base[k]) ? deepMergeObjects(base[k], next) : next;
+        });
+        return out;
+      }
+      // This function takes parsed config data, an agentId, and a partial AgentConfig,
       // and returns a safe patch object that only touches that agent.
-      function buildAgentPatch(configRaw, agentId, agentUpdate) {
-        let parsed = {};
-        try {
-          parsed = JSON.parse(configRaw || "{}");
-        } catch {
-          try {
-            parsed = eval("(" + (configRaw || "{}") + ")");
-          } catch {}
-        }
+      function buildAgentPatch(configData, agentId, agentUpdate) {
+        const parsed = configData && typeof configData === "object" ? configData : {};
         const currentList = Array.isArray(parsed?.agents?.list) ? parsed.agents.list : [];
         const idx = currentList.findIndex(
           (e) => e?.id === agentId || e?.id?.toLowerCase() === agentId.toLowerCase(),
         );
         const updatedList = [...currentList];
         if (idx >= 0) {
-          updatedList[idx] = { ...updatedList[idx], ...agentUpdate };
+          updatedList[idx] = deepMergeObjects(updatedList[idx] || {}, agentUpdate || {});
         } else {
-          updatedList.push({ id: agentId, ...agentUpdate });
+          updatedList.push(deepMergeObjects({ id: agentId }, agentUpdate || {}));
         }
         // Return the minimal patch: only touch agents.list
         return { agents: { ...(parsed.agents || {}), list: updatedList } };
@@ -2407,7 +2413,7 @@
       // ── TOOL POLICY (uses safe merge-patch strategy) ─────────────────
       function ToolPolicyPanel({
         agentId,
-        configRaw,
+        configData,
         configHash,
         configLoading,
         client,
@@ -2459,7 +2465,7 @@
                   alsoAllow: alsoAllow.length ? alsoAllow : undefined,
                 },
               };
-              const fullPatch = buildAgentPatch(configRaw, agentId, agentUpdate);
+              const fullPatch = buildAgentPatch(configData, agentId, agentUpdate);
               await client.req("config.patch", {
                 raw: JSON.stringify(fullPatch),
                 baseHash: configHash,
@@ -2552,7 +2558,7 @@
                 h(
                   "div",
                   { className: "config-raw" },
-                  jsonFmt(buildAgentPatch(configRaw || "{}", agentId, previewPatch)),
+                  jsonFmt(buildAgentPatch(configData || {}, agentId, previewPatch)),
                 ),
               ),
             !showDiff &&
@@ -3550,6 +3556,7 @@
       // On save: constructs a minimal merge patch (deep objects only, no arrays unless necessary).
       function ConfigSchemaForm({
         configRaw,
+        configData,
         configHash,
         configSchema,
         client,
@@ -3565,11 +3572,8 @@
         const [schema, setSchema] = useState(configSchema);
 
         useEffect(() => {
-          if (configRaw) {
-            let parsed = {};
-            try {
-              parsed = JSON.parse(configRaw);
-            } catch {}
+          if (configData && typeof configData === "object") {
+            const parsed = configData;
             // Prime editable fields from current config
             setVals({
               "gateway.controlUi.allowedOrigins": (
@@ -3584,9 +3588,11 @@
               "cron.maxConcurrentRuns": String(parsed.cron?.maxConcurrentRuns || ""),
               "hooks.enabled": String(parsed.hooks?.enabled !== false),
             });
+          }
+          if (typeof configRaw === "string") {
             setRawEdit(configRaw);
           }
-        }, [configRaw]);
+        }, [configData, configRaw]);
 
         const loadSchema = async () => {
           setSchemaLoading(true);
@@ -3602,11 +3608,16 @@
         const saveRaw = async () => {
           setSaving(true);
           setMsg("");
+          const trimmedRaw = (rawEdit || "").trim();
+          if (!trimmedRaw) {
+            setMsg("Error: raw patch is empty");
+            setSaving(false);
+            return;
+          }
           try {
-            JSON.parse(rawEdit); // validate JSON
             if (!isDemo && client) {
               await client.req("config.patch", {
-                raw: rawEdit,
+                raw: trimmedRaw,
                 baseHash: configHash || undefined,
                 note: "MC: raw config patch",
               });
@@ -3651,6 +3662,11 @@
           }
           if (vals["hooks.enabled"] !== undefined) {
             patch.hooks = { ...patch.hooks, enabled: vals["hooks.enabled"] === "true" };
+          }
+          if (Object.keys(patch).length === 0) {
+            setMsg("No changes to patch");
+            setSaving(false);
+            return;
           }
           try {
             if (!isDemo && client && configHash) {
@@ -4351,7 +4367,7 @@
         );
       }
       // ── TOPOLOGY TAB (config.patch for subagents.allowAgents) ─────────
-      function TopologyTab({ agents, configRaw, configHash, client, isDemo, onConfigRefresh }) {
+      function TopologyTab({ agents, configData, configHash, client, isDemo, onConfigRefresh }) {
         const [sel, setSel] = useState(null);
         const [editAllow, setEditAllow] = useState("*");
         const [saving, setSaving] = useState(false);
@@ -4362,15 +4378,14 @@
         useEffect(() => {
           if (!sel) return;
           try {
-            const parsed = JSON.parse(configRaw || "{}");
-            const entry = (parsed?.agents?.list || []).find((e) => e?.id === sel);
+            const entry = (configData?.agents?.list || []).find((e) => e?.id === sel);
             const allow = entry?.subagents?.allowAgents;
             if (Array.isArray(allow)) setEditAllow(allow.join(", "));
             else setEditAllow("*");
           } catch {
             setEditAllow("*");
           }
-        }, [sel, configRaw]);
+        }, [sel, configData]);
 
         const save = async () => {
           if (!selA) return;
@@ -4384,7 +4399,7 @@
                   .map((s) => s.trim())
                   .filter(Boolean);
           // Use buildAgentPatch: preserves all other agents in agents.list
-          const patch = buildAgentPatch(configRaw || "{}", selA.id, { subagents: { allowAgents } });
+          const patch = buildAgentPatch(configData || {}, selA.id, { subagents: { allowAgents } });
           try {
             if (!isDemo && client && configHash)
               await client.req("config.patch", {
@@ -5473,7 +5488,7 @@
         client,
         isDemo,
         onUpdated,
-        configRaw,
+        configData,
         configHash,
         configLoading,
         onConfigRefresh,
@@ -5560,15 +5575,14 @@
         const [polMsg, setPolMsg] = useState("");
         useEffect(() => {
           try {
-            const parsed = JSON.parse(configRaw || "{}");
-            const entry = (parsed?.agents?.list || []).find((e) => e?.id === agent.id);
+            const entry = (configData?.agents?.list || []).find((e) => e?.id === agent.id);
             setPolApproval(entry?.approvals?.require || "off");
             setPolSandbox(entry?.sandbox || "off");
           } catch {
             setPolApproval("off");
             setPolSandbox("off");
           }
-        }, [agent.id, configRaw]);
+        }, [agent.id, configData]);
         const savePolicy = async () => {
           setPolSaving(true);
           setPolMsg("");
@@ -5576,7 +5590,7 @@
             approvals: { require: polApproval === "off" ? undefined : polApproval },
             sandbox: polSandbox === "off" ? undefined : polSandbox,
           };
-          const patch = buildAgentPatch(configRaw || "{}", agent.id, agentUpdate);
+          const patch = buildAgentPatch(configData || {}, agent.id, agentUpdate);
           try {
             if (!isDemo && client && configHash)
               await client.req("config.patch", {
@@ -5798,7 +5812,7 @@
           tab === "tools" &&
             h(ToolPolicyPanel, {
               agentId: agent.id,
-              configRaw,
+              configData,
               configHash,
               configLoading,
               client,
@@ -6387,6 +6401,7 @@
         const [sessLd, setSessLd] = useState(false);
         const [auditLog, setAuditLog] = useState(ALOG);
         const [configRaw, setConfigRaw] = useState(null);
+        const [configData, setConfigData] = useState({});
         const [configHash, setConfigHash] = useState(null);
         const [configLd, setConfigLd] = useState(false);
         const [configSchema, setConfigSchema] = useState(null);
@@ -6452,6 +6467,7 @@
                 .req("config.get", {})
                 .then((r) => {
                   setConfigRaw(r.raw || JSON.stringify(r.config || {}));
+                  setConfigData(r.config && typeof r.config === "object" ? r.config : {});
                   setConfigHash(r.hash);
                 })
                 .catch((e) => console.warn("config.get:", e.message)),
@@ -6649,6 +6665,7 @@
           try {
             const r = await client.req("config.get", {});
             setConfigRaw(r.raw || JSON.stringify(r.config || {}));
+            setConfigData(r.config && typeof r.config === "object" ? r.config : {});
             setConfigHash(r.hash);
           } catch (e) {
             console.warn("config.get failed:", e.message);
@@ -6756,6 +6773,7 @@
           setCronJobs([]);
           setSessions([]);
           setConfigRaw(null);
+          setConfigData({});
           setConfigHash(null);
           setNodes([]);
           setPendingApprovals([]);
@@ -7233,7 +7251,7 @@
                     client,
                     isDemo,
                     onUpdated: () => loadAgents(client, isDemo),
-                    configRaw,
+                    configData,
                     configHash,
                     configLoading: configLd,
                     onConfigRefresh: loadConfig,
@@ -7246,7 +7264,7 @@
                 : nav === "topology"
                   ? h(TopologyTab, {
                       agents,
-                      configRaw,
+                      configData,
                       configHash,
                       client,
                       isDemo,
@@ -7273,6 +7291,7 @@
                       : nav === "config"
                         ? h(ConfigSchemaForm, {
                             configRaw,
+                            configData,
                             configHash,
                             configSchema,
                             client,
