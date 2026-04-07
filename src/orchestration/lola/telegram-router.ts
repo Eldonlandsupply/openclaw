@@ -33,6 +33,7 @@ const LOLA_KEYWORDS = [
   "recap",
   "followups",
 ];
+export const GRAPH_OPERATION_KEYWORDS = new Set(LOLA_KEYWORDS);
 const RESEARCH_KEYWORDS = ["research", "analyze", "analysis", "synthesize", "synthesis"];
 const WORKFLOW_KEYWORDS = ["automation", "workflow", "runbook", "trigger", "reconcile"];
 const BLOCKED_KEYWORDS = [

@@ -12,7 +12,7 @@ import {
   resolveTelegramApproval,
 } from "./telegram-approvals.js";
 import { evaluateTelegramIntakePolicy } from "./telegram-policy.js";
-import { routeTelegramRequest } from "./telegram-router.js";
+import { GRAPH_OPERATION_KEYWORDS, routeTelegramRequest } from "./telegram-router.js";
 
 const auditLogger = createSubsystemLogger("lola/telegram-audit");
 
@@ -241,21 +241,10 @@ export function evaluateTelegramIntake(ctx: TelegramContext): TelegramIntakeResu
   const routeKeyword = route.reason.startsWith("operations keyword:")
     ? route.reason.split(":")[1]?.trim().toLowerCase()
     : undefined;
-  const graphOperationKeywords = new Set([
-    "outlook",
-    "calendar",
-    "meeting",
-    "inbox",
-    "follow-up",
-    "follow up",
-    "followups",
-  ]);
   const graphOperationRequested =
     routeKeyword !== undefined
-      ? graphOperationKeywords.has(routeKeyword)
-      : ["outlook", "calendar", "meeting", "inbox", "follow-up", "follow up", "followups"].some(
-          (keyword) => loweredText.includes(keyword),
-        );
+      ? GRAPH_OPERATION_KEYWORDS.has(routeKeyword)
+      : [...GRAPH_OPERATION_KEYWORDS].some((keyword) => loweredText.includes(keyword));
 
   if (route.intent === "operations" && graphOperationRequested && !outlookCredentialsPresent) {
     return {
