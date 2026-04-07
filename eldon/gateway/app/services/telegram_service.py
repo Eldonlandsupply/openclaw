@@ -11,8 +11,13 @@ from typing import Any, Optional
 
 import aiohttp
 
-_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
-_BASE = f"https://api.telegram.org/bot{_BOT_TOKEN}"
+
+def _bot_token() -> str:
+    return os.getenv("TELEGRAM_BOT_TOKEN", "")
+
+
+def _base_url() -> str:
+    return f"https://api.telegram.org/bot{_bot_token()}"
 
 
 async def send_message(chat_id: str | int, text: str, parse_mode: str = "HTML") -> bool:
@@ -20,11 +25,11 @@ async def send_message(chat_id: str | int, text: str, parse_mode: str = "HTML") 
     Send a text message via Telegram Bot API.
     Returns True on success.
     """
-    if not _BOT_TOKEN:
+    if not _bot_token():
         return False
     # Telegram max message length
     text = text[:4096]
-    url = f"{_BASE}/sendMessage"
+    url = f"{_base_url()}/sendMessage"
     payload = {
         "chat_id": chat_id,
         "text": text,
@@ -40,7 +45,7 @@ async def send_message(chat_id: str | int, text: str, parse_mode: str = "HTML") 
 
 async def set_webhook(webhook_url: str, secret_token: str | None = None) -> dict:
     """Register the webhook URL with Telegram."""
-    url = f"{_BASE}/setWebhook"
+    url = f"{_base_url()}/setWebhook"
     payload: dict[str, Any] = {"url": webhook_url}
     if secret_token:
         payload["secret_token"] = secret_token
@@ -50,7 +55,7 @@ async def set_webhook(webhook_url: str, secret_token: str | None = None) -> dict
 
 
 async def get_webhook_info() -> dict:
-    url = f"{_BASE}/getWebhookInfo"
+    url = f"{_base_url()}/getWebhookInfo"
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as resp:
             return await resp.json()
