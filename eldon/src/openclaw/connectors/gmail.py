@@ -2,6 +2,7 @@
 Gmail connector — polls IMAP for unread messages, sends replies via SMTP SSL.
 Uses only stdlib: imaplib, smtplib, email.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -62,7 +63,9 @@ class GmailConnector(BaseConnector):
                 if msg.is_multipart():
                     for part in msg.walk():
                         if part.get_content_type() == "text/plain":
-                            body = part.get_payload(decode=True).decode(errors="replace")
+                            body = part.get_payload(decode=True).decode(
+                                errors="replace"
+                            )
                             break
                 else:
                     body = msg.get_payload(decode=True).decode(errors="replace")
@@ -84,8 +87,11 @@ class GmailConnector(BaseConnector):
                     return
 
     async def send(self, chat_id: str | None, text: str) -> None:  # replies disabled
-        logger.info('Gmail reply suppressed (auth not configured)', extra={'to': chat_id})
+        logger.info(
+            "Gmail reply suppressed (auth not configured)", extra={"to": chat_id}
+        )
         return
+
     async def _send_disabled(self, chat_id: str | None, text: str) -> None:
         to = chat_id or self._user
         # Extract plain email from "Name <email>" format

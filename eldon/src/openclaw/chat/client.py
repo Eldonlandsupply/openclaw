@@ -11,6 +11,7 @@ Async LLM chat client with:
     provider responses before the reply is returned or stored in history.
 Supports OpenRouter, OpenAI, MiniMax, and xAI (Grok).
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -104,8 +105,7 @@ class ChatClient:
         self._api_key_source = resolved.api_key_source
 
         self._system_prompt: str = (
-            getattr(cfg.llm, "system_prompt", None)
-            or _DEFAULT_SYSTEM_PROMPT
+            getattr(cfg.llm, "system_prompt", None) or _DEFAULT_SYSTEM_PROMPT
         )
 
         self._history: list[dict] = []
@@ -116,7 +116,9 @@ class ChatClient:
 
         # Hard asyncio-level timeout per request (config: llm.request_timeout_seconds)
         self._request_timeout: int = int(
-            getattr(cfg.llm, "request_timeout_seconds", _DEFAULT_REQUEST_TIMEOUT_SECONDS)
+            getattr(
+                cfg.llm, "request_timeout_seconds", _DEFAULT_REQUEST_TIMEOUT_SECONDS
+            )
         )
 
         logger.info(
@@ -197,18 +199,20 @@ class ChatClient:
         if self._session is None or self._session.closed:
             headers: dict[str, str] = {
                 "Authorization": f"Bearer {self._api_key}",
-                "Content-Type":  "application/json",
+                "Content-Type": "application/json",
             }
             if self._provider == "openrouter":
-                headers["HTTP-Referer"] = "https://github.com/Eldonlandsupply/EldonOpenClaw"
-                headers["X-Title"]      = "OpenClaw"
+                headers["HTTP-Referer"] = (
+                    "https://github.com/Eldonlandsupply/EldonOpenClaw"
+                )
+                headers["X-Title"] = "OpenClaw"
             self._session = aiohttp.ClientSession(headers=headers)
         return self._session
 
     async def _call_api(self) -> str:
         messages = [{"role": "system", "content": self._system_prompt}] + self._history
-        payload  = {"model": self._model, "messages": messages}
-        url      = f"{self._base_url}/chat/completions"
+        payload = {"model": self._model, "messages": messages}
+        url = f"{self._base_url}/chat/completions"
 
         # HTTP timeout slightly under asyncio hard timeout so we get a clean aiohttp error first
         http_timeout = aiohttp.ClientTimeout(total=max(self._request_timeout - 2, 10))
@@ -223,4 +227,4 @@ class ChatClient:
 
     def _trim_history(self) -> None:
         if len(self._history) > self.MAX_HISTORY:
-            self._history = self._history[-self.MAX_HISTORY:]
+            self._history = self._history[-self.MAX_HISTORY :]

@@ -29,11 +29,7 @@ from typing import Any, Protocol
 
 logger = logging.getLogger(__name__)
 
-_ARCHIVE_PATH = (
-    Path(__file__).resolve().parents[4]
-    / "data"
-    / "adas_archive.json"
-)
+_ARCHIVE_PATH = Path(__file__).resolve().parents[4] / "data" / "adas_archive.json"
 
 DEFAULT_MIN_FITNESS: float = 0.40
 
@@ -104,7 +100,9 @@ def _baseline_designs() -> list[AgentDesign]:
             ),
             tool_filter=[],
             generation="initial",
-            fitness=AgentFitness(accuracy=0.50, confidence_low=0.40, confidence_high=0.60),
+            fitness=AgentFitness(
+                accuracy=0.50, confidence_low=0.40, confidence_high=0.60
+            ),
             created_at=now,
             enabled=True,
             status="active",
@@ -120,7 +118,9 @@ def _baseline_designs() -> list[AgentDesign]:
             ),
             tool_filter=[],
             generation="initial",
-            fitness=AgentFitness(accuracy=0.60, confidence_low=0.50, confidence_high=0.70),
+            fitness=AgentFitness(
+                accuracy=0.60, confidence_low=0.50, confidence_high=0.70
+            ),
             created_at=now,
             enabled=True,
             status="active",
@@ -136,7 +136,9 @@ def _baseline_designs() -> list[AgentDesign]:
             ),
             tool_filter=[],
             generation="initial",
-            fitness=AgentFitness(accuracy=0.65, confidence_low=0.55, confidence_high=0.75),
+            fitness=AgentFitness(
+                accuracy=0.65, confidence_low=0.55, confidence_high=0.75
+            ),
             created_at=now,
             enabled=True,
             status="active",
@@ -150,7 +152,9 @@ class ADASArchive:
     Backed by data/adas_archive.json. Seeded with three baselines on first run.
     """
 
-    def __init__(self, path: Path = _ARCHIVE_PATH, min_fitness: float = DEFAULT_MIN_FITNESS) -> None:
+    def __init__(
+        self, path: Path = _ARCHIVE_PATH, min_fitness: float = DEFAULT_MIN_FITNESS
+    ) -> None:
         self.path = path
         self.min_fitness = min_fitness
         self._designs: list[AgentDesign] = []
@@ -160,7 +164,9 @@ class ADASArchive:
         if self.path.exists():
             try:
                 raw = json.loads(self.path.read_text(encoding="utf-8"))
-                self._designs = [_design_from_dict(r) for r in raw if isinstance(r, dict)]
+                self._designs = [
+                    _design_from_dict(r) for r in raw if isinstance(r, dict)
+                ]
                 logger.info("adas archive loaded", extra={"count": len(self._designs)})
                 return
             except Exception as exc:
@@ -187,7 +193,9 @@ class ADASArchive:
         return [d for d in self._designs if d.enabled and d.status == "active"]
 
     def top_k(self, k: int = 5) -> list[AgentDesign]:
-        ranked = sorted(self.active(), key=lambda d: d.fitness.wilson_lower, reverse=True)
+        ranked = sorted(
+            self.active(), key=lambda d: d.fitness.wilson_lower, reverse=True
+        )
         return ranked[:k]
 
     def get(self, design_id: str) -> AgentDesign | None:
@@ -222,7 +230,10 @@ class ADASArchive:
         if n >= 3 and f.wilson_lower < self.min_fitness:
             design.status = "retired"
             design.enabled = False
-            logger.info("adas: design retired below fitness threshold", extra={"name": design.name})
+            logger.info(
+                "adas: design retired below fitness threshold",
+                extra={"name": design.name},
+            )
         self._save()
 
     def activate(self, design_id: str) -> bool:
@@ -256,7 +267,9 @@ class ADASArchive:
         }
 
 
-async def generate_next(archive: ADASArchive, llm: LLMClient, generation: int) -> AgentDesign:
+async def generate_next(
+    archive: ADASArchive, llm: LLMClient, generation: int
+) -> AgentDesign:
     """
     Ask the LLM to propose a new agent design based on the current archive.
     Returns a CANDIDATE — must be manually activated via archive.activate().
@@ -264,8 +277,7 @@ async def generate_next(archive: ADASArchive, llm: LLMClient, generation: int) -
     """
     top = archive.top_k(5)
     archive_summary = "\n".join(
-        f"- {d.name} (fitness={d.fitness.wilson_lower:.2f}): {d.thought}"
-        for d in top
+        f"- {d.name} (fitness={d.fitness.wilson_lower:.2f}): {d.thought}" for d in top
     )
     prompt = f"""You are a meta-agent designing better AI agent systems.
 
@@ -287,6 +299,7 @@ Respond with JSON only, no markdown:
         data = json.loads(raw.strip())
     except json.JSONDecodeError:
         import re
+
         match = re.search(r"\{.*\}", raw, re.DOTALL)
         if match:
             data = json.loads(match.group())

@@ -17,7 +17,10 @@ import yaml
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from openclaw.llm.provider_resolution import LLMProviderResolutionError, resolve_llm_provider
+from openclaw.llm.provider_resolution import (
+    LLMProviderResolutionError,
+    resolve_llm_provider,
+)
 
 # ── Environment variable expansion ────────────────────────────────────────
 
@@ -56,6 +59,7 @@ def _expand(value: Any) -> Any:
 
 # ── Config section classes ─────────────────────────────────────────────────
 
+
 class LLMConfig:
     def __init__(self, **data: Any) -> None:
         self.provider = str(data.get("provider", "none"))
@@ -81,19 +85,27 @@ class RuntimeConfig:
 class ConnectorCliConfig:
     def __init__(self, **data: Any) -> None:
         raw = data.get("enabled", True)
-        self.enabled = raw if isinstance(raw, bool) else str(raw).lower() not in ("false", "0", "no")
+        self.enabled = (
+            raw
+            if isinstance(raw, bool)
+            else str(raw).lower() not in ("false", "0", "no")
+        )
 
 
 class ConnectorTelegramConfig:
     def __init__(self, **data: Any) -> None:
         raw = data.get("enabled", False)
-        self.enabled = raw if isinstance(raw, bool) else str(raw).lower() in ("true", "1", "yes")
+        self.enabled = (
+            raw if isinstance(raw, bool) else str(raw).lower() in ("true", "1", "yes")
+        )
 
 
 class ConnectorWhatsAppConfig:
     def __init__(self, **data: Any) -> None:
         raw = data.get("enabled", False)
-        self.enabled = raw if isinstance(raw, bool) else str(raw).lower() in ("true", "1", "yes")
+        self.enabled = (
+            raw if isinstance(raw, bool) else str(raw).lower() in ("true", "1", "yes")
+        )
         self.bridge_url = str(data.get("bridge_url", "http://127.0.0.1:8181"))
         self.poll_interval = int(data.get("poll_interval", 5))
         self.bridge_db = str(data.get("bridge_db", "/var/lib/wabridge/wabridge.db"))
@@ -136,6 +148,7 @@ class HealthConfig:
 
 # ── Secrets from environment / .env ───────────────────────────────────────
 
+
 def _find_env_file() -> str:
     """Resolve .env relative to the repo root, not the working directory."""
     candidates = [
@@ -162,7 +175,11 @@ def _read_env_file_value(env_path: Path, key: str) -> str | None:
             if name.strip() != key:
                 continue
             val = value.strip()
-            if val.startswith(("'", '"')) and val.endswith(("'", '"')) and len(val) >= 2:
+            if (
+                val.startswith(("'", '"'))
+                and val.endswith(("'", '"'))
+                and len(val) >= 2
+            ):
                 val = val[1:-1]
             return val
     except OSError:
@@ -206,22 +223,31 @@ class Secrets(BaseSettings):
     def allowed_chat_ids(self) -> list[int]:
         if not self.telegram_allowed_chat_ids:
             return []
-        return [int(x.strip()) for x in self.telegram_allowed_chat_ids.split(",") if x.strip()]
+        return [
+            int(x.strip())
+            for x in self.telegram_allowed_chat_ids.split(",")
+            if x.strip()
+        ]
 
     @property
     def whatsapp_allowed_numbers_list(self) -> list[str]:
         if not self.whatsapp_allowed_numbers:
             return []
-        return [x.strip() for x in self.whatsapp_allowed_numbers.split(",") if x.strip()]
+        return [
+            x.strip() for x in self.whatsapp_allowed_numbers.split(",") if x.strip()
+        ]
 
 
 # ── Valid sets ─────────────────────────────────────────────────────────────
 
-_VALID_PROVIDERS: frozenset[str] = frozenset({"openai", "anthropic", "openrouter", "xai", "minimax", "none"})
+_VALID_PROVIDERS: frozenset[str] = frozenset(
+    {"openai", "anthropic", "openrouter", "xai", "minimax", "none"}
+)
 _VALID_LOG_LEVELS: frozenset[str] = frozenset({"DEBUG", "INFO", "WARNING", "ERROR"})
 
 
 # ── Merged app config ──────────────────────────────────────────────────────
+
 
 class AppConfig:
     """Single object holding all config. Created once at startup."""
@@ -230,7 +256,9 @@ class AppConfig:
         self._env_file = Path(_find_env_file())
         self._dotenv_loaded = False
         self._env_file_exists = self._env_file.exists()
-        self._env_file_readable = os.access(self._env_file, os.R_OK) if self._env_file_exists else False
+        self._env_file_readable = (
+            os.access(self._env_file, os.R_OK) if self._env_file_exists else False
+        )
         self._telegram_env_value = None
         self._telegram_intent_from_file = False
         self._telegram_env_present = False
@@ -240,9 +268,13 @@ class AppConfig:
             self._telegram_env_value = _read_env_file_value(
                 self._env_file, "OPENCLAW_CONNECTOR_TELEGRAM"
             )
-            self._telegram_intent_from_file = _parse_env_bool(self._telegram_env_value, default=False)
+            self._telegram_intent_from_file = _parse_env_bool(
+                self._telegram_env_value, default=False
+            )
 
-        self._telegram_env_present = os.getenv("OPENCLAW_CONNECTOR_TELEGRAM") is not None
+        self._telegram_env_present = (
+            os.getenv("OPENCLAW_CONNECTOR_TELEGRAM") is not None
+        )
         self.secrets = Secrets()
         self._yaml_path = yaml_path
         self._load_yaml(yaml_path)
@@ -251,7 +283,9 @@ class AppConfig:
     def _load_yaml(self, path: str) -> None:
         # load_dotenv must run before YAML token expansion. If .env is unreadable,
         # connector flags can silently fall back to config defaults.
-        self._dotenv_loaded = bool(load_dotenv(dotenv_path=self._env_file, override=False))
+        self._dotenv_loaded = bool(
+            load_dotenv(dotenv_path=self._env_file, override=False)
+        )
 
         p = Path(path)
         if not p.exists():
@@ -279,7 +313,11 @@ class AppConfig:
                         env_key = env_key.strip()
                         if os.getenv(env_key) is None:
                             self._yaml_defaults_used.append(
-                                {"path": "connectors.telegram", "env_key": env_key, "default": default}
+                                {
+                                    "path": "connectors.telegram",
+                                    "env_key": env_key,
+                                    "default": default,
+                                }
                             )
 
         self.llm = LLMConfig(**(expanded.get("llm") or {}))
@@ -289,7 +327,9 @@ class AppConfig:
         self.health = HealthConfig(**(expanded.get("health") or {}))
 
     def _validate(self) -> None:
-        self._telegram_env_present = os.getenv("OPENCLAW_CONNECTOR_TELEGRAM") is not None
+        self._telegram_env_present = (
+            os.getenv("OPENCLAW_CONNECTOR_TELEGRAM") is not None
+        )
         if self.llm.provider not in _VALID_PROVIDERS:
             self._fatal(
                 f"llm.provider must be one of {sorted(_VALID_PROVIDERS)}, "
@@ -324,12 +364,23 @@ class AppConfig:
         except LLMProviderResolutionError as exc:
             self._fatal(str(exc))
         if self.connectors.telegram.enabled and not self.secrets.telegram_bot_token:
-            self._fatal("connectors.telegram.enabled=true but TELEGRAM_BOT_TOKEN is not set")
-        if self.connectors.whatsapp.enabled and not self.secrets.whatsapp_allowed_numbers:
-            self._fatal("connectors.whatsapp.enabled=true but WHATSAPP_ALLOWED_NUMBERS is not set")
+            self._fatal(
+                "connectors.telegram.enabled=true but TELEGRAM_BOT_TOKEN is not set"
+            )
+        if (
+            self.connectors.whatsapp.enabled
+            and not self.secrets.whatsapp_allowed_numbers
+        ):
+            self._fatal(
+                "connectors.whatsapp.enabled=true but WHATSAPP_ALLOWED_NUMBERS is not set"
+            )
         Path(self.runtime.data_dir).mkdir(parents=True, exist_ok=True)
 
-        if self._telegram_intent_from_file and not self._dotenv_loaded and not self._telegram_env_present:
+        if (
+            self._telegram_intent_from_file
+            and not self._dotenv_loaded
+            and not self._telegram_env_present
+        ):
             self._fatal(
                 "OPENCLAW_CONNECTOR_TELEGRAM=true is set in env file intent, "
                 f"but runtime did not load {self._env_file}. Check env file ownership/permissions."
@@ -378,9 +429,15 @@ class AppConfig:
             "secrets": {
                 "xai_api_key": "SET" if self.secrets.xai_api_key else "NOT SET",
                 "openai_api_key": "SET" if self.secrets.openai_api_key else "NOT SET",
-                "openrouter_api_key": "SET" if self.secrets.openrouter_api_key else "NOT SET",
-                "telegram_bot_token": "SET" if self.secrets.telegram_bot_token else "NOT SET",
-                "whatsapp_allowed_numbers": "SET" if self.secrets.whatsapp_allowed_numbers else "NOT SET",
+                "openrouter_api_key": "SET"
+                if self.secrets.openrouter_api_key
+                else "NOT SET",
+                "telegram_bot_token": "SET"
+                if self.secrets.telegram_bot_token
+                else "NOT SET",
+                "whatsapp_allowed_numbers": "SET"
+                if self.secrets.whatsapp_allowed_numbers
+                else "NOT SET",
                 "gmail_user": self.secrets.gmail_user or "NOT SET",
                 "notification_email": self.secrets.notification_email or "NOT SET",
                 "attio_api_key": "SET" if self.secrets.attio_api_key else "NOT SET",
@@ -399,7 +456,9 @@ class AppConfig:
 
     def connector_state_reasons(self) -> dict[str, str]:
         reasons: dict[str, str] = {}
-        reasons["cli"] = "enabled by config" if self.connectors.cli.enabled else "disabled by config"
+        reasons["cli"] = (
+            "enabled by config" if self.connectors.cli.enabled else "disabled by config"
+        )
         if self.connectors.telegram.enabled:
             reasons["telegram"] = "enabled via OPENCLAW_CONNECTOR_TELEGRAM/config"
         else:

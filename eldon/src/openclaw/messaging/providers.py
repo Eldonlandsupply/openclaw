@@ -6,6 +6,7 @@ Available providers:
   gmail      — sends via Gmail SMTP using app password
   imessage   — stub, wired to MCP send_imessage (not yet implemented)
 """
+
 from __future__ import annotations
 
 import logging
@@ -47,7 +48,9 @@ class GmailProvider(BaseProvider):
             msg.set_content(body)
 
             context = ssl.create_default_context()
-            with smtplib.SMTP_SSL(self.SMTP_HOST, self.SMTP_PORT, context=context) as smtp:
+            with smtplib.SMTP_SSL(
+                self.SMTP_HOST, self.SMTP_PORT, context=context
+            ) as smtp:
                 smtp.login(self._user, self._password)
                 smtp.send_message(msg)
 
@@ -70,8 +73,12 @@ class ClaudeIMessageProvider(BaseProvider):
 
     def send(self, recipient: str, body: str) -> bool:
         # TODO: wire to actual MCP send_imessage tool call
-        logger.info("[iMessage] STUB — would send to %s from %s: %s",
-                    recipient, self.from_handle, body)
+        logger.info(
+            "[iMessage] STUB — would send to %s from %s: %s",
+            recipient,
+            self.from_handle,
+            body,
+        )
         return True
 
 

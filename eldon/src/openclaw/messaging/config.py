@@ -3,6 +3,7 @@ MessagingConfig — controls the notification subsystem.
 Secrets (gmail_user, app_password) are injected from AppConfig.secrets,
 not read directly from env here, to keep secret handling centralized.
 """
+
 from __future__ import annotations
 
 import os
@@ -33,17 +34,14 @@ class MessagingConfig(BaseModel):
         Build from environment variables.
         Supports both MESSAGING_* and legacy IMESSAGE_* prefixes.
         """
-        provider = (
-            os.getenv("MESSAGING_PROVIDER")
-            or os.getenv("IMESSAGE_PROVIDER", "log_only")
+        provider = os.getenv("MESSAGING_PROVIDER") or os.getenv(
+            "IMESSAGE_PROVIDER", "log_only"
         )
-        enabled_raw = (
-            os.getenv("MESSAGING_ENABLED")
-            or os.getenv("IMESSAGE_ENABLED", "false")
+        enabled_raw = os.getenv("MESSAGING_ENABLED") or os.getenv(
+            "IMESSAGE_ENABLED", "false"
         )
-        recipients_raw = (
-            os.getenv("MESSAGING_ALLOWED_RECIPIENTS")
-            or os.getenv("IMESSAGE_ALLOWED_RECIPIENTS", "")
+        recipients_raw = os.getenv("MESSAGING_ALLOWED_RECIPIENTS") or os.getenv(
+            "IMESSAGE_ALLOWED_RECIPIENTS", ""
         )
         return cls(
             enabled=enabled_raw.lower() == "true",
@@ -57,9 +55,7 @@ class MessagingConfig(BaseModel):
                 os.getenv("MESSAGING_DEDUP_WINDOW_MINUTES")
                 or os.getenv("IMESSAGE_DEDUP_WINDOW_MINUTES", "15")
             ),
-            kill_switch=(
-                os.getenv("MESSAGING_KILL_SWITCH", "false").lower() == "true"
-            ),
+            kill_switch=(os.getenv("MESSAGING_KILL_SWITCH", "false").lower() == "true"),
             from_handle=os.getenv("IMESSAGE_FROM_HANDLE"),
             gmail_user=os.getenv("GMAIL_USER"),
             gmail_app_password=os.getenv("GMAIL_APP_PASSWORD"),

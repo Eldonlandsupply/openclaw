@@ -42,11 +42,11 @@ from openclaw.memory.sqlite import SQLiteMemory
 
 logger = get_logger(__name__)
 _shutdown = asyncio.Event()
-_reload   = asyncio.Event()
+_reload = asyncio.Event()
 
 # ── Deduplication ─────────────────────────────────────────────────────────
 
-_DEDUP_WINDOW_S = 60   # seconds; discard messages seen within this window
+_DEDUP_WINDOW_S = 60  # seconds; discard messages seen within this window
 
 
 class MessageDeduplicator:
@@ -54,7 +54,7 @@ class MessageDeduplicator:
 
     def __init__(self, window_s: int = _DEDUP_WINDOW_S) -> None:
         self._window = window_s
-        self._seen: dict[str, float] = {}   # hash → timestamp
+        self._seen: dict[str, float] = {}  # hash → timestamp
 
     def _key(self, connector: str, text: str) -> str:
         raw = f"{connector}:{text}"
@@ -72,13 +72,13 @@ class MessageDeduplicator:
 
 # ── Connector health monitor ───────────────────────────────────────────────
 
-MAX_CONNECTOR_FAILURES = 5   # consecutive poll errors before alert
+MAX_CONNECTOR_FAILURES = 5  # consecutive poll errors before alert
 
 
 class ConnectorHealth:
     def __init__(self) -> None:
         self._failures: dict[str, int] = defaultdict(int)
-        self._alerted:  set[str]       = set()
+        self._alerted: set[str] = set()
 
     def record_ok(self, name: str) -> None:
         self._failures[name] = 0
@@ -95,6 +95,7 @@ class ConnectorHealth:
 
 # ── Signal handling ───────────────────────────────────────────────────────
 
+
 def _handle_signal(sig: signal.Signals) -> None:
     logger.info("signal received", extra={"signal": sig.name})
     if sig == signal.SIGHUP:
@@ -104,6 +105,7 @@ def _handle_signal(sig: signal.Signals) -> None:
 
 
 # ── Tick loop ─────────────────────────────────────────────────────────────
+
 
 async def _tick_loop(interval: int) -> None:
     while not _shutdown.is_set():
@@ -117,6 +119,7 @@ async def _tick_loop(interval: int) -> None:
 
 # ── Message dispatch ──────────────────────────────────────────────────────
 
+
 class Dispatcher:
     """
     Stateless message router. Encapsulates all routing logic so that
@@ -129,27 +132,36 @@ class Dispatcher:
         memory: SQLiteMemory,
         chat_client: ChatClient,
     ) -> None:
-        self._registry    = registry
-        self._memory      = memory
+        self._registry = registry
+        self._memory = memory
         self._chat_client = chat_client
 
-    async def handle(self, connector_name: str, chat_id: Optional[str], text: str) -> str:
+    async def handle(
+        self, connector_name: str, chat_id: Optional[str], text: str
+    ) -> str:
         """Route a message and return the reply string."""
-        parts       = text.split(None, 1)
+        parts = text.split(None, 1)
         action_name = parts[0].lower()
-        args        = parts[1] if len(parts) > 1 else ""
+        args = parts[1] if len(parts) > 1 else ""
 
         # ── built-in: memory_read ──────────────────────────────────────
         if action_name == "memory_read" and self._registry.is_allowed("memory_read"):
             key = args.strip()
             if key:
                 value = await self._memory.get(key)
-                reply = value if value is not None else f"(no value stored for key: {key!r})"
+                reply = (
+                    value
+                    if value is not None
+                    else f"(no value stored for key: {key!r})"
+                )
             else:
-                keys  = await self._memory.list_keys()
-                reply = "Stored keys: " + ", ".join(keys) if keys else "(no keys stored)"
-            await self._memory.log_event(connector_name, "memory_read",
-                                          json.dumps({"key": key}))
+                keys = await self._memory.list_keys()
+                reply = (
+                    "Stored keys: " + ", ".join(keys) if keys else "(no keys stored)"
+                )
+            await self._memory.log_event(
+                connector_name, "memory_read", json.dumps({"key": key})
+            )
             return reply
 
         # ── built-in: memory_write ─────────────────────────────────────
@@ -160,8 +172,9 @@ class Dispatcher:
                 reply = f"stored: {key.strip()!r}"
             else:
                 reply = "ERROR: memory_write requires key=value syntax"
-            await self._memory.log_event(connector_name, "memory_write",
-                                          json.dumps({"args": args}))
+            await self._memory.log_event(
+                connector_name, "memory_write", json.dumps({"args": args})
+            )
             return reply
 
         # ── built-in: /reset ────────────────────────────────────────────
@@ -173,22 +186,30 @@ class Dispatcher:
         if self._registry.is_allowed(action_name):
             result = await self._registry.dispatch(action_name, args)
             await self._memory.log_event(
-                connector_name, action_name,
-                json.dumps({"args": args, "success": result.success,
-                            "output": str(result.output)[:200]}),
+                connector_name,
+                action_name,
+                json.dumps(
+                    {
+                        "args": args,
+                        "success": result.success,
+                        "output": str(result.output)[:200],
+                    }
+                ),
             )
             return str(result.output) if result.success else f"ERROR: {result.error}"
 
         # ── LLM chat fallback ───────────────────────────────────────────
         reply = await self._chat_client.chat(text)
         await self._memory.log_event(
-            connector_name, "chat",
+            connector_name,
+            "chat",
             json.dumps({"input": text[:200], "reply": reply[:200]}),
         )
         return reply
 
 
 # ── Message loop ──────────────────────────────────────────────────────────
+
 
 async def _message_loop(
     connector,
@@ -242,6 +263,7 @@ async def _message_loop(
 
 # ── Main ──────────────────────────────────────────────────────────────────
 
+
 async def run(yaml_path: str = "config.yaml") -> None:
     cfg = get_config(yaml_path)
     configure_logging(cfg.runtime.log_level)
@@ -276,12 +298,20 @@ async def run(yaml_path: str = "config.yaml") -> None:
     # ── Attio integration ─────────────────────────────────────────────────
     if cfg.secrets.attio_api_key:
         from openclaw.integrations.attio.actions import build_attio_actions
+
         for attio_action in build_attio_actions(cfg.secrets.attio_api_key):
             registry.register(attio_action)
         logger.info(
             "Attio integration active",
-            extra={"actions": ["attio_search", "attio_note", "attio_task",
-                               "attio_tasks", "attio_upsert"]},
+            extra={
+                "actions": [
+                    "attio_search",
+                    "attio_note",
+                    "attio_task",
+                    "attio_tasks",
+                    "attio_upsert",
+                ]
+            },
         )
     else:
         logger.info("Attio integration disabled — set ATTIO_API_KEY to enable")
@@ -294,14 +324,14 @@ async def run(yaml_path: str = "config.yaml") -> None:
         await start_health_server(cfg.health.host, cfg.health.port)
 
     # ── Shared infrastructure ─────────────────────────────────────────────
-    dedup      = MessageDeduplicator()
+    dedup = MessageDeduplicator()
     con_health = ConnectorHealth()
     dispatcher = Dispatcher(registry, memory, chat_client)
 
     # ── Connectors ────────────────────────────────────────────────────────
-    tasks:      list[asyncio.Task] = []
+    tasks: list[asyncio.Task] = []
     connectors: list = []
-    admin_tg = None   # Telegram connector used for admin alerts
+    admin_tg = None  # Telegram connector used for admin alerts
 
     tasks.append(asyncio.create_task(_tick_loop(cfg.runtime.tick_seconds)))
 
@@ -309,17 +339,21 @@ async def run(yaml_path: str = "config.yaml") -> None:
         cli = CLIConnector(require_confirm=cfg.actions.require_confirm)
         await cli.start()
         connectors.append(cli)
-        tasks.append(asyncio.create_task(
-            _message_loop(cli, dispatcher, dedup, con_health)))
+        tasks.append(
+            asyncio.create_task(_message_loop(cli, dispatcher, dedup, con_health))
+        )
         logger.info(
             "CLI connector active",
-            extra={"allowed_actions": registry.list_allowed(),
-                   "llm_provider": cfg.llm.provider,
-                   "chat_model": cfg.llm.chat_model},
+            extra={
+                "allowed_actions": registry.list_allowed(),
+                "llm_provider": cfg.llm.provider,
+                "chat_model": cfg.llm.chat_model,
+            },
         )
 
     if cfg.connectors.telegram.enabled:
         from openclaw.connectors.telegram import TelegramConnector
+
         allowed = cfg.secrets.allowed_chat_ids
         tg = TelegramConnector(
             token=cfg.secrets.telegram_bot_token,
@@ -328,8 +362,11 @@ async def run(yaml_path: str = "config.yaml") -> None:
         await tg.start()
         connectors.append(tg)
         admin_tg = tg
-        tasks.append(asyncio.create_task(
-            _message_loop(tg, dispatcher, dedup, con_health, admin_connector=tg)))
+        tasks.append(
+            asyncio.create_task(
+                _message_loop(tg, dispatcher, dedup, con_health, admin_connector=tg)
+            )
+        )
         logger.info("Telegram connector active", extra={"allowed_chat_ids": allowed})
     else:
         logger.info(
@@ -339,6 +376,7 @@ async def run(yaml_path: str = "config.yaml") -> None:
 
     if cfg.connectors.whatsapp.enabled:
         from openclaw.connectors.whatsapp import WhatsAppConnector
+
         wa = WhatsAppConnector(
             allowed_numbers=cfg.secrets.whatsapp_allowed_numbers_list,
             bridge_url=cfg.connectors.whatsapp.bridge_url,
@@ -347,28 +385,47 @@ async def run(yaml_path: str = "config.yaml") -> None:
         )
         await wa.start()
         connectors.append(wa)
-        tasks.append(asyncio.create_task(
-            _message_loop(wa, dispatcher, dedup, con_health, admin_connector=admin_tg)))
-        logger.info("WhatsApp connector active", extra={
-            "bridge_url": cfg.connectors.whatsapp.bridge_url,
-            "allowed_numbers": cfg.secrets.whatsapp_allowed_numbers_list,
-        })
+        tasks.append(
+            asyncio.create_task(
+                _message_loop(
+                    wa, dispatcher, dedup, con_health, admin_connector=admin_tg
+                )
+            )
+        )
+        logger.info(
+            "WhatsApp connector active",
+            extra={
+                "bridge_url": cfg.connectors.whatsapp.bridge_url,
+                "allowed_numbers": cfg.secrets.whatsapp_allowed_numbers_list,
+            },
+        )
 
     if cfg.secrets.gmail_user and cfg.secrets.gmail_app_password:
         from openclaw.connectors.gmail import GmailConnector
+
         gm = GmailConnector(
             user=cfg.secrets.gmail_user,
             app_password=cfg.secrets.gmail_app_password,
         )
         await gm.start()
         connectors.append(gm)
-        tasks.append(asyncio.create_task(
-            _message_loop(gm, dispatcher, dedup, con_health, admin_connector=admin_tg)))
+        tasks.append(
+            asyncio.create_task(
+                _message_loop(
+                    gm, dispatcher, dedup, con_health, admin_connector=admin_tg
+                )
+            )
+        )
         logger.info("Gmail connector active", extra={"user": cfg.secrets.gmail_user})
 
-    if (cfg.secrets.azure_tenant_id and cfg.secrets.azure_client_id
-            and cfg.secrets.azure_client_secret and cfg.secrets.outlook_user):
+    if (
+        cfg.secrets.azure_tenant_id
+        and cfg.secrets.azure_client_id
+        and cfg.secrets.azure_client_secret
+        and cfg.secrets.outlook_user
+    ):
         from openclaw.connectors.outlook import OutlookConnector
+
         ol = OutlookConnector(
             tenant_id=cfg.secrets.azure_tenant_id,
             client_id=cfg.secrets.azure_client_id,
@@ -377,10 +434,16 @@ async def run(yaml_path: str = "config.yaml") -> None:
         )
         await ol.start()
         connectors.append(ol)
-        tasks.append(asyncio.create_task(
-            _message_loop(ol, dispatcher, dedup, con_health, admin_connector=admin_tg)))
-        logger.info("Outlook connector active",
-                    extra={"user": cfg.secrets.outlook_user})
+        tasks.append(
+            asyncio.create_task(
+                _message_loop(
+                    ol, dispatcher, dedup, con_health, admin_connector=admin_tg
+                )
+            )
+        )
+        logger.info(
+            "Outlook connector active", extra={"user": cfg.secrets.outlook_user}
+        )
 
     logger.info("openclaw running — Ctrl+C to stop | type /reset to clear history")
 

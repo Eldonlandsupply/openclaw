@@ -44,7 +44,9 @@ class LLMConfig(BaseModel):
         if not vv:
             return None
         if vv.upper() in PLACEHOLDER_VALUES:
-            raise ValueError("llm.chat_model is still a placeholder. Set YOUR_CHAT_MODEL.")
+            raise ValueError(
+                "llm.chat_model is still a placeholder. Set YOUR_CHAT_MODEL."
+            )
         return vv
 
     @field_validator("embedding_model")

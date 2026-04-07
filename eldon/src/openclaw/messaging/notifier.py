@@ -6,6 +6,7 @@ Usage:
     notifier.send("critical_alert", message="disk full")
     notifier.send_raw("Custom message", recipient="user@example.com")
 """
+
 from __future__ import annotations
 
 import logging
@@ -33,9 +34,15 @@ class Notifier:
     def _resolve_recipient(self, recipient: str | None) -> str | None:
         if recipient:
             return recipient
-        return self.config.allowed_recipients[0] if self.config.allowed_recipients else None
+        return (
+            self.config.allowed_recipients[0]
+            if self.config.allowed_recipients
+            else None
+        )
 
-    def send(self, template_name: str, recipient: str | None = None, **kwargs: object) -> bool:
+    def send(
+        self, template_name: str, recipient: str | None = None, **kwargs: object
+    ) -> bool:
         """Render a named template and send it."""
         body = render(template_name, **kwargs)
         return self.send_raw(body, recipient=recipient)
@@ -44,7 +51,9 @@ class Notifier:
         """Send a raw message string without template rendering."""
         target = self._resolve_recipient(recipient)
         if not target:
-            logger.warning("Notifier.send_raw: no recipient specified and allowlist is empty")
+            logger.warning(
+                "Notifier.send_raw: no recipient specified and allowlist is empty"
+            )
             return False
 
         allowed, reason = self.policy.allow(target, body)

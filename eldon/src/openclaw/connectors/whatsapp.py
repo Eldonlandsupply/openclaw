@@ -10,6 +10,7 @@ Inbound messages are read directly from the bridge's SQLite DB
 drain endpoint. Messages are consumed once processed and deleted
 from the buffer to prevent redelivery.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -26,13 +27,14 @@ from openclaw.logging import get_logger
 logger = get_logger(__name__)
 
 DEFAULT_BRIDGE_URL = "http://127.0.0.1:8181"
-DEFAULT_BRIDGE_DB  = "/var/lib/wabridge/wabridge.db"
+DEFAULT_BRIDGE_DB = "/var/lib/wabridge/wabridge.db"
 
 # Wabridge stores plaintext as protobuf-encoded bytes.
 # We extract the message text by looking for the text payload
 # embedded in the raw bytes — whatsmeow WebMessageInfo has the
 # text body in a known field. We use a simple heuristic: find
 # the longest UTF-8 printable string of length > 1 in the blob.
+
 
 def _extract_text(plaintext: bytes) -> str:
     """
@@ -61,7 +63,7 @@ def _extract_text(plaintext: bytes) -> str:
                         break
                     shift += 7
                 if 0 < length <= 4096 and i + length <= len(plaintext):
-                    chunk = plaintext[i:i + length]
+                    chunk = plaintext[i : i + length]
                     try:
                         s = chunk.decode("utf-8")
                         if s.isprintable() and len(s) > 1:
@@ -117,11 +119,14 @@ class WhatsAppConnector(BaseConnector):
         self._session = aiohttp.ClientSession()
         self._running = True
         self._poll_task = asyncio.create_task(self._poll_loop())
-        logger.info("WhatsApp connector started", extra={
-            "bridge": self._bridge_url,
-            "bridge_db": self._bridge_db,
-            "allowed_numbers": list(self._allowed),
-        })
+        logger.info(
+            "WhatsApp connector started",
+            extra={
+                "bridge": self._bridge_url,
+                "bridge_db": self._bridge_db,
+                "allowed_numbers": list(self._allowed),
+            },
+        )
 
     def _read_events(self) -> list[dict]:
         """
@@ -153,12 +158,14 @@ class WhatsAppConnector(BaseConnector):
                         continue
                     text = _extract_text(bytes(plaintext))
                     if text:
-                        results.append({
-                            "our_jid": row["our_jid"],
-                            "hash": h,
-                            "text": text,
-                            "timestamp": row["server_timestamp"],
-                        })
+                        results.append(
+                            {
+                                "our_jid": row["our_jid"],
+                                "hash": h,
+                                "text": text,
+                                "timestamp": row["server_timestamp"],
+                            }
+                        )
                     self._seen_hashes.add(h)
                     hashes_to_delete.append(h)
 
@@ -167,9 +174,12 @@ class WhatsAppConnector(BaseConnector):
                     con.executemany(
                         "DELETE FROM whatsmeow_event_buffer "
                         "WHERE our_jid=? AND ciphertext_hash=?",
-                        [(row["our_jid"], h) for row, h in
-                         zip(rows, [bytes(r["ciphertext_hash"]) for r in rows])
-                         if bytes(r["ciphertext_hash"]) in set(hashes_to_delete)]
+                        [
+                            (row["our_jid"], row_hash)
+                            for row in rows
+                            if (row_hash := bytes(row["ciphertext_hash"]))
+                            in set(hashes_to_delete)
+                        ],
                     )
                     con.commit()
 
@@ -199,8 +209,9 @@ class WhatsAppConnector(BaseConnector):
                     # (single-user setup). For multi-user, extend wabridge.
                     sender = list(self._allowed)[0] if self._allowed else "unknown"
                     jid = sender.lstrip("+") + "@s.whatsapp.net"
-                    logger.info("WhatsApp inbound event",
-                                extra={"text": text[:80], "jid": jid})
+                    logger.info(
+                        "WhatsApp inbound event", extra={"text": text[:80], "jid": jid}
+                    )
                     await self._queue.put(
                         Message(text=text, source="whatsapp", chat_id=jid)
                     )
@@ -240,8 +251,10 @@ class WhatsAppConnector(BaseConnector):
                 if body.strip() == "ok":
                     logger.info("WhatsApp sent", extra={"to": jid})
                 else:
-                    logger.error("WhatsApp send failed",
-                                 extra={"status": resp.status, "body": body[:200]})
+                    logger.error(
+                        "WhatsApp send failed",
+                        extra={"status": resp.status, "body": body[:200]},
+                    )
         except Exception as exc:
             logger.error("WhatsApp send error", extra={"error": str(exc)})
 

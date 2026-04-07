@@ -10,6 +10,7 @@ from typing import AsyncIterator
 @dataclass
 class Message:
     """Normalized inbound message from any connector."""
+
     text: str
     source: str
     chat_id: str | None = field(default=None)

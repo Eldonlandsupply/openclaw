@@ -84,7 +84,9 @@ class AttioClient:
         resp = await self._put_upsert(object_type, matching_attribute, body)
         return resp.get("data", {})
 
-    async def _put_upsert(self, object_type: str, matching_attribute: str, body: dict) -> Any:
+    async def _put_upsert(
+        self, object_type: str, matching_attribute: str, body: dict
+    ) -> Any:
         session = self._session_or_create()
         url = f"{BASE_URL}/objects/{object_type}/records?matching_attribute={matching_attribute}"
         async with session.put(url, data=json.dumps(body)) as resp:
@@ -131,7 +133,9 @@ class AttioClient:
         resp = await self._post("/tasks", {"data": data})
         return resp.get("data", {})
 
-    async def list_tasks(self, is_completed: bool = False, limit: int = 10) -> list[dict]:
+    async def list_tasks(
+        self, is_completed: bool = False, limit: int = 10
+    ) -> list[dict]:
         resp = await self._post(
             "/tasks/query",
             {"filter": {"is_completed": is_completed}, "limit": limit},

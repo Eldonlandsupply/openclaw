@@ -1,0 +1,6 @@
+line-length = 88
+
+include = ["scripts/preflight.py", "scripts/local_validate.py", "src/openclaw/**/*.py"]
+
+[lint]
+select = ["F821"]

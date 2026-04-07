@@ -30,9 +30,7 @@ MIN_USE_COUNT: int = 5
 MIN_SUCCESS_RATE: float = 0.70
 
 _CANDIDATES_PATH = (
-    Path(__file__).resolve().parents[4]
-    / "action_allowlist"
-    / "action_candidates.json"
+    Path(__file__).resolve().parents[4] / "action_allowlist" / "action_candidates.json"
 )
 _OBSERVATIONS_PATH = (
     Path(__file__).resolve().parents[4]
@@ -164,7 +162,10 @@ class PatternCrystallizer:
                 continue
             successes = sum(1 for o in observations if o.outcome == "success")
             rate = successes / len(observations) if observations else 0.0
-            if len(observations) >= self.min_use_count and rate >= self.min_success_rate:
+            if (
+                len(observations) >= self.min_use_count
+                and rate >= self.min_success_rate
+            ):
                 pattern = _build_pattern(key, observations, rate)
                 new_patterns.append(pattern)
                 logger.info(
@@ -191,7 +192,8 @@ class PatternCrystallizer:
                     "count": len(obs),
                     "success_rate": (
                         sum(1 for o in obs if o.outcome == "success") / len(obs)
-                        if obs else 0.0
+                        if obs
+                        else 0.0
                     ),
                     "meets_threshold": (
                         len(obs) >= self.min_use_count

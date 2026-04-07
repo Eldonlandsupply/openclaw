@@ -21,12 +21,12 @@ from openclaw.logging import get_logger
 
 logger = get_logger(__name__)
 
-_start_time:        float             = time.monotonic()
-_last_tick:         Optional[str]     = None
-_degraded:          bool              = False
-_degraded_reason:   str               = ""
-_max_stale_seconds: int               = 60
-_connector_status:  dict[str, str]    = {}   # name → "ok" | "degraded"
+_start_time: float = time.monotonic()
+_last_tick: Optional[str] = None
+_degraded: bool = False
+_degraded_reason: str = ""
+_max_stale_seconds: int = 60
+_connector_status: dict[str, str] = {}  # name → "ok" | "degraded"
 
 
 def record_tick() -> None:
@@ -36,7 +36,7 @@ def record_tick() -> None:
 
 def mark_degraded(reason: str = "") -> None:
     global _degraded, _degraded_reason
-    _degraded        = True
+    _degraded = True
     _degraded_reason = reason
     logger.warning("health marked degraded", extra={"reason": reason})
 
@@ -53,7 +53,7 @@ def _compute_status() -> tuple[str, int]:
     stale = False
     if _last_tick is not None:
         last = datetime.fromisoformat(_last_tick.replace("Z", "+00:00"))
-        age  = (datetime.now(timezone.utc) - last).total_seconds()
+        age = (datetime.now(timezone.utc) - last).total_seconds()
         if age > _max_stale_seconds:
             stale = True
     any_connector_degraded = any(v == "degraded" for v in _connector_status.values())
@@ -64,12 +64,12 @@ def _compute_status() -> tuple[str, int]:
 async def _handle_health(request: web.Request) -> web.Response:
     status, code = _compute_status()
     payload = {
-        "status":     status,
-        "uptime_s":   int(time.monotonic() - _start_time),
-        "last_tick":  _last_tick,
-        "version":    __version__,
+        "status": status,
+        "uptime_s": int(time.monotonic() - _start_time),
+        "last_tick": _last_tick,
+        "version": __version__,
         "connectors": _connector_status,
-        "reason":     _degraded_reason if status != "ok" else "",
+        "reason": _degraded_reason if status != "ok" else "",
     }
     return web.Response(
         text=json.dumps(payload),
@@ -90,12 +90,13 @@ async def _handle_ping(request: web.Request) -> web.Response:
 async def start_health_server(host: str, port: int) -> None:
     app = web.Application()
     app.router.add_get("/health", _handle_health)
-    app.router.add_get("/ready",  _handle_ready)
-    app.router.add_get("/ping",   _handle_ping)
+    app.router.add_get("/ready", _handle_ready)
+    app.router.add_get("/ping", _handle_ping)
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, host, port)
     await site.start()
-    logger.info("health server started",
-                extra={"host": host, "port": port,
-                       "endpoints": ["/health", "/ready", "/ping"]})
+    logger.info(
+        "health server started",
+        extra={"host": host, "port": port, "endpoints": ["/health", "/ready", "/ping"]},
+    )
