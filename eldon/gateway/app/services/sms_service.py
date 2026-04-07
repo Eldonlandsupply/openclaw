@@ -8,9 +8,17 @@ from __future__ import annotations
 import os
 from typing import Optional
 
-_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
-_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")
-_FROM_NUMBER = os.getenv("TWILIO_PHONE_NUMBER", "")
+
+def _account_sid() -> str:
+    return os.getenv("TWILIO_ACCOUNT_SID", "")
+
+
+def _auth_token() -> str:
+    return os.getenv("TWILIO_AUTH_TOKEN", "")
+
+
+def _from_number() -> str:
+    return os.getenv("TWILIO_PHONE_NUMBER", "")
 
 
 def parse_inbound(form_data: dict) -> Optional[dict]:
@@ -35,7 +43,10 @@ async def send_message(to: str, body: str) -> bool:
     Send SMS via Twilio REST API.
     Returns True on success.
     """
-    if not (_ACCOUNT_SID and _AUTH_TOKEN and _FROM_NUMBER):
+    account_sid = _account_sid()
+    auth_token = _auth_token()
+    from_number = _from_number()
+    if not (account_sid and auth_token and from_number):
         return False
 
     # Truncate SMS
@@ -43,9 +54,9 @@ async def send_message(to: str, body: str) -> bool:
 
     try:
         import aiohttp
-        url = f"https://api.twilio.com/2010-04-01/Accounts/{_ACCOUNT_SID}/Messages.json"
-        data = {"To": to, "From": _FROM_NUMBER, "Body": body}
-        auth = aiohttp.BasicAuth(_ACCOUNT_SID, _AUTH_TOKEN)
+        url = f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json"
+        data = {"To": to, "From": from_number, "Body": body}
+        auth = aiohttp.BasicAuth(account_sid, auth_token)
         async with aiohttp.ClientSession() as session:
             async with session.post(url, data=data, auth=auth, timeout=aiohttp.ClientTimeout(total=10)) as resp:
                 return resp.status in (200, 201)

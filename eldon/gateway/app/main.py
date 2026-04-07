@@ -23,38 +23,57 @@ from .lola.pipeline import process as lola_process
 
 logger = logging.getLogger("gateway")
 
-_TELEGRAM_WEBHOOK_SECRET = os.getenv("TELEGRAM_WEBHOOK_SECRET", "")
-_ENABLE_TELEGRAM = os.getenv("ENABLE_TELEGRAM", "true").lower() == "true"
-_ENABLE_SMS = os.getenv("ENABLE_SMS", "false").lower() == "true"
-_ENABLE_LOLA_WHATSAPP = os.getenv("ENABLE_LOLA_WHATSAPP", "false").lower() == "true"
-_DASHBOARD_TOKEN = os.getenv("LOLA_DASHBOARD_TOKEN", "")
+def _env_bool(name: str, default: str) -> bool:
+    return os.getenv(name, default).lower() == "true"
+
+
+def _telegram_webhook_secret() -> str:
+    return os.getenv("TELEGRAM_WEBHOOK_SECRET", "")
+
+
+def _enable_telegram() -> bool:
+    return _env_bool("ENABLE_TELEGRAM", "true")
+
+
+def _enable_sms() -> bool:
+    return _env_bool("ENABLE_SMS", "false")
+
+
+def _enable_lola_whatsapp() -> bool:
+    return _env_bool("ENABLE_LOLA_WHATSAPP", "false")
+
+
+def _dashboard_token() -> str:
+    return os.getenv("LOLA_DASHBOARD_TOKEN", "")
 
 
 def _verify_dashboard(request: web.Request) -> bool:
-    if not _DASHBOARD_TOKEN:
+    token = _dashboard_token()
+    if not token:
         return True
-    return request.headers.get("X-Dashboard-Token", "") == _DASHBOARD_TOKEN
+    return request.headers.get("X-Dashboard-Token", "") == token
 
 
 async def health(request: web.Request) -> web.Response:
     return web.json_response({
         "status": "ok", "service": "openclaw-gateway",
-        "lola_whatsapp": _ENABLE_LOLA_WHATSAPP,
-        "telegram": _ENABLE_TELEGRAM, "sms": _ENABLE_SMS,
+        "lola_whatsapp": _enable_lola_whatsapp(),
+        "telegram": _enable_telegram(), "sms": _enable_sms(),
     })
 
 
 def _verify_telegram_secret(request: web.Request) -> bool:
-    if not _TELEGRAM_WEBHOOK_SECRET:
+    secret = _telegram_webhook_secret()
+    if not secret:
         return True
     return hmac.compare_digest(
         request.headers.get("X-Telegram-Bot-Api-Secret-Token", ""),
-        _TELEGRAM_WEBHOOK_SECRET,
+        secret,
     )
 
 
 async def telegram_webhook(request: web.Request) -> web.Response:
-    if not _ENABLE_TELEGRAM:
+    if not _enable_telegram():
         return web.json_response({"error": "Telegram disabled"}, status=403)
     body = await request.read()
     if not _verify_telegram_secret(request):
@@ -80,7 +99,7 @@ async def telegram_webhook(request: web.Request) -> web.Response:
 
 
 async def sms_webhook(request: web.Request) -> web.Response:
-    if not _ENABLE_SMS:
+    if not _enable_sms():
         return web.Response(text=sms_service.twilio_twiml_response("SMS disabled."), content_type="text/xml")
     form_data = await request.post()
     normalized = sms_service.parse_inbound(dict(form_data))
@@ -96,7 +115,7 @@ async def sms_webhook(request: web.Request) -> web.Response:
 
 
 async def lola_whatsapp_verify(request: web.Request) -> web.Response:
-    if not _ENABLE_LOLA_WHATSAPP:
+    if not _enable_lola_whatsapp():
         return web.Response(status=404)
     mode = request.rel_url.query.get("hub.mode", "")
     token = request.rel_url.query.get("hub.verify_token", "")
@@ -116,7 +135,7 @@ def _is_status_notification(payload: dict) -> bool:
 
 
 async def lola_whatsapp_webhook(request: web.Request) -> web.Response:
-    if not _ENABLE_LOLA_WHATSAPP:
+    if not _enable_lola_whatsapp():
         return web.Response(status=404)
     body = await request.read()
 
@@ -168,7 +187,7 @@ async def lola_dashboard_status(request: web.Request) -> web.Response:
     try:
         from .lola import db
         stats = db.stats()
-        return web.json_response({"agent": "lola", "whatsapp_enabled": _ENABLE_LOLA_WHATSAPP, "db_path": str(db._DB_PATH), **stats})
+        return web.json_response({"agent": "lola", "whatsapp_enabled": _enable_lola_whatsapp(), "db_path": str(db._DB_PATH), **stats})
     except Exception as e:
         return web.json_response({"error": str(e)}, status=500)
 
