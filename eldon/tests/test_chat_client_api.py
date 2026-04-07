@@ -36,7 +36,7 @@ def _make_cfg(provider="minimax", model="MiniMax-M1-mini"):
     cfg.llm.system_prompt = None
     cfg.llm.max_requests_per_minute = 60
     cfg.llm.request_timeout_seconds = 30
-    cfg.secrets.minimax_api_key = "sk-minimax-test"
+    cfg.secrets.minimax_api_key = "TEST_MINIMAX_API_KEY"
     cfg.secrets.openrouter_api_key = None
     cfg.secrets.openai_api_key = None
     cfg.secrets.xai_api_key = None
@@ -75,7 +75,7 @@ def _mock_error_response(status: int, body: str = "error body"):
 class TestCallApi:
     @pytest.mark.asyncio
     async def test_successful_call_returns_content(self, monkeypatch):
-        monkeypatch.setenv("MINIMAX_API_KEY", "sk-minimax-test")
+        monkeypatch.setenv("MINIMAX_API_KEY", "TEST_MINIMAX_API_KEY")
         from openclaw.chat.client import ChatClient
         client = ChatClient(_make_cfg())
         client._history = [{"role": "user", "content": "hello"}]
@@ -90,7 +90,7 @@ class TestCallApi:
 
     @pytest.mark.asyncio
     async def test_call_api_strips_think_blocks(self, monkeypatch):
-        monkeypatch.setenv("MINIMAX_API_KEY", "sk-minimax-test")
+        monkeypatch.setenv("MINIMAX_API_KEY", "TEST_MINIMAX_API_KEY")
         from openclaw.chat.client import ChatClient
         client = ChatClient(_make_cfg())
         client._history = [{"role": "user", "content": "hello"}]
@@ -107,7 +107,7 @@ class TestCallApi:
 
     @pytest.mark.asyncio
     async def test_call_api_raises_on_http_error(self, monkeypatch):
-        monkeypatch.setenv("MINIMAX_API_KEY", "sk-minimax-test")
+        monkeypatch.setenv("MINIMAX_API_KEY", "TEST_MINIMAX_API_KEY")
         from openclaw.chat.client import ChatClient
         client = ChatClient(_make_cfg())
         client._history = [{"role": "user", "content": "hello"}]
@@ -122,7 +122,7 @@ class TestCallApi:
 
     @pytest.mark.asyncio
     async def test_call_api_url_is_minimax_endpoint(self, monkeypatch):
-        monkeypatch.setenv("MINIMAX_API_KEY", "sk-minimax-test")
+        monkeypatch.setenv("MINIMAX_API_KEY", "TEST_MINIMAX_API_KEY")
         from openclaw.chat.client import ChatClient
         client = ChatClient(_make_cfg())
         client._history = [{"role": "user", "content": "test"}]
@@ -139,7 +139,7 @@ class TestCallApi:
 
     @pytest.mark.asyncio
     async def test_call_api_sends_system_prompt_and_history(self, monkeypatch):
-        monkeypatch.setenv("MINIMAX_API_KEY", "sk-minimax-test")
+        monkeypatch.setenv("MINIMAX_API_KEY", "TEST_MINIMAX_API_KEY")
         from openclaw.chat.client import ChatClient
         client = ChatClient(_make_cfg())
         client._history = [{"role": "user", "content": "status?"}]
@@ -164,7 +164,7 @@ class TestCallApi:
 class TestChatPipeline:
     @pytest.mark.asyncio
     async def test_chat_appends_to_history_on_success(self, monkeypatch):
-        monkeypatch.setenv("MINIMAX_API_KEY", "sk-minimax-test")
+        monkeypatch.setenv("MINIMAX_API_KEY", "TEST_MINIMAX_API_KEY")
         from openclaw.chat.client import ChatClient
         client = ChatClient(_make_cfg())
 
@@ -177,7 +177,7 @@ class TestChatPipeline:
 
     @pytest.mark.asyncio
     async def test_chat_pops_user_message_on_error(self, monkeypatch):
-        monkeypatch.setenv("MINIMAX_API_KEY", "sk-minimax-test")
+        monkeypatch.setenv("MINIMAX_API_KEY", "TEST_MINIMAX_API_KEY")
         from openclaw.chat.client import ChatClient
         client = ChatClient(_make_cfg())
         initial_history_len = len(client._history)
@@ -190,7 +190,7 @@ class TestChatPipeline:
 
     @pytest.mark.asyncio
     async def test_chat_timeout_returns_clean_message(self, monkeypatch):
-        monkeypatch.setenv("MINIMAX_API_KEY", "sk-minimax-test")
+        monkeypatch.setenv("MINIMAX_API_KEY", "TEST_MINIMAX_API_KEY")
         from openclaw.chat.client import ChatClient
         client = ChatClient(_make_cfg())
         client._request_timeout = 1
@@ -213,7 +213,7 @@ class TestChatPipeline:
         reply is appended, so the final length is MAX_HISTORY + 1 = 41.
         The important invariant is that very old messages are gone.
         """
-        monkeypatch.setenv("MINIMAX_API_KEY", "sk-minimax-test")
+        monkeypatch.setenv("MINIMAX_API_KEY", "TEST_MINIMAX_API_KEY")
         from openclaw.chat.client import ChatClient
         client = ChatClient(_make_cfg())
         # Pre-fill to MAX_HISTORY messages (this will trigger trim on next append)
