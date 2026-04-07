@@ -1586,8 +1586,8 @@
                       id: connId,
                       method: "connect",
                       params: {
-                        minProtocol: 1,
-                        maxProtocol: 99,
+                        minProtocol: 3,
+                        maxProtocol: 3,
                         client: {
                           id: "openclaw-control-ui",
                           displayName: "Mission Control v5",
@@ -1595,6 +1595,16 @@
                           platform: "browser",
                           mode: "ui",
                         },
+                        role: "operator",
+                        scopes: [
+                          "operator.read",
+                          "operator.write",
+                          "operator.approvals",
+                          "operator.pairing",
+                        ],
+                        caps: [],
+                        userAgent: navigator.userAgent,
+                        locale: navigator.language,
                         ...(this.tok ? { auth: { token: this.tok } } : {}),
                       },
                     }),
