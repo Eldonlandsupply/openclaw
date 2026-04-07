@@ -15,7 +15,7 @@ Covers:
  - sendMessage success path
  - sendMessage retry on transient 500
  - sendMessage permanent 400/403 → no retry
- - Long message sent as a single complete reply
+ - Long message sent as one document attachment
  - stop() cancels poll task and closes session
  - messages() async generator yields queued items and exits when stopped
 """
@@ -333,6 +333,8 @@ class TestSend:
         long_text = "x" * 9000
         await c.send(str(ALLOWED_CHAT_ID), long_text)
         session.post.assert_called_once()
+        called_url = session.post.call_args[0][0]
+        assert "sendDocument" in called_url
 
     @pytest.mark.asyncio
     async def test_send_retries_on_transient_error(self):

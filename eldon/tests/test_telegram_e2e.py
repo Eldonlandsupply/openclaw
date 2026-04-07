@@ -16,7 +16,7 @@ Covers every failure mode that caused the 401 "User not found" production outage
   F. OPENCLAW_CONNECTOR_TELEGRAM env var naming resolves correctly
   G. MiniMax base_url lock: OPENAI_BASE_URL cannot override provider=minimax
   H. Reasoning tag stripping: <think> blocks removed before Telegram reply is sent
-  I. Long reply chunked correctly: 9000-char reply → 3 sendMessage calls
+  I. Long reply delivery fallback: 9000-char reply → 1 sendDocument call
   J. Integration: full message loop simulation with mock LLM reply
 
 Run on Pi:
@@ -433,18 +433,20 @@ class TestReasoningTagStripping:
 
 
 # ===========================================================================
-# I. Long message chunking
+# I. Long message delivery fallback
 # ===========================================================================
 
-class TestLongMessageChunking:
+class TestLongMessageDeliveryFallback:
     @pytest.mark.asyncio
-    async def test_9000_char_reply_sends_3_chunks(self):
+    async def test_9000_char_reply_sends_one_document(self):
         c = _make_connector()
         session = MagicMock()
         session.post.return_value = _mock_http_response({"ok": True}, status=200)
         c._session = session
         await c.send(str(ALLOWED_CHAT_ID), "A" * 9000)
-        assert session.post.call_count == 3
+        assert session.post.call_count == 1
+        called_url = session.post.call_args[0][0]
+        assert "sendDocument" in called_url
 
     @pytest.mark.asyncio
     async def test_short_reply_sends_1_chunk(self):
@@ -454,6 +456,8 @@ class TestLongMessageChunking:
         c._session = session
         await c.send(str(ALLOWED_CHAT_ID), "Short reply from Lola.")
         assert session.post.call_count == 1
+        called_url = session.post.call_args[0][0]
+        assert "sendMessage" in called_url
 
     @pytest.mark.asyncio
     async def test_none_chat_id_is_noop(self):
