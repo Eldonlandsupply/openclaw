@@ -49,6 +49,21 @@
         --r2: 8px;
         --r3: 12px;
         --r4: 16px;
+        /* v4 compatibility aliases for inline styles still referencing legacy tokens */
+        --tx: var(--ink);
+        --t2: var(--ink2);
+        --t3: var(--ink4);
+        --bd: var(--wire);
+        --b2: var(--wire2);
+        --mo: var(--mono);
+        --sa: var(--sans);
+        --acc: var(--amber);
+        --accent: var(--amber);
+        --cgr: var(--green);
+        --cre: var(--red);
+        --gr2: var(--green);
+        --yw2: var(--amber2);
+        --bl2: var(--blue);
       }
       * {
         box-sizing: border-box;
@@ -2364,7 +2379,7 @@
                   .map((e, i) =>
                     h(
                       "div",
-                      { key: i, className: `ai ${e.type}` },
+                      { key: i, className: `aitem ${e.type}` },
                       h("span", { className: "ats" }, fmtT(e.ts)),
                       h(
                         "div",
@@ -2836,7 +2851,7 @@
                             (previews[sel] || []).map((item, i) =>
                               h(
                                 "div",
-                                { key: i, className: `preview-item ${item.role}` },
+                                { key: i, className: `prev-item ${item.role}` },
                                 h(
                                   "span",
                                   {
@@ -7638,7 +7653,7 @@
               "div",
               { key: i, className: "rl-item" },
               h("div", {
-                className: `sdot ${e.status === "ok" ? "on" : e.status === "error" ? "acc" : "yellow"}`,
+                className: `sdot ${e.status === "ok" ? "on" : e.status === "error" ? "ac" : "yw"}`,
               }),
               h("div", { className: "rl-ts" }, fmtT(e.ts)),
               h(
