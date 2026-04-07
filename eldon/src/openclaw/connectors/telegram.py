@@ -7,7 +7,7 @@ Hardening over v1:
 - sendMessage retry with exponential backoff (3 attempts)
 - Structured logs never leak the bot token
 - Explicit poll-task teardown on stop()
-- send() sends complete replies only (no chunking)
+- send() sends one complete reply (no partial chunking)
 - Unknown chat_id: sends "Unauthorized" reply so the sender knows
 """
 
@@ -161,18 +161,18 @@ class TelegramConnector(BaseConnector):
                     return
 
     async def send(self, chat_id: str | None, text: str) -> None:
-        """Send text to chat_id as a single reply, with retry on transient errors."""
+        """Send one complete text reply to chat_id with retry on transient errors."""
         if not chat_id or not self._session:
             return
         if len(text) > _MAX_MSG_LEN:
             logger.warning(
-                "Telegram reply exceeds max length; sending fallback",
+                "Telegram message exceeds max length; skipping send to avoid partial reply",
                 extra={"chat_id": chat_id, "text_len": len(text)},
             )
-            text = "Response too long to send to Telegram in a single message."
-        await self._send_chunk(chat_id, text)
+            return
+        await self._send_message(chat_id, text)
 
-    async def _send_chunk(self, chat_id: str, text: str) -> None:
+    async def _send_message(self, chat_id: str, text: str) -> None:
         assert self._session is not None
         for attempt, backoff in enumerate(_SEND_BACKOFF, start=1):
             try:
