@@ -37,7 +37,14 @@ export const imessagePlugin: ChannelPlugin<ResolvedIMessageAccount> = {
   pairing: {
     idLabel: "imessageSenderId",
     notifyApproval: async ({ id }) => {
-      await getIMessageRuntime().channel.imessage.sendMessageIMessage(id, PAIRING_APPROVED_MESSAGE);
+      const target = normalizeIMessageMessagingTarget(id);
+      if (!target) {
+        throw new Error("imessage sender id is invalid");
+      }
+      await getIMessageRuntime().channel.imessage.sendMessageIMessage(
+        target,
+        PAIRING_APPROVED_MESSAGE,
+      );
     },
   },
   capabilities: {
