@@ -2,18 +2,20 @@
 """
 OpenClaw PR Opener.
 Opens a pull request from feature/imessage-notifier to main.
-Usage: python open_pr.py YOUR_GITHUB_TOKEN
+Usage: GITHUB_TOKEN=... python open_pr.py
 """
 
 from __future__ import annotations
 
+import getpass
 import json
+import os
 import sys
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 REPO = "Eldonlandsupply/EldonOpenClaw"
-TOKEN = sys.argv[1] if len(sys.argv) > 1 else input("GitHub token: ").strip()
+TOKEN_ENV_VAR = "GITHUB_TOKEN"
 
 PR_TITLE = "fix: OpenClaw audit - 16 reliability, security and architecture fixes"
 
@@ -92,10 +94,27 @@ Low. All changes are additive or hardening existing interfaces. No breaking API 
 """
 
 
-def api(method: str, path: str, body: dict | None = None):
+def _decode_json_or_text(payload: bytes) -> dict:
+    if not payload:
+        return {}
+    try:
+        return json.loads(payload)
+    except json.JSONDecodeError:
+        text = payload.decode("utf-8", errors="replace").strip()
+        return {"message": text or "<non-JSON response body>"}
+
+
+def _load_token() -> str:
+    token = os.getenv(TOKEN_ENV_VAR, "").strip()
+    if token:
+        return token
+    return getpass.getpass("GitHub token: ").strip()
+
+
+def api(token: str, method: str, path: str, body: dict | None = None):
     url = f"https://api.github.com{path}"
     headers = {
-        "Authorization": f"Bearer {TOKEN}",
+        "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github+json",
         "Content-Type": "application/json",
         "X-GitHub-Api-Version": "2022-11-28",
@@ -104,16 +123,22 @@ def api(method: str, path: str, body: dict | None = None):
     req = Request(url, data=data, headers=headers, method=method)
     try:
         with urlopen(req) as response:
-            return json.loads(response.read()), response.status
+            return _decode_json_or_text(response.read()), response.status
     except HTTPError as error:
-        return json.loads(error.read()), error.code
+        return _decode_json_or_text(error.read()), error.code
 
 
 def main() -> None:
+    token = _load_token()
+    if not token:
+        print(f"✗ Missing token. Set {TOKEN_ENV_VAR} or enter one when prompted.")
+        sys.exit(1)
+
     print(f"\nOpening PR on {REPO}")
     print(f"  {PR_TITLE[:60]}...")
 
     data, status = api(
+        token,
         "POST",
         f"/repos/{REPO}/pulls",
         {
@@ -136,6 +161,7 @@ def main() -> None:
             if "already exists" in str(error):
                 print("\n⚠ A PR for this branch already exists.")
                 prs, _ = api(
+                    token,
                     "GET",
                     (
                         "/repos/"
