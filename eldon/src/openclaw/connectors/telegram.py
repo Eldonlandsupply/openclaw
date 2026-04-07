@@ -14,6 +14,7 @@ Hardening over v1:
 from __future__ import annotations
 
 import asyncio
+import io
 import re
 from typing import AsyncIterator
 
@@ -26,6 +27,7 @@ logger = get_logger(__name__)
 
 _API = "https://api.telegram.org/bot{token}/{method}"
 _TOKEN_RE = re.compile(r"^\d+:[A-Za-z0-9_-]{35,}$")
+_MAX_MSG_LEN = 4096
 _SEND_RETRIES = 3
 _SEND_BACKOFF = (1.0, 2.0, 4.0)
 
@@ -164,15 +166,36 @@ class TelegramConnector(BaseConnector):
         """Send one complete text reply to chat_id with retry on transient errors."""
         if not chat_id or not self._session:
             return
-        if len(text) > _MAX_MSG_LEN:
+        if len(text) <= _MAX_MSG_LEN:
+            sent = await self._send_chunk(chat_id, text)
+            if not sent:
+                raise RuntimeError("Telegram sendMessage failed")
+            return
+
+        logger.warning(
+            "Telegram reply exceeds max length; sending as document",
+            extra={"chat_id": chat_id, "text_len": len(text)},
+        )
+        sent = await self._send_document(chat_id, text)
+        if sent:
+            return
+
+        logger.error(
+            "Telegram oversized reply could not be delivered",
+            extra={"chat_id": chat_id, "text_len": len(text)},
+        )
+        sent = await self._send_chunk(
+            chat_id,
+            "Response too long for Telegram, and document delivery failed.",
+        )
+        if not sent:
             logger.warning(
-                "Telegram message exceeds max length; skipping send to avoid partial reply",
+                "Telegram fallback notification failed",
                 extra={"chat_id": chat_id, "text_len": len(text)},
             )
-            return
-        await self._send_message(chat_id, text)
+            raise RuntimeError("Telegram oversized response delivery failed")
 
-    async def _send_message(self, chat_id: str, text: str) -> None:
+    async def _send_chunk(self, chat_id: str, text: str) -> bool:
         assert self._session is not None
         for attempt, backoff in enumerate(_SEND_BACKOFF, start=1):
             try:
@@ -182,13 +205,13 @@ class TelegramConnector(BaseConnector):
                     timeout=aiohttp.ClientTimeout(total=15),
                 ) as resp:
                     if resp.status == 200:
-                        return
+                        return True
                     logger.warning(
                         "Telegram sendMessage failed",
                         extra={"status": resp.status, "attempt": attempt},
                     )
                     if resp.status in (400, 403):
-                        return  # permanent errors, no point retrying
+                        return False  # permanent errors, no point retrying
             except Exception as exc:
                 logger.warning(
                     "Telegram send error",
@@ -196,6 +219,45 @@ class TelegramConnector(BaseConnector):
                 )
             if attempt < _SEND_RETRIES:
                 await asyncio.sleep(backoff)
+        return False
+
+    async def _send_document(self, chat_id: str, text: str) -> bool:
+        assert self._session is not None
+        for attempt, backoff in enumerate(_SEND_BACKOFF, start=1):
+            data = aiohttp.FormData()
+            data.add_field("chat_id", str(int(chat_id)))
+            data.add_field(
+                "caption",
+                "OpenClaw response (attached due to Telegram length limit).",
+            )
+            data.add_field(
+                "document",
+                io.BytesIO(text.encode("utf-8")),
+                filename="openclaw-response.txt",
+                content_type="text/plain",
+            )
+            try:
+                async with self._session.post(
+                    self._url("sendDocument"),
+                    data=data,
+                    timeout=aiohttp.ClientTimeout(total=20),
+                ) as resp:
+                    if resp.status == 200:
+                        return True
+                    logger.warning(
+                        "Telegram sendDocument failed",
+                        extra={"status": resp.status, "attempt": attempt},
+                    )
+                    if resp.status in (400, 403):
+                        return False
+            except Exception as exc:
+                logger.warning(
+                    "Telegram document send error",
+                    extra={"error": str(exc), "attempt": attempt},
+                )
+            if attempt < _SEND_RETRIES:
+                await asyncio.sleep(backoff)
+        return False
 
     async def stop(self) -> None:
         self._running = False
