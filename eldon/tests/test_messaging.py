@@ -109,3 +109,29 @@ def test_notifier_send_raw_uses_first_allowlist_recipient():
     n = Notifier.from_config(make_config())
     result = n.send_raw("Hello")
     assert result is True
+
+
+def test_config_from_env_strips_and_filters_allowlist(monkeypatch):
+    monkeypatch.setenv("MESSAGING_ENABLED", "true")
+    monkeypatch.setenv(
+        "MESSAGING_ALLOWED_RECIPIENTS", " +15550000001, ,+15550000002 ,   "
+    )
+    config = MessagingConfig.from_env()
+    assert config.allowed_recipients == ["+15550000001", "+15550000002"]
+
+
+def test_config_from_env_empty_allowlist(monkeypatch):
+    monkeypatch.setenv("MESSAGING_ENABLED", "true")
+    monkeypatch.delenv("MESSAGING_ALLOWED_RECIPIENTS", raising=False)
+    monkeypatch.delenv("IMESSAGE_ALLOWED_RECIPIENTS", raising=False)
+    config = MessagingConfig.from_env()
+    assert config.allowed_recipients == []
+
+
+def test_policy_prunes_old_dedup_entries():
+    p = MessagePolicy(make_config(dedup_window_minutes=1))
+    p._recent_hashes["old-entry"] = 1
+    p._recent_hashes["new-entry"] = 10_000
+    p._prune_recent_hashes(10_010)
+    assert "old-entry" not in p._recent_hashes
+    assert "new-entry" in p._recent_hashes
