@@ -83,6 +83,7 @@
         "required_binaries": {
           "type": "array",
           "minItems": 2,
+          "contains": { "const": "timeout" },
           "items": {
             "type": "string",
             "pattern": "^[a-zA-Z0-9._+-]{1,64}$"

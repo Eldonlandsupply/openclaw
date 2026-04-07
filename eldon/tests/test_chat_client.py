@@ -131,16 +131,16 @@ async def test_minimax_route_uses_minimax_credentials(monkeypatch):
 
     # Set MINIMAX_API_KEY in env so the contradiction check passes,
     # and also set OPENROUTER_API_KEY to confirm it is NOT used.
-    monkeypatch.setenv("MINIMAX_API_KEY", "sk-minimax-test")
-    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-should-not-be-used")
+    monkeypatch.setenv("MINIMAX_API_KEY", "TEST_MINIMAX_API_KEY")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "TEST_OPENROUTER_API_KEY_UNUSED")
     cfg = make_cfg(provider="minimax", model="MiniMax-M2.1")
-    cfg.secrets.minimax_api_key = "sk-minimax-test"
+    cfg.secrets.minimax_api_key = "TEST_MINIMAX_API_KEY"
     cfg.llm.base_url = "https://api.minimax.io/v1"
 
     client = ChatClient(cfg)
     assert client._provider == "minimax"
     assert client._base_url == "https://api.minimax.io/v1"
-    assert client._api_key == "sk-minimax-test"
+    assert client._api_key == "TEST_MINIMAX_API_KEY"
     await client.close()
 
 
@@ -148,7 +148,7 @@ def test_openrouter_route_rejects_non_openrouter_base_url():
     from src.openclaw.chat.client import ChatClient
 
     cfg = make_cfg(provider="openrouter", model="openai/gpt-4o-mini")
-    cfg.secrets.openrouter_api_key = "sk-or-valid"
+    cfg.secrets.openrouter_api_key = "TEST_OPENROUTER_API_KEY"
     cfg.llm.base_url = "https://api.minimax.io/v1"
 
     client = ChatClient(cfg)

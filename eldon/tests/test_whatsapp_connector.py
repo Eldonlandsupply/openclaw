@@ -97,7 +97,7 @@ class TestExtractText:
 # WhatsAppConnector unit tests
 # ---------------------------------------------------------------------------
 
-ALLOWED = ["17087525462"]
+ALLOWED = ["15555550123"]
 
 
 def _make_connector(
@@ -160,7 +160,7 @@ class TestReadEvents:
         tag = 0x12
         msg = b"Land parcel 42"
         blob = bytes([tag, len(msg)]) + msg
-        _insert_event(db, "17087525462@s.whatsapp.net", blob, b"hash1")
+        _insert_event(db, "15555550123@s.whatsapp.net", blob, b"hash1")
         c = _make_connector(bridge_db=db)
         result = c._read_events()
         assert len(result) == 1
@@ -225,8 +225,7 @@ class TestPollLoop:
 
         c._read_events = patched_read
 
-        with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-            mock_sleep.side_effect = lambda _: asyncio.sleep(0)
+        with patch("asyncio.sleep", new=AsyncMock(return_value=None)):
             await c._poll_loop()
 
         assert c._queue.qsize() >= 1
@@ -266,8 +265,7 @@ class TestPollLoop:
 
         c._read_events = bad_read
 
-        with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-            mock_sleep.side_effect = lambda _: asyncio.sleep(0)
+        with patch("asyncio.sleep", new=AsyncMock(return_value=None)):
             await c._poll_loop()  # must not raise
 
 
@@ -293,7 +291,7 @@ class TestSend:
         session.post.return_value = cm
         c._session = session
 
-        await c.send("17087525462", "hello")
+        await c.send("15555550123", "hello")
         session.post.assert_called_once()
         call_kwargs = session.post.call_args
         assert "/send" in str(call_kwargs)
@@ -317,8 +315,8 @@ class TestSend:
         session.post.side_effect = capture
         c._session = session
 
-        await c.send("17087525462@s.whatsapp.net", "test")
-        assert sent_to[0] == "17087525462@s.whatsapp.net"
+        await c.send("15555550123@s.whatsapp.net", "test")
+        assert sent_to[0] == "15555550123@s.whatsapp.net"
 
     @pytest.mark.asyncio
     async def test_send_strips_leading_plus(self):
@@ -339,7 +337,7 @@ class TestSend:
         session.post.side_effect = capture
         c._session = session
 
-        await c.send("+17087525462", "test")
+        await c.send("+15555550123", "test")
         # Should not start with +
         assert not sent_to[0].startswith("+")
 
@@ -350,7 +348,7 @@ class TestSend:
         session.post.side_effect = Exception("connection refused")
         c._session = session
         # Should not raise
-        await c.send("17087525462", "hello")
+        await c.send("15555550123", "hello")
 
 
 class TestMessages:

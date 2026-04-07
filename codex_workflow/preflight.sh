@@ -33,6 +33,11 @@ PY
 REPO_ROOT="${PREFLIGHT_VALUES[0]}"
 REQUIRE_CLEAN="${PREFLIGHT_VALUES[1]}"
 
+for entry in "${PREFLIGHT_VALUES[@]:2}"; do
+  bin="${entry#bin:}"
+  command -v "$bin" >/dev/null 2>&1 || fail 18 "Missing dependency binary: $bin"
+done
+
 [[ -d "$REPO_ROOT" ]] || fail 14 "paths.repo_root is not a directory: $REPO_ROOT"
 cd "$REPO_ROOT"
 
@@ -42,10 +47,5 @@ git rev-parse --is-inside-work-tree >/dev/null 2>&1 || fail 15 "paths.repo_root 
 if [[ "$REQUIRE_CLEAN" == "true" ]] && [[ -n "$(git status --porcelain)" ]]; then
   fail 17 "Git workspace dirty while runtime.require_clean_git=true"
 fi
-
-for entry in "${PREFLIGHT_VALUES[@]:2}"; do
-  bin="${entry#bin:}"
-  command -v "$bin" >/dev/null 2>&1 || fail 18 "Missing dependency binary: $bin"
-done
 
 echo "[OK] preflight complete"

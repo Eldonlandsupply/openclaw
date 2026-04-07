@@ -140,8 +140,7 @@ class TestPollLoop:
         msg = self._make_graph_message()
         self._setup_session(c, [msg])
 
-        with patch("asyncio.sleep", new_callable=AsyncMock) as sl:
-            sl.side_effect = lambda _: asyncio.sleep(0)
+        with patch("asyncio.sleep", new=AsyncMock(return_value=None)):
             await c._poll_loop()
 
         assert c._queue.qsize() >= 1
@@ -158,8 +157,7 @@ class TestPollLoop:
         msg = self._make_graph_message(body=html_body)
         self._setup_session(c, [msg])
 
-        with patch("asyncio.sleep", new_callable=AsyncMock) as sl:
-            sl.side_effect = lambda _: asyncio.sleep(0)
+        with patch("asyncio.sleep", new=AsyncMock(return_value=None)):
             await c._poll_loop()
 
         queued = await c._queue.get()
@@ -174,8 +172,7 @@ class TestPollLoop:
         msg = self._make_graph_message(msg_id="m42")
         self._setup_session(c, [msg])
 
-        with patch("asyncio.sleep", new_callable=AsyncMock) as sl:
-            sl.side_effect = lambda _: asyncio.sleep(0)
+        with patch("asyncio.sleep", new=AsyncMock(return_value=None)):
             await c._poll_loop()
 
         c._session.patch.assert_awaited()

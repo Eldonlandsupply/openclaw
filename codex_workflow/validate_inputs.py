@@ -159,6 +159,21 @@ def validate_contract(data: dict[str, Any]) -> list[str]:
     if errors:
         return errors
 
+    sections = [
+        "workflow",
+        "paths",
+        "runtime",
+        "dependencies",
+        "execution",
+        "verification",
+        "error_policy",
+        "energy",
+    ]
+    for section in sections:
+        assert_condition(isinstance(data.get(section), dict), f"{section} must be a map/object", errors)
+    if errors:
+        return errors
+
     workflow = data["workflow"]
     paths = data["paths"]
     runtime = data["runtime"]
@@ -217,6 +232,8 @@ def validate_contract(data: dict[str, Any]) -> list[str]:
 
     required_bins = deps.get("required_binaries")
     assert_condition(isinstance(required_bins, list) and len(required_bins) >= 2, "dependencies.required_binaries must contain at least 2 entries", errors)
+    if isinstance(required_bins, list):
+        assert_condition("timeout" in required_bins, "dependencies.required_binaries must include timeout", errors)
     if isinstance(required_bins, list):
         for idx, item in enumerate(required_bins):
             assert_condition(re.fullmatch(r"[a-zA-Z0-9._+-]{1,64}", str(item)) is not None, f"dependencies.required_binaries[{idx}] invalid", errors)
@@ -302,11 +319,14 @@ def main() -> int:
 
     try:
         data = parse_yaml(config_path)
+        errors = validate_contract(data)
     except ValidationError as exc:
         print(f"[ERROR] VALIDATION_FAILED: {exc}", file=sys.stderr)
         return 5
+    except Exception as exc:
+        print(f"[ERROR] VALIDATION_FAILED: unexpected exception: {exc}", file=sys.stderr)
+        return 7
 
-    errors = validate_contract(data)
     if errors:
         print("[ERROR] VALIDATION_FAILED", file=sys.stderr)
         for index, err in enumerate(errors, start=1):

@@ -217,8 +217,7 @@ class TestPollLoop:
                 c._running = False
 
         with patch.object(asyncio.get_running_loop(), "run_in_executor", side_effect=mock_executor):
-            with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-                mock_sleep.side_effect = lambda _: asyncio.sleep(0)
+            with patch("asyncio.sleep", new=AsyncMock(return_value=None)):
                 await c._poll_loop()
 
         assert call_count >= 1
@@ -238,6 +237,5 @@ class TestPollLoop:
             c._running = False
 
         with patch.object(asyncio.get_running_loop(), "run_in_executor", side_effect=mock_executor_error):
-            with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-                mock_sleep.side_effect = lambda _: asyncio.sleep(0)
+            with patch("asyncio.sleep", new=AsyncMock(return_value=None)):
                 await c._poll_loop()  # must not raise
