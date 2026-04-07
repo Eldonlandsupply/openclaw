@@ -71,9 +71,9 @@
     "escalation_path": { "type": "string" },
     "success_metric": { "type": "string" },
     "failure_metric": { "type": "string" },
-    "last_executed_at": { "type": ["string", "null"] },
-    "last_reviewed_at": { "type": ["string", "null"] },
-    "review_due_date": { "type": ["string", "null"] },
+    "last_executed_at": { "type": "string" },
+    "last_reviewed_at": { "type": "string" },
+    "review_due_date": { "type": "string" },
     "enabled": { "type": "boolean" },
     "notes": { "type": "string" },
     "tags": { "type": "array", "items": { "type": "string" } }

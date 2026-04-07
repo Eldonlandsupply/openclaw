@@ -88,15 +88,15 @@ Maps all config and .env files found. Records present/missing keys.
 
 ## CANONICAL DEPLOYMENT TARGETS
 
-| Item       | Path                                         |
-| ---------- | -------------------------------------------- |
-| Repo       | `/opt/openclaw`                              |
-| Virtualenv | `/opt/openclaw/.venv`                        |
-| Env file   | `/etc/openclaw/openclaw.env`                 |
-| Service    | `openclaw.service`                           |
-| Unit file  | `/etc/systemd/system/openclaw.service`       |
-| Data dir   | `/var/lib/openclaw`                          |
-| Backups    | `~/eldon/backups/openclaw_repair_TIMESTAMP/` |
+| Item       | Deployment-specific target                           |
+| ---------- | ---------------------------------------------------- |
+| Repo       | `<OPENCLAW_ROOT>`                                    |
+| Virtualenv | `<OPENCLAW_ROOT>/.venv`                              |
+| Env file   | `<OPENCLAW_ENV_FILE>`                                |
+| Service    | `openclaw.service`                                   |
+| Unit file  | `<SYSTEMD_UNIT_PATH>/openclaw.service`               |
+| Data dir   | `<OPENCLAW_DATA_DIR>`                                |
+| Backups    | `<OPENCLAW_BACKUP_DIR>/openclaw_repair_<TIMESTAMP>/` |
 
 ---
 

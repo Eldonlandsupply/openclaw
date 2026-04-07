@@ -182,6 +182,7 @@ const state = {
 
 let logPollInterval = null;
 let approvalPollInterval = null;
+let activeModalCloseHandler = null;
 
 // ─────────────────────────────────────────────────────────────────
 // 3. DOM HELPERS
@@ -208,13 +209,13 @@ function showModal(title, bodyHTML, footerHTML) {
   el("modal-body").innerHTML = bodyHTML;
   el("modal-footer").innerHTML = footerHTML;
   el("modal-backdrop").classList.remove("hidden");
-  const close = () => el("modal-backdrop").classList.add("hidden");
-  el("modal-close").addEventListener("click", close);
-  el("modal-backdrop").addEventListener("click", (e) => {
-    if (e.target === el("modal-backdrop")) {
-      close();
-    }
-  });
+
+  const close = () => {
+    el("modal-backdrop").classList.add("hidden");
+    activeModalCloseHandler = null;
+  };
+
+  activeModalCloseHandler = close;
   return close;
 }
 
@@ -275,6 +276,16 @@ function escHtml(s) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 }
+
+el("modal-close").addEventListener("click", () => {
+  activeModalCloseHandler?.();
+});
+
+el("modal-backdrop").addEventListener("click", (e) => {
+  if (e.target === el("modal-backdrop")) {
+    activeModalCloseHandler?.();
+  }
+});
 
 // ─────────────────────────────────────────────────────────────────
 // 4. NAVIGATION
