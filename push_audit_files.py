@@ -2,18 +2,18 @@
 """
 OpenClaw Audit Fix Pusher
 Pushes 16 audit fix files to Eldonlandsupply/EldonOpenClaw @ feature/imessage-notifier
-Usage: python push_audit_files.py YOUR_GITHUB_TOKEN
+Usage: GITHUB_TOKEN=... python push_audit_files.py
 """
 
 import base64
 import json
+import os
 import sys
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 REPO = "Eldonlandsupply/EldonOpenClaw"
 BRANCH = "feature/imessage-notifier"
-TOKEN = sys.argv[1] if len(sys.argv) > 1 else input("GitHub token: ").strip()
 
 FILES = {
     "agents/base_agent.py": (
@@ -438,32 +438,45 @@ end tell
 }
 
 
-def api(method, path, body=None):
+def api(method, path, token, body=None):
     url = f"https://api.github.com{path}"
     headers = {
-        "Authorization": f"Bearer {TOKEN}",
+        "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github+json",
         "Content-Type": "application/json",
         "X-GitHub-Api-Version": "2022-11-28",
     }
     data = json.dumps(body).encode() if body else None
     req = Request(url, data=data, headers=headers, method=method)
+
+    def parse_json(payload):
+        if not payload:
+            return {}
+        try:
+            return json.loads(payload)
+        except json.JSONDecodeError:
+            return {"raw": payload}
+
     try:
         with urlopen(req) as response:
-            return json.loads(response.read()), response.status
+            return parse_json(response.read().decode("utf-8")), response.status
     except HTTPError as e:
-        return json.loads(e.read()), e.code
+        return parse_json(e.read().decode("utf-8", errors="replace")), e.code
+    except URLError as e:
+        return {"error": str(e.reason)}, 0
 
 
-def get_sha(path):
-    data, status = api("GET", f"/repos/{REPO}/contents/{path}?ref={BRANCH}")
+def get_sha(path, token):
+    data, status = api("GET", f"/repos/{REPO}/contents/{path}?ref={BRANCH}", token)
     if status == 200:
         return data.get("sha")
-    return None
+    if status == 404:
+        return None
+    raise RuntimeError(f"Failed to fetch SHA for {path}: status={status}, response={data}")
 
 
-def push_file(path, commit_msg, content):
-    sha = get_sha(path)
+def push_file(path, commit_msg, content, token):
+    sha = get_sha(path, token)
     body = {
         "message": commit_msg,
         "content": base64.b64encode(content.encode()).decode(),
@@ -471,11 +484,24 @@ def push_file(path, commit_msg, content):
     }
     if sha:
         body["sha"] = sha
-    _, status = api("PUT", f"/repos/{REPO}/contents/{path}", body)
+    _, status = api("PUT", f"/repos/{REPO}/contents/{path}", token, body)
     return status in (200, 201)
 
 
+def get_token():
+    token = os.environ.get("GITHUB_TOKEN", "").strip()
+    if token:
+        return token
+    if not sys.stdin.isatty():
+        raise RuntimeError("GITHUB_TOKEN is required in non-interactive mode.")
+    token = input("GitHub token: ").strip()
+    if not token:
+        raise RuntimeError("GitHub token is required.")
+    return token
+
+
 def main():
+    token = get_token()
     print("\nOpenClaw Audit Pusher")
     print(f"Repo:   {REPO}")
     print(f"Branch: {BRANCH}")
@@ -485,7 +511,12 @@ def main():
     fail_count = 0
 
     for path, (msg, content) in FILES.items():
-        result = push_file(path, msg, content)
+        try:
+            result = push_file(path, msg, content, token)
+        except RuntimeError as e:
+            print(f"  ✗  {path} ({e})")
+            fail_count += 1
+            continue
         status_icon = "✓" if result else "✗"
         print(f"  {status_icon}  {path}")
         if result:
