@@ -77,6 +77,7 @@ Required data flow:
 
 1. Task source submits normalized payload to n8n.
 2. n8n enriches and validates the payload against `/schemas/task_item.schema.json`.
+   - `/schemas/parcels.schema.json` is reserved for GeoJSON validator config consumed by `/scripts/validate_geojson.py`.
 3. n8n stores task data and attachments.
 4. n8n publishes the task item into the MCP task queue.
 5. Codex polls the MCP queue, claims the task, and executes by priority.
