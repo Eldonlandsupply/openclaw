@@ -21,6 +21,7 @@ dependencies:
     - python3
     - bash
     - git
+    - timeout
 execution:
   steps:
     - id: validate_inputs
