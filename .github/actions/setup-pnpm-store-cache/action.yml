@@ -2,9 +2,9 @@ name: Setup pnpm + store cache
 description: Prepare pnpm via corepack and restore pnpm store cache.
 inputs:
   pnpm-version:
-    description: pnpm version to activate via corepack.
+    description: pnpm version to activate via corepack. If empty, use packageManager from package.json.
     required: false
-    default: "10.23.0"
+    default: ""
   cache-key-suffix:
     description: Suffix appended to the cache key.
     required: false
@@ -17,8 +17,13 @@ runs:
       run: |
         set -euo pipefail
         corepack enable
+        PNPM_VERSION="${{ inputs.pnpm-version }}"
+        if [ -z "$PNPM_VERSION" ]; then
+          PNPM_VERSION="$(node -p "const pm=require('./package.json').packageManager || ''; const m=pm.match(/^pnpm@(.*)$/); if(!m) throw new Error('package.json packageManager must be set to pnpm@<version>'); m[1]")"
+          echo "Resolved pnpm@$PNPM_VERSION from package.json packageManager"
+        fi
         for attempt in 1 2 3; do
-          if corepack prepare "pnpm@${{ inputs.pnpm-version }}" --activate; then
+          if corepack prepare "pnpm@$PNPM_VERSION" --activate; then
             pnpm -v
             exit 0
           fi
