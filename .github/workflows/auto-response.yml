@@ -14,12 +14,14 @@ jobs:
       issues: write
       pull-requests: write
     runs-on: ubuntu-latest
+    env:
+      GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
     steps:
       - name: Warn when GH_APP_PRIVATE_KEY is missing
-        if: ${{ secrets.GH_APP_PRIVATE_KEY == '' }}
+        if: ${{ env.GH_APP_PRIVATE_KEY == '' }}
         run: echo "::warning::GH_APP_PRIVATE_KEY is not configured. Falling back to GITHUB_TOKEN."
       - uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
-        if: ${{ secrets.GH_APP_PRIVATE_KEY != '' }}
+        if: ${{ env.GH_APP_PRIVATE_KEY != '' }}
         id: app-token
         with:
           app-id: ${{ secrets.GH_APP_ID || '2729701' }}
