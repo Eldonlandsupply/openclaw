@@ -36,6 +36,16 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Configure git credentials for push
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Allow git push via GITHUB_TOKEN without persisted credentials.
+          # Required because upstream-watch.ts pushes lane branches back to
+          # origin and persist-credentials: false strips the default token.
+          git config --global url."https://x-access-token:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/" 
+
       - name: Setup Node environment
         uses: ./.github/actions/setup-node-env
         with:
