@@ -159,6 +159,19 @@ def read_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text())
 
 
+def read_json_or_default(path: Path, default: "dict[str, Any]") -> "dict[str, Any]":
+    """Return parsed JSON from *path*, or *default* if the file is missing or corrupt.
+
+    Creates any missing parent directories so the script can self-initialise on
+    first run without requiring pre-committed stub files in the repo.
+    """
+    try:
+        return json.loads(path.read_text())
+    except (FileNotFoundError, json.JSONDecodeError):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        return dict(default)
+
+
 def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, indent=2) + "\n")
 
@@ -220,7 +233,7 @@ def refresh() -> list[dict[str, str]]:
     repo_status = status_for_failures(open_failures)
     github_integration = "available" if git.has_origin else "MISSING INTEGRATION"
 
-    bootstrap_state = read_json(BOOTSTRAP_STATE_PATH)
+    bootstrap_state = read_json_or_default(BOOTSTRAP_STATE_PATH, {})
     bootstrap_state.update(
         {
             "bootstrapped_at": timestamp,
@@ -234,7 +247,13 @@ def refresh() -> list[dict[str, str]]:
     )
     write_json(BOOTSTRAP_STATE_PATH, bootstrap_state)
 
-    health = read_json(HEALTH_PATH)
+    health = read_json_or_default(
+        HEALTH_PATH,
+        {
+            "next_action": "Initialize health tracking by running the full refresh.",
+            "stale_pr_count": "UNKNOWN",
+        },
+    )
     health.update(
         {
             "status": repo_status,
@@ -253,7 +272,15 @@ def refresh() -> list[dict[str, str]]:
     )
     write_json(HEALTH_PATH, health)
 
-    pr_tracking = read_json(PR_PATH)
+    pr_tracking = read_json_or_default(
+        PR_PATH,
+        {
+            "merge_ready_prs": [],
+            "blocked_prs": [],
+            "stale_prs": [],
+            "failing_prs": [],
+        },
+    )
     pr_tracking.update(
         {
             "last_scan": timestamp,
@@ -271,7 +298,13 @@ def refresh() -> list[dict[str, str]]:
     )
     write_json(PR_PATH, pr_tracking)
 
-    ci_tracking = read_json(CI_PATH)
+    ci_tracking = read_json_or_default(
+        CI_PATH,
+        {
+            "recent_failures": [],
+            "failure_patterns": [],
+        },
+    )
     ci_tracking.update(
         {
             "last_scan": timestamp,
