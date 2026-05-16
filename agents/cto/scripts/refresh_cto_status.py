@@ -225,6 +225,12 @@ def refresh() -> list[dict[str, str]]:
     today = date.today().isoformat()
     standards = parse_simple_yaml(CONFIG)
     git = git_snapshot()
+    # Ensure required directories exist before validation
+    for required_path in REQUIRED_PATHS:
+        if required_path.is_file():
+            required_path.parent.mkdir(parents=True, exist_ok=True)
+        else:
+            required_path.mkdir(parents=True, exist_ok=True)
     validation = validate_control_center()
     browser_rejection = (
         "Browser automation was rejected because the CTO control center can be audited and refreshed through direct filesystem, git, and CI workflow inspection."
