@@ -26,12 +26,17 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
+        # Skip gracefully if no submodules are configured
+        if [ ! -s .gitmodules ] || ! grep -q '\[submodule' .gitmodules 2>/dev/null; then
+          echo "No submodules configured, skipping."
+          exit 0
+        fi
         git submodule sync --recursive
         for attempt in 1 2 3 4 5; do
           if git -c protocol.version=2 submodule update --init --force --depth=1 --recursive; then
             exit 0
           fi
-          echo "Submodule update failed (attempt $attempt/5). Retrying…"
+          echo "Submodule update failed (attempt $attempt/5). Retrying\u2026"
           sleep $((attempt * 10))
         done
         exit 1
