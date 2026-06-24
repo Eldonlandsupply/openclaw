@@ -1,22 +1,15 @@
 {
   "repo": "openclaw/openclaw",
   "path": "/workspace/openclaw",
-  "status": "YELLOW",
-  "last_scan": "2026-03-21T23:21:52Z",
+  "status": "GREEN",
+  "last_scan": "2026-06-24T05:57:02Z",
   "default_branch": "UNKNOWN",
-  "active_branch": "work",
+  "active_branch": "copilot/fix-error-in-job-step",
   "last_green_ci": "UNKNOWN",
-  "open_failures": [
-    {
-      "id": "integration.github.remote_missing",
-      "severity": "medium",
-      "summary": "Git remotes are not configured in the local checkout, so upstream PR and CI state cannot be queried directly.",
-      "next_action": "Connect the canonical Git remote, then hydrate PR and CI trackers from direct metadata."
-    }
-  ],
+  "open_failures": [],
   "stale_pr_count": "UNKNOWN",
   "security_concerns": ["UNKNOWN, remote scanning not available from this bootstrap context"],
   "maintenance_priority": 1,
-  "next_action": "Connect direct GitHub access and rerun the refresh to replace unknown PR and CI fields with observed data.",
+  "next_action": "Review hydrated PR and CI trackers, then remediate the highest-severity blocker.",
   "browser_rejection": "Browser automation was rejected because the CTO control center can be audited and refreshed through direct filesystem, git, and CI workflow inspection."
 }

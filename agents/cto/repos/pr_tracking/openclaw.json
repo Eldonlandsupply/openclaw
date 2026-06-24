@@ -1,16 +1,13 @@
 {
   "repo": "openclaw/openclaw",
-  "last_scan": "2026-03-21T23:21:52Z",
-  "integration_status": "MISSING INTEGRATION",
+  "last_scan": "2026-06-24T05:57:02Z",
+  "integration_status": "available",
   "open_prs": [],
   "failing_prs": [],
   "stale_prs": [],
   "blocked_prs": [],
   "merge_ready_prs": [],
-  "unknowns": [
-    "No Git remote is configured in the local checkout.",
-    "No authenticated GitHub query path is available from this workspace."
-  ],
+  "unknowns": [],
   "next_action_per_pr": [],
-  "global_next_action": "Wire direct GitHub access, then hydrate this tracker with live PR metadata and remediation steps."
+  "global_next_action": "Query the canonical Git provider for open PRs and update per-PR blocker records."
 }

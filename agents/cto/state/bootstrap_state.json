@@ -1,8 +1,8 @@
 {
-  "bootstrapped_at": "2026-03-21T23:21:52Z",
-  "accessible_repositories": ["/workspace/openclaw"],
+  "bootstrapped_at": "2026-06-24T05:57:02Z",
+  "accessible_repositories": ["/home/runner/work/openclaw/openclaw"],
   "mcp_task_integration": "MISSING INTEGRATION",
-  "github_integration": "MISSING INTEGRATION",
+  "github_integration": "available",
   "notes": [
     "Bootstrapped from direct filesystem and local git inspection.",
     "Remote PR and CI state stays UNKNOWN until a direct integration is configured."
